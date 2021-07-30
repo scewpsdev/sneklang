@@ -282,23 +282,8 @@ static AstExpression* ParseAtom(Parser* parser)
 	else if (NextTokenIs(parser, '('))
 	{
 		NextToken(parser); // (
-		if (AstType* castType = ParseType(parser))
-		{
-			if (NextTokenIs(parser, ')'))
-			{
-				NextToken(parser); // )
-				if (AstExpression* value = ParseExpression(parser))
-				{
-					auto expr = CreateAstExpression<AstCast>(parser->module, inputState, EXPR_KIND_CAST);
-					expr->value = value;
-					expr->castType = castType;
-					return expr;
-				}
-			}
-		}
 
-		SetInputState(parser, inputState);
-		if (AstExpression* compoundValue = ParseExpression(parser))
+		if (AstExpression* compoundValue = ParseExpression(parser)) // Compound
 		{
 			if (NextTokenIs(parser, ')'))
 			{
@@ -318,11 +303,164 @@ static AstExpression* ParseAtom(Parser* parser)
 	return NULL;
 }
 
+static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expression)
+{
+	InputState inputState = GetInputState(parser);
+
+	if (NextTokenIs(parser, '(')) // Function call
+	{
+		NextToken(parser); // (
+
+		List<AstExpression*> arguments;
+
+		bool upcomingDeclarator = !NextTokenIs(parser, ')');
+		while (HasNext(parser) && upcomingDeclarator)
+		{
+			if (AstExpression* argument = ParseExpression(parser))
+			{
+				ListAdd(arguments, argument);
+
+				upcomingDeclarator = NextTokenIs(parser, ',');
+			}
+			else
+			{
+				// TODO ERROR
+				SnekAssert(false, "");
+			}
+		}
+
+		SkipToken(parser, ')');
+
+		auto expr = CreateAstExpression<AstFuncCall>(parser->module, inputState, EXPR_KIND_FUNC_CALL);
+		expr->calleeExpr = expression;
+		expr->arguments = arguments;
+		return ParsePostfixOperator(parser, expr);
+	}
+	else if (NextTokenIs(parser, '[')) // Subscript operator
+	{
+		NextToken(parser); // [
+
+		List<AstExpression*> arguments;
+
+		bool upcomingDeclarator = !NextTokenIs(parser, ']');
+		while (HasNext(parser) && upcomingDeclarator)
+		{
+			if (AstExpression* argument = ParseExpression(parser))
+			{
+				ListAdd(arguments, argument);
+
+				upcomingDeclarator = NextTokenIs(parser, ',');
+			}
+			else
+			{
+				// TODO ERROR
+				SnekAssert(false, "");
+			}
+		}
+
+		SkipToken(parser, ']');
+
+		auto expr = CreateAstExpression<AstSubscriptOperator>(parser->module, inputState, EXPR_KIND_SUBSCRIPT_OPERATOR);
+		expr->operand = expression;
+		expr->arguments = arguments;
+		return ParsePostfixOperator(parser, expr);
+	}
+	else if (NextTokenIs(parser, '.')) // Dot operator
+	{
+		NextToken(parser); // .
+
+		char* name = GetTokenString(NextToken(parser));
+
+		auto expr = CreateAstExpression<AstDotOperator>(parser->module, inputState, EXPR_KIND_DOT_OPERATOR);
+		expr->operand = expression;
+		expr->name = name;
+		return expr;
+	}
+
+	return expression;
+}
+
+static AstExpression* ParsePrefixOperator(Parser* parser)
+{
+	if (NextTokenIs(parser, TOKEN_TYPE_OP_EXCLAMATION))
+	{
+		NextToken(parser); // !
+		if (AstExpression* operand= ParseAtom(parser))
+		{
+			operand = ParseArgumentOperator(parser, operand);
+
+			// TODO .
+		}
+		else
+		{
+			SnekAssert(false, "");
+			return NULL;
+		}
+	}
+	else
+	{
+		if (AstExpression* atom = ParseAtom(parser))
+		{
+			return ParseArgumentOperator(parser, atom);
+		}
+		else
+		{
+			SnekAssert(false, "");
+			return NULL;
+		}
+	}
+}
+
+static AstExpression* ParsePostfixOperator(Parser* parser, AstExpression* expression)
+{
+	return expression;
+}
+
+static AstExpression* ParseBasicExpression(Parser* parser)
+{
+	InputState inputState = GetInputState(parser);
+
+	if (NextTokenIs(parser, '('))
+	{
+		if (AstType* castType = ParseType(parser)) // Cast
+		{
+			if (NextTokenIs(parser, ')'))
+			{
+				NextToken(parser); // )
+				if (AstExpression* value = ParsePrefixOperator(parser))
+				{
+					value = ParsePostfixOperator(parser, value);
+
+					auto expr = CreateAstExpression<AstCast>(parser->module, inputState, EXPR_KIND_CAST);
+					expr->value = value;
+					expr->castType = castType;
+					return expr;
+				}
+			}
+		}
+	}
+
+	SetInputState(parser, inputState);
+	if (AstExpression* expr = ParsePrefixOperator(parser))
+	{
+		expr = ParsePostfixOperator(parser, expr);
+		return expr;
+	}
+
+	return NULL;
+}
+
+static AstExpression* ParseBinaryTernaryOperator(Parser* parser, AstExpression* expression)
+{
+	return expression;
+}
+
 static AstExpression* ParseExpression(Parser* parser)
 {
-	if (AstExpression* atom = ParseAtom(parser))
+	if (AstExpression* expr = ParseBasicExpression(parser))
 	{
-		return atom;
+		expr = ParseBinaryTernaryOperator(parser, expr);
+		return expr;
 	}
 
 	// TODO
@@ -355,8 +493,8 @@ static AstStatement* ParseStatement(Parser* parser)
 	else if (AstType* type = ParseType(parser))
 	{
 		List<AstVarDeclarator> declarators;
-		bool upcomingDeclarator = true;
 
+		bool upcomingDeclarator = true;
 		while (HasNext(parser) && upcomingDeclarator)
 		{
 			char* name = GetTokenString(NextToken(parser));
@@ -402,11 +540,13 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 			char* name = GetTokenString(NextToken(parser));
 			if (NextTokenIs(parser, '(')) // Function declaration
 			{
+				NextToken(parser); // (
+
 				List<AstType*> paramTypes;
 				List<char*> paramNames;
 
-				NextToken(parser); // (
-				while (HasNext(parser) && !NextTokenIs(parser, ')'))
+				bool upcomingDeclarator = !NextTokenIs(parser, ')');
+				while (HasNext(parser) && upcomingDeclarator)
 				{
 					if (AstType* paramType = ParseType(parser))
 					{
@@ -416,6 +556,8 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 
 							ListAdd(paramTypes, paramType);
 							ListAdd(paramNames, paramName);
+
+							upcomingDeclarator = NextTokenIs(parser, ',');
 						}
 						else
 						{
@@ -439,7 +581,7 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 					body = ParseStatement(parser);
 				}
 
-				AstFunctionDecl* decl = CreateAstDeclaration<AstFunctionDecl>(parser->module, inputState, DECL_KIND_FUNC);
+				AstFunction* decl = CreateAstDeclaration<AstFunction>(parser->module, inputState, DECL_KIND_FUNC);
 				decl->returnType = type;
 				decl->name = name;
 				decl->paramTypes = paramTypes;

@@ -144,6 +144,12 @@ enum AstBinaryOperatorType : uint8_t
 	BINARY_OPERATOR_REF_ASSIGN,
 };
 
+struct AstVariable
+{
+	char* name;
+	char* mangledName;
+};
+
 struct AstExpression : AstElement
 {
 	AstExpressionKind exprKind;
@@ -177,6 +183,9 @@ struct AstNullLiteral : AstExpression
 struct AstIdentifier : AstExpression
 {
 	char* name;
+
+	AstVariable* variable;
+	AstFunction* function;
 };
 
 struct AstCompoundExpression : AstExpression
@@ -196,7 +205,7 @@ struct AstFuncCall : AstExpression
 
 struct AstSubscriptOperator : AstExpression
 {
-	AstExpression* calleeExpr;
+	AstExpression* operand;
 	List<AstExpression*> arguments;
 };
 
@@ -282,7 +291,9 @@ struct AstCompoundStatement : AstStatement
 struct AstVarDeclarator
 {
 	char* name;
-	AstExpression* value = NULL;
+	AstExpression* value;
+
+	AstVariable* variable;
 };
 
 struct AstVarDeclStatement : AstStatement
@@ -314,7 +325,7 @@ struct AstDeclaration : AstElement
 	AstDeclarationKind declKind;
 };
 
-struct AstFunctionDecl : AstDeclaration
+struct AstFunction : AstDeclaration
 {
 	AstType* returnType;
 	char* name;
@@ -329,7 +340,7 @@ struct AstDeclarationStorage
 {
 	union
 	{
-		AstFunctionDecl funcDecl;
+		AstFunction funcDecl;
 	};
 };
 

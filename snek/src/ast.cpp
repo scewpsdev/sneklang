@@ -12,7 +12,10 @@ AstModule* CreateAst(char* name, int moduleID)
 
 	ast->blocks = CreateList<AstElementBlock*>();
 	ast->index = 0;
-	ListAdd(ast->blocks, (AstElementBlock*)malloc(sizeof(AstElementBlock)));
+
+	AstElementBlock* firstBlock = (AstElementBlock*)malloc(sizeof(AstElementBlock));
+	memset(firstBlock, 0, sizeof(AstElementBlock));
+	ListAdd(ast->blocks, firstBlock);
 
 	ast->declarations = CreateList<AstDeclaration*>();
 
@@ -28,6 +31,7 @@ static AstElement* CreateAstElement(AstModule* module, const InputState& inputSt
 	if (relativeIdx + size >= ELEMENT_BLOCK_SIZE)
 	{
 		AstElementBlock* newBlock = (AstElementBlock*)malloc(sizeof(AstElementBlock));
+		memset(newBlock, 0, sizeof(AstElementBlock));
 		ListAdd(module->blocks, newBlock);
 		block = newBlock;
 
@@ -37,8 +41,6 @@ static AstElement* CreateAstElement(AstModule* module, const InputState& inputSt
 
 	AstElement* element = (AstElement*)&block->elements[relativeIdx];
 	module->index = index + size;
-
-	memset(element, 0, size);
 
 	return element;
 }

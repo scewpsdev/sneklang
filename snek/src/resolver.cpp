@@ -48,6 +48,37 @@ static bool ResolveNullLiteral(Resolver* resolver, AstNullLiteral* expr)
 	return true;
 }
 
+static bool ResolveIdentifier(Resolver* resolver, AstIdentifier* expr)
+{
+	// TODO find variable or function
+	return true;
+}
+
+static bool ResolveCompoundExpression(Resolver* resolver, AstCompoundExpression* expr)
+{
+	return true;
+}
+
+static bool ResolveFuncCall(Resolver* resolver, AstFuncCall* expr)
+{
+	return true;
+}
+
+static bool ResolveSubscriptOperator(Resolver* resolver, AstSubscriptOperator* expr)
+{
+	return true;
+}
+
+static bool ResolveDotOperator(Resolver* resolver, AstDotOperator* expr)
+{
+	return true;
+}
+
+static bool ResolveCast(Resolver* resolver, AstCast* expr)
+{
+	return true;
+}
+
 static bool ResolveExpression(Resolver* resolver, AstExpression* expr)
 {
 	bool resolved = false;
@@ -69,6 +100,26 @@ static bool ResolveExpression(Resolver* resolver, AstExpression* expr)
 	case EXPR_KIND_NULL_LITERAL:
 		resolved = ResolveNullLiteral(resolver, (AstNullLiteral*)expr);
 		break;
+	case EXPR_KIND_IDENTIFIER:
+		resolved = ResolveIdentifier(resolver, (AstIdentifier*)expr);
+		break;
+	case EXPR_KIND_COMPOUND:
+		resolved = ResolveCompoundExpression(resolver, (AstCompoundExpression*)expr);
+		break;
+
+	case EXPR_KIND_FUNC_CALL:
+		resolved = ResolveFuncCall(resolver, (AstFuncCall*)expr);
+		break;
+	case EXPR_KIND_SUBSCRIPT_OPERATOR:
+		resolved = ResolveSubscriptOperator(resolver, (AstSubscriptOperator*)expr);
+		break;
+	case EXPR_KIND_DOT_OPERATOR:
+		resolved = ResolveDotOperator(resolver, (AstDotOperator*)expr);
+		break;
+	case EXPR_KIND_CAST:
+		resolved = ResolveCast(resolver, (AstCast*)expr);
+		break;
+
 	case EXPR_KIND_BINARY_OPERATOR:
 		resolved = ResolveBinaryOperation(resolver, (AstBinaryOperator*)expr);
 		break;
@@ -86,7 +137,7 @@ static bool ResolveExpression(Resolver* resolver, AstExpression* expr)
 	return resolved;
 }
 
-static void ResolveFunc(Resolver* resolver, AstFunctionDecl* decl)
+static void ResolveFunc(Resolver* resolver, AstFunction* decl)
 {
 	decl->mangledName = _strdup(decl->name);
 }
@@ -96,7 +147,7 @@ static void ResolveDeclaration(Resolver* resolver, AstDeclaration* decl)
 	switch (decl->declKind)
 	{
 	case DECL_KIND_FUNC:
-		ResolveFunc(resolver, (AstFunctionDecl*)decl);
+		ResolveFunc(resolver, (AstFunction*)decl);
 		break;
 
 	default:
