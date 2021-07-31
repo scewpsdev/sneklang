@@ -325,7 +325,7 @@ static Token readOperator(Lexer* lexer)
 	case '*': token.type = TOKEN_TYPE_OP_ASTERISK; break;
 	case '/': token.type = TOKEN_TYPE_OP_SLASH; break;
 	case '%': token.type = TOKEN_TYPE_OP_PERCENT; break;
-	case '&': token.type = TOKEN_TYPE_OP_AND; break;
+	case '&': token.type = TOKEN_TYPE_OP_AMPERSAND; break;
 	case '|': token.type = TOKEN_TYPE_OP_OR; break;
 	case '^': token.type = TOKEN_TYPE_OP_CARET; break;
 	case '?': token.type = TOKEN_TYPE_OP_QUESTION; break;

@@ -282,7 +282,7 @@ static void GenStatement(CBackend* cb, CModule* module, AstStatement* statement)
 	}
 }
 
-static void GenFuncDecl(CBackend* cb, CModule* module, AstFunctionDecl* decl)
+static void GenFuncDecl(CBackend* cb, CModule* module, AstFunction* decl)
 {
 	StringBuffer& buffer = module->buffer;
 
@@ -311,7 +311,7 @@ static void GenDeclaration(CBackend* cb, CModule* module, AstDeclaration* decl)
 	switch (decl->declKind)
 	{
 	case DECL_KIND_FUNC:
-		GenFuncDecl(cb, module, (AstFunctionDecl*)decl);
+		GenFuncDecl(cb, module, (AstFunction*)decl);
 		break;
 
 	default:

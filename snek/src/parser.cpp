@@ -43,14 +43,14 @@ static Token NextToken(Parser* parser)
 	return LexerNext(parser->lexer);
 }
 
-static Token PeekToken(Parser* parser)
+static Token PeekToken(Parser* parser, int offset = 0)
 {
-	return LexerPeek(parser->lexer);
+	return LexerPeek(parser->lexer, offset);
 }
 
-static bool NextTokenIs(Parser* parser, int tokenType)
+static bool NextTokenIs(Parser* parser, int tokenType, int offset = 0)
 {
-	return PeekToken(parser).type == tokenType;
+	return PeekToken(parser, offset).type == tokenType;
 }
 
 static bool NextTokenIsKeyword(Parser* parser, int keywordType)
@@ -182,7 +182,7 @@ static AstType* ParseType(Parser* parser)
 	return NULL;
 }
 
-static AstExpression* ParseExpression(Parser* parser);
+static AstExpression* ParseExpression(Parser* parser, int prec = 0);
 
 static AstExpression* ParseAtom(Parser* parser)
 {
@@ -334,7 +334,7 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 		auto expr = CreateAstExpression<AstFuncCall>(parser->module, inputState, EXPR_KIND_FUNC_CALL);
 		expr->calleeExpr = expression;
 		expr->arguments = arguments;
-		return ParsePostfixOperator(parser, expr);
+		return ParseArgumentOperator(parser, expr);
 	}
 	else if (NextTokenIs(parser, '[')) // Subscript operator
 	{
@@ -363,7 +363,7 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 		auto expr = CreateAstExpression<AstSubscriptOperator>(parser->module, inputState, EXPR_KIND_SUBSCRIPT_OPERATOR);
 		expr->operand = expression;
 		expr->arguments = arguments;
-		return ParsePostfixOperator(parser, expr);
+		return ParseArgumentOperator(parser, expr);
 	}
 	else if (NextTokenIs(parser, '.')) // Dot operator
 	{
@@ -374,22 +374,57 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 		auto expr = CreateAstExpression<AstDotOperator>(parser->module, inputState, EXPR_KIND_DOT_OPERATOR);
 		expr->operand = expression;
 		expr->name = name;
-		return expr;
+		return ParseArgumentOperator(parser, expr);
 	}
 
 	return expression;
 }
 
+static AstUnaryOperatorType ParsePrefixOperatorType(Parser* parser)
+{
+	InputState inputState = GetInputState(parser);
+
+	Token tok = NextToken(parser);
+	if (tok.type == TOKEN_TYPE_OP_EXCLAMATION)
+		return UNARY_OPERATOR_NOT;
+	else if (tok.type == TOKEN_TYPE_OP_MINUS)
+		return UNARY_OPERATOR_NEGATE;
+	else if (tok.type == TOKEN_TYPE_OP_AMPERSAND)
+		return UNARY_OPERATOR_REFERENCE;
+	else if (tok.type == TOKEN_TYPE_OP_ASTERISK)
+		return UNARY_OPERATOR_DEREFERENCE;
+	else if (tok.type == TOKEN_TYPE_OP_PLUS)
+	{
+		Token tok2 = NextToken(parser);
+		if (tok2.type == TOKEN_TYPE_OP_PLUS)
+			return UNARY_OPERATOR_INCREMENT;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_MINUS)
+	{
+		Token tok2 = NextToken(parser);
+		if (tok2.type == TOKEN_TYPE_OP_MINUS)
+			return UNARY_OPERATOR_DECREMENT;
+	}
+
+	SetInputState(parser, inputState);
+	return UNARY_OPERATOR_NULL;
+}
+
 static AstExpression* ParsePrefixOperator(Parser* parser)
 {
-	if (NextTokenIs(parser, TOKEN_TYPE_OP_EXCLAMATION))
+	InputState inputState = GetInputState(parser);
+
+	if (AstUnaryOperatorType operatorType = ParsePrefixOperatorType(parser))
 	{
-		NextToken(parser); // !
-		if (AstExpression* operand= ParseAtom(parser))
+		if (AstExpression* operand = ParseAtom(parser))
 		{
 			operand = ParseArgumentOperator(parser, operand);
 
-			// TODO .
+			auto expr = CreateAstExpression<AstUnaryOperator>(parser->module, inputState, EXPR_KIND_UNARY_OPERATOR);
+			expr->operand = operand;
+			expr->operatorType = operatorType;
+			expr->position = false;
+			return expr;
 		}
 		else
 		{
@@ -411,8 +446,40 @@ static AstExpression* ParsePrefixOperator(Parser* parser)
 	}
 }
 
+static AstUnaryOperatorType ParsePostfixOperatorType(Parser* parser)
+{
+	InputState inputState = GetInputState(parser);
+
+	Token tok = NextToken(parser);
+	if (tok.type == TOKEN_TYPE_OP_PLUS)
+	{
+		Token tok2 = NextToken(parser);
+		if (tok2.type == TOKEN_TYPE_OP_PLUS)
+			return UNARY_OPERATOR_INCREMENT;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_MINUS)
+	{
+		Token tok2 = NextToken(parser);
+		if (tok2.type == TOKEN_TYPE_OP_MINUS)
+			return UNARY_OPERATOR_DECREMENT;
+	}
+
+	SetInputState(parser, inputState);
+	return UNARY_OPERATOR_NULL;
+}
+
 static AstExpression* ParsePostfixOperator(Parser* parser, AstExpression* expression)
 {
+	InputState inputState = GetInputState(parser);
+
+	if (AstUnaryOperatorType operatorType = ParsePostfixOperatorType(parser))
+	{
+		auto expr = CreateAstExpression<AstUnaryOperator>(parser->module, inputState, EXPR_KIND_UNARY_OPERATOR);
+		expr->operand = expression;
+		expr->operatorType = operatorType;
+		expr->position = true;
+		return expr;
+	}
 	return expression;
 }
 
@@ -450,12 +517,253 @@ static AstExpression* ParseBasicExpression(Parser* parser)
 	return NULL;
 }
 
-static AstExpression* ParseBinaryTernaryOperator(Parser* parser, AstExpression* expression)
+static AstBinaryOperatorType ParseBinaryTernaryOperatorType(Parser* parser)
 {
+	InputState inputState = GetInputState(parser);
+
+	Token tok = NextToken(parser);
+	Token tok2 = PeekToken(parser);
+	if (tok.type == TOKEN_TYPE_OP_PLUS)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_ADD_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_ADD;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_MINUS)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_SUB_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_SUB;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_ASTERISK)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_MUL_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_MUL;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_SLASH)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_DIV_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_DIV;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_PERCENT)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_MOD_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_DIV;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_EQUALS)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_EQ;
+		}
+		else
+			return BINARY_OPERATOR_ASSIGN;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_LESS_THAN)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_LESS_THAN)
+		{
+			NextToken(parser); // <
+			Token tok3 = PeekToken(parser, 1);
+			if (tok3.type == TOKEN_TYPE_OP_EQUALS)
+			{
+				NextToken(parser); // =
+				return BINARY_OPERATOR_BITSHIFT_LEFT_ASSIGN;
+			}
+			else
+				return BINARY_OPERATOR_BITSHIFT_LEFT;
+		}
+		else
+			return BINARY_OPERATOR_LT;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_GREATER_THAN)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_GREATER_THAN)
+		{
+			NextToken(parser); // >
+			Token tok3 = PeekToken(parser, 1);
+			if (tok3.type == TOKEN_TYPE_OP_EQUALS)
+			{
+				NextToken(parser); // =
+				return BINARY_OPERATOR_BITSHIFT_RIGHT_ASSIGN;
+			}
+			else
+				return BINARY_OPERATOR_BITSHIFT_RIGHT;
+		}
+		return BINARY_OPERATOR_GT;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_AMPERSAND)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_AMPERSAND)
+		{
+			NextToken(parser); // &
+			return BINARY_OPERATOR_AND;
+		}
+		else if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_BITWISE_AND_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_BITWISE_AND;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_OR)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_OR)
+		{
+			NextToken(parser); // |
+			return BINARY_OPERATOR_OR;
+		}
+		else if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_BITWISE_OR_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_BITWISE_OR;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_CARET)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_BITWISE_XOR_ASSIGN;
+		}
+		else
+			return BINARY_OPERATOR_BITWISE_XOR;
+	}
+	else if (tok.type == TOKEN_TYPE_OP_EXCLAMATION)
+	{
+		if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_NE;
+		}
+	}
+	else if (tok.type == TOKEN_TYPE_OP_QUESTION)
+	{
+		return BINARY_OPERATOR_TERNARY;
+	}
+
+	SetInputState(parser, inputState);
+	return BINARY_OPERATOR_NULL;
+}
+
+static int GetBinaryOperatorPrecedence(AstBinaryOperatorType operatorType)
+{
+	switch (operatorType)
+	{
+	case BINARY_OPERATOR_MUL: return 3;
+	case BINARY_OPERATOR_DIV: return 3;
+	case BINARY_OPERATOR_MOD: return 3;
+	case BINARY_OPERATOR_ADD: return 4;
+	case BINARY_OPERATOR_SUB: return 4;
+
+	case BINARY_OPERATOR_BITSHIFT_LEFT: return 5;
+	case BINARY_OPERATOR_BITSHIFT_RIGHT: return 5;
+
+	case BINARY_OPERATOR_LT: return 6;
+	case BINARY_OPERATOR_GT: return 6;
+	case BINARY_OPERATOR_LE: return 6;
+	case BINARY_OPERATOR_GE: return 6;
+
+	case BINARY_OPERATOR_EQ: return 7;
+	case BINARY_OPERATOR_NE: return 7;
+
+	case BINARY_OPERATOR_BITWISE_AND: return 8;
+	case BINARY_OPERATOR_BITWISE_XOR: return 9;
+	case BINARY_OPERATOR_BITWISE_OR: return 10;
+	case BINARY_OPERATOR_AND: return 11;
+	case BINARY_OPERATOR_OR: return 12;
+
+	case BINARY_OPERATOR_TERNARY: return 13;
+
+	case BINARY_OPERATOR_ASSIGN: return 14;
+	case BINARY_OPERATOR_ADD_ASSIGN: return 14;
+	case BINARY_OPERATOR_SUB_ASSIGN: return 14;
+	case BINARY_OPERATOR_MUL_ASSIGN: return 14;
+	case BINARY_OPERATOR_DIV_ASSIGN: return 14;
+	case BINARY_OPERATOR_MOD_ASSIGN: return 14;
+	case BINARY_OPERATOR_BITSHIFT_LEFT_ASSIGN: return 14;
+	case BINARY_OPERATOR_BITSHIFT_RIGHT_ASSIGN: return 14;
+	case BINARY_OPERATOR_BITWISE_AND_ASSIGN: return 14;
+	case BINARY_OPERATOR_BITWISE_OR_ASSIGN: return 14;
+	case BINARY_OPERATOR_BITWISE_XOR_ASSIGN: return 14;
+	case BINARY_OPERATOR_REF_ASSIGN: return 14;
+
+	default: return INT32_MAX;
+	}
+}
+
+static AstExpression* ParseBinaryTernaryOperator(Parser* parser, AstExpression* expression, int prec = 0)
+{
+	InputState inputState = GetInputState(parser);
+
+	if (AstBinaryOperatorType operatorType = ParseBinaryTernaryOperatorType(parser))
+	{
+		int operatorPrec = GetBinaryOperatorPrecedence(operatorType);
+		if (operatorPrec < prec)
+		{
+			AstExpression* result = NULL;
+			if (operatorType == BINARY_OPERATOR_TERNARY)
+			{
+				AstExpression* thenValue = ParseExpression(parser);
+				SkipToken(parser, ':');
+				AstExpression* elseValue = ParseExpression(parser);
+
+				auto expr = CreateAstExpression<AstTernaryOperator>(parser->module, inputState, EXPR_KIND_TERNARY_OPERATOR);
+				expr->condition = expression;
+				expr->thenValue = thenValue;
+				expr->elseValue = elseValue;
+				result = expr;
+			}
+			else
+			{
+				AstExpression* left = expression;
+				AstExpression* right = ParseExpression(parser, operatorPrec);
+
+				auto expr = CreateAstExpression<AstBinaryOperator>(parser->module, inputState, EXPR_KIND_BINARY_OPERATOR);
+				expr->left = left;
+				expr->right = right;
+				expr->operatorType = operatorType;
+				result = expr;
+			}
+			return ParseBinaryTernaryOperator(parser, result, prec);
+		}
+		else
+		{
+			SetInputState(parser, inputState);
+		}
+	}
+
 	return expression;
 }
 
-static AstExpression* ParseExpression(Parser* parser)
+static AstExpression* ParseExpression(Parser* parser, int prec)
 {
 	if (AstExpression* expr = ParseBasicExpression(parser))
 	{

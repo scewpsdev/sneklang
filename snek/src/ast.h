@@ -142,6 +142,8 @@ enum AstBinaryOperatorType : uint8_t
 	BINARY_OPERATOR_BITWISE_OR_ASSIGN,
 	BINARY_OPERATOR_BITWISE_XOR_ASSIGN,
 	BINARY_OPERATOR_REF_ASSIGN,
+
+	BINARY_OPERATOR_TERNARY,
 };
 
 struct AstVariable
@@ -154,6 +156,8 @@ struct AstExpression : AstElement
 {
 	AstExpressionKind exprKind;
 	bool resolved;
+
+	AstType* type;
 };
 
 struct AstIntegerLiteral : AstExpression
@@ -182,6 +186,8 @@ struct AstNullLiteral : AstExpression
 
 struct AstIdentifier : AstExpression
 {
+	struct AstFunction;
+
 	char* name;
 
 	AstVariable* variable;
