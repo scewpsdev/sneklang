@@ -26,6 +26,83 @@ struct List
 			return this->buffer[0];
 		}
 	}
+
+	template<typename T>
+	void reserve(int newCapacity)
+	{
+		T* newBuffer = new T[newCapacity];
+		if (this->buffer)
+		{
+			int numCopiedElements = min(newCapacity, this->size);
+			memcpy(newBuffer, this->buffer, numCopiedElements * sizeof(T));
+			delete[] this->buffer;
+		}
+		this->buffer = newBuffer;
+		this->capacity = newCapacity;
+		this->size = min(this->size, newCapacity);
+	}
+
+	template<typename T>
+	void resize(int newSize)
+	{
+		if (newSize > this->capacity)
+		{
+			reserve(newSize);
+		}
+		this->size = newSize;
+	}
+
+	template<typename T>
+	void add(const T& t)
+	{
+		while (this->size + 1 > this->capacity)
+		{
+			reserve(this->capacity + max(this->capacity / 2, 1));
+		}
+		this->buffer[this->size++] = t;
+	}
+
+	template<typename T>
+	void removeAt(int idx)
+	{
+		if (idx < this->size)
+		{
+			for (int i = idx; i < this->size - 1; i++)
+			{
+				this->buffer[i] = this->buffer[i + 1];
+			}
+			this->size--;
+		}
+		else
+		{
+			__debugbreak();
+		}
+	}
+
+	template<typename T>
+	int indexOf(const T& t)
+	{
+		for (int i = 0; i < this->size; i++)
+		{
+			if (this->buffer[i] == t)
+				return i;
+		}
+		return -1;
+	}
+
+	template<typename T>
+	void remove(const T& t)
+	{
+		int idx = indexOf(t);
+		if (idx != -1)
+			removeAt(idx);
+	}
+
+	template<typename T>
+	void clear()
+	{
+		this->size = 0;
+	}
 };
 
 

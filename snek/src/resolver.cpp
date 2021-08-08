@@ -2,6 +2,8 @@
 
 #include "snek.h"
 #include "ast.h"
+#include "variable.h"
+#include "types.h"
 
 
 Resolver* CreateResolver(SkContext* context)
@@ -9,6 +11,8 @@ Resolver* CreateResolver(SkContext* context)
 	Resolver* resolver = new Resolver;
 
 	resolver->context = context;
+
+	InitTypeData(resolver);
 
 	return resolver;
 }
@@ -18,65 +22,156 @@ void DestroyResolver(Resolver* resolver)
 	delete resolver;
 }
 
+static bool ResolveType(Resolver* resolver, AstType* type)
+{
+	return true;
+}
+
 static bool ResolveIntegerLiteral(Resolver* resolver, AstIntegerLiteral* expr)
 {
+	expr->type = GetIntegerType(resolver, 0);
+	expr->lvalue = false;
 	return true;
 }
 
 static bool ResolveFPLiteral(Resolver* resolver, AstFPLiteral* expr)
 {
+	expr->type = GetFPType(resolver, 0);
+	expr->lvalue = false;
 	return true;
 }
 
 static bool ResolveBoolLiteral(Resolver* resolver, AstBoolLiteral* expr)
 {
-	return true;
-}
-
-static bool ResolveBinaryOperation(Resolver* resolver, AstBinaryOperator* expr)
-{
+	expr->type = GetBoolType(resolver);
+	expr->lvalue = false;
 	return true;
 }
 
 static bool ResolveCharacterLiteral(Resolver* resolver, AstCharacterLiteral* expr)
 {
+	expr->type = GetIntegerType(resolver, 8);
+	expr->lvalue = false;
 	return true;
 }
 
 static bool ResolveNullLiteral(Resolver* resolver, AstNullLiteral* expr)
 {
+	expr->type = GetIntegerType(resolver, 32);
+	expr->lvalue = false;
 	return true;
 }
 
 static bool ResolveIdentifier(Resolver* resolver, AstIdentifier* expr)
 {
-	// TODO find variable or function
-	return true;
+	if (AstVariable* variable = FindVariable(resolver, expr->name))
+	{
+		expr->type = variable->type;
+		expr->lvalue = true;
+		return true;
+	}
+	if (AstFunction* function = FindFunction(resolver, expr->name))
+	{
+		expr->type = function->type;
+		expr->lvalue = true;
+		return false;
+	}
+	return false;
 }
 
 static bool ResolveCompoundExpression(Resolver* resolver, AstCompoundExpression* expr)
 {
-	return true;
+	if (ResolveExpression(resolver, expr->value))
+	{
+		expr->type = expr->value->type;
+		expr->lvalue = expr->value->lvalue;
+		return true;
+	}
+	return false;
 }
 
 static bool ResolveFuncCall(Resolver* resolver, AstFuncCall* expr)
 {
-	return true;
+	if (expr->exprKind == EXPR_KIND_IDENTIFIER)
+	{
+		if (AstFunction* function = FindFunction(resolver, ((AstIdentifier*)expr)->name))
+		{
+			expr->func = function;
+			expr->type = function->returnType->typeID;
+			expr->lvalue = false;
+			return true;
+		}
+	}
+
+	if (ResolveExpression(resolver, expr->calleeExpr))
+	{
+		if (expr->calleeExpr->type->typeKind == TYPE_KIND_FUNCTION)
+		{
+			expr->type = expr->calleeExpr->type->functionType.returnType;
+			expr->lvalue = false;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 static bool ResolveSubscriptOperator(Resolver* resolver, AstSubscriptOperator* expr)
 {
-	return true;
+	if (ResolveExpression(resolver, expr->operand))
+	{
+		if (expr->operand->type->typeKind == TYPE_KIND_POINTER)
+		{
+			expr->type = expr->operand->type->pointerType.elementType;
+			expr->lvalue = true;
+			return true;
+		}
+	}
+	return false;
 }
 
 static bool ResolveDotOperator(Resolver* resolver, AstDotOperator* expr)
 {
-	return true;
+	if (ResolveExpression(resolver, expr->operand))
+	{
+		if (expr->operand->type->typeKind == TYPE_KIND_STRUCT)
+		{
+			for (int i = 0; i < expr->operand->type->structType.numMembers; i++)
+			{
+				TypeID memberType = expr->operand->type->structType.memberTypes[i];
+				const char* memberName = expr->operand->type->structType.memberNames[i];
+				if (strcmp(memberName, expr->name) == 0)
+				{
+					expr->type = memberType;
+					expr->lvalue = true;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 static bool ResolveCast(Resolver* resolver, AstCast* expr)
 {
-	return true;
+	if (ResolveType(resolver, expr->castType))
+	{
+		expr->type = expr->castType->typeID;
+		expr->lvalue = false;
+		return true;
+	}
+	return false;
+}
+
+static bool ResolveBinaryOperation(Resolver* resolver, AstBinaryOperator* expr)
+{
+	if (ResolveExpression(resolver, expr->left) && ResolveExpression(resolver, expr->right))
+	{
+		expr->type = expr->left->type;
+		expr->lvalue = false;
+		return true;
+	}
+	return false;
 }
 
 static bool ResolveExpression(Resolver* resolver, AstExpression* expr)

@@ -2,6 +2,7 @@
 
 #include "list.h"
 #include "input.h"
+#include "types.h"
 
 #include <new>
 
@@ -26,12 +27,16 @@ enum AstTypeKind : uint8_t
 	TYPE_KIND_INTEGER,
 	TYPE_KIND_FP,
 	TYPE_KIND_BOOL,
+	TYPE_KIND_STRUCT,
 	TYPE_KIND_POINTER,
+	TYPE_KIND_FUNCTION,
 };
 
 struct AstType : AstElement
 {
 	AstTypeKind typeKind;
+
+	TypeID typeID;
 };
 
 struct AstVoidType : AstType
@@ -150,6 +155,8 @@ struct AstVariable
 {
 	char* name;
 	char* mangledName;
+
+	TypeID type;
 };
 
 struct AstExpression : AstElement
@@ -157,7 +164,8 @@ struct AstExpression : AstElement
 	AstExpressionKind exprKind;
 	bool resolved;
 
-	AstType* type;
+	TypeID type;
+	bool lvalue;
 };
 
 struct AstIntegerLiteral : AstExpression
@@ -199,14 +207,14 @@ struct AstCompoundExpression : AstExpression
 	AstExpression* value;
 };
 
+struct AstFunction;
+
 struct AstFuncCall : AstExpression
 {
-	struct AstFunctionDecl;
-
 	AstExpression* calleeExpr;
 	List<AstExpression*> arguments;
 
-	AstFunctionDecl* func = NULL;
+	AstFunction* func = NULL;
 };
 
 struct AstSubscriptOperator : AstExpression
@@ -340,6 +348,7 @@ struct AstFunction : AstDeclaration
 	AstStatement* body;
 
 	char* mangledName;
+	TypeID type;
 };
 
 struct AstDeclarationStorage
