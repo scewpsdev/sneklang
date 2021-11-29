@@ -1,0 +1,81 @@
+module stdc.stdio;
+namespace stdio;
+
+
+public typedef fpos_t : int64;
+public typedef size_t : ulong;
+
+public struct FILE {
+	void* Placeholder;
+}
+
+public typedef va_list : char*;
+
+
+public const int _IOFBF = 0;
+public const int _IOLBF = 1;
+public const int _IONBF = 2;
+public const int BUFSIZ = 1024;
+public const int EOF = -1;
+public const int FOPEN_MAX = 20;
+public const int FILENAME_MAX = 1024;
+public const int L_tmpnam = 1024;
+public const int SEEK_SET = 0;
+public const int SEEK_CUR = 1;
+public const int SEEK_END = 2;
+public const int TMP_MAX = 26;
+
+public exprdef stdin = __acrt_iob_func(0);
+public exprdef stdout = __acrt_iob_func(1);
+public exprdef stderr = __acrt_iob_func(2);
+
+public extern FILE* __acrt_iob_func(uint Ix);
+
+
+public extern int remove(char* filename);
+public extern int rename(char* oldname, char* newname);
+public extern FILE* tmpfile();
+public extern char* tmpnam(char* str);
+
+public extern int fclose(FILE* stream);
+public extern int fflush(FILE* stream);
+public extern FILE* fopen(char* filename, char* mode);
+public extern FILE* freopen(char* filename, char* mode, FILE* stream);
+public extern void setbuf(FILE* stream, char* buffer);
+public extern int setvbuf(FILE* stream, char* buffer, int mode, size_t size);
+
+public extern int fprintf(FILE* stream, char* format, ...);
+public extern int fscanf(FILE* stream, char* format, ...);
+public extern int printf(char* format, ...);
+public extern int scanf(char* format, ...);
+public extern int sprintf(char* str, char* format, ...);
+public extern int sscanf(char* s, char* format, ...);
+public extern int vfprintf(FILE* strea, char* format, va_list arg);
+public extern int vprintf(char* format, va_list arg);
+public extern int vsprintf(char* s, char* format, va_list arg);
+
+public extern int fgetc(FILE* stream);
+public extern char* fgets(char* str, int num, FILE* stream);
+public extern int fputc(int character, FILE* stream);
+public extern int fputs(char* str, FILE* stream);
+public extern int getc(FILE* stream);
+public extern int getchar();
+public extern char* gets(char* str);
+public extern int putc(int character, FILE* stream);
+public extern int putchar(int character);
+public extern int puts(char* str);
+public extern int ungetc(int character, FILE* stream);
+
+public extern size_t fread(void* ptr, size_t size, size_t count, FILE* stream);
+public extern size_t fwrite(void* ptr, size_t size, size_t count, FILE* stream);
+
+public extern int fgetpos(FILE* stream, fpos_t* pos);
+public extern int fseek(FILE* stream, int offset, int origin);
+public extern int fsetpos(FILE* stream, fpos_t* pos);
+public extern int ftell(FILE* stream);
+public extern void rewind(FILE* stream);
+
+public void clearerr(FILE* stream);
+public extern int feof(FILE* stream);
+public extern int ferror(FILE* stream);
+public extern void perror(char* str);

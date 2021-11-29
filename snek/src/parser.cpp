@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "lexer.h"
 #include "log.h"
+#include "stringbuffer.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -14,6 +15,7 @@ Parser* CreateParser(SkContext* context)
 	Parser* parser = new Parser();
 
 	parser->context = context;
+	parser->failed = false;
 
 	return parser;
 }
@@ -59,16 +61,58 @@ static bool NextTokenIsKeyword(Parser* parser, int keywordType)
 	return tok.type == TOKEN_TYPE_IDENTIFIER && tok.keywordType == keywordType;
 }
 
-static void SkipToken(Parser* parser, int tokenType)
+static bool NextTokenIsKeyword(Parser* parser)
+{
+	Token tok = PeekToken(parser);
+	return tok.type == TOKEN_TYPE_IDENTIFIER && tok.keywordType != KEYWORD_TYPE_NULL;
+}
+
+static bool NextTokenIsIdentifier(Parser* parser, const char* name)
+{
+	Token tok = PeekToken(parser);
+	return tok.type == TOKEN_TYPE_IDENTIFIER && strlen(name) == tok.len && strncmp(tok.str, name, tok.len) == 0;
+}
+
+static void SkipWhitespace(Parser* parser)
+{
+	PeekToken(parser);
+}
+
+static bool SkipToken(Parser* parser, int tokenType)
 {
 	if (NextTokenIs(parser, tokenType))
+	{
 		NextToken(parser);
+		return true;
+	}
 	else
 	{
-		// TODO ERROR
-		SnekAssert(false, "");
+		Token tok = NextToken(parser);
+		SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_UNEXPECTED_TOKEN, "Expected token '%c'(%d), got '%.*s'", tokenType, tokenType, tok.len, tok.str);
+		parser->failed = true;
+		return false;
 	}
 }
+
+static void SkipPastToken(Parser* parser, int tokenType)
+{
+	while (!NextTokenIs(parser, tokenType) && HasNext(parser))
+	{
+		NextToken(parser);
+	}
+	NextToken(parser); // ;
+}
+
+static void SkipPastStatement(Parser* parser)
+{
+	while (!NextTokenIs(parser, ';') && !NextTokenIs(parser, '}') && HasNext(parser))
+	{
+		NextToken(parser);
+	}
+	NextToken(parser); // ;
+}
+
+static AstExpression* ParseExpression(Parser* parser, int prec = INT32_MAX);
 
 static AstType* ParseElementType(Parser* parser)
 {
@@ -155,11 +199,125 @@ static AstType* ParseElementType(Parser* parser)
 
 		case KEYWORD_TYPE_BOOL:
 			return CreateAstType<AstBoolType>(parser->module, inputState, TYPE_KIND_BOOL);
+
+		case KEYWORD_TYPE_STRING:
+			return CreateAstType<AstStringType>(parser->module, inputState, TYPE_KIND_STRING);
+
+		case KEYWORD_TYPE_NULL:
+		{
+			auto type = CreateAstType<AstNamedType>(parser->module, inputState, TYPE_KIND_NAMED_TYPE);
+			type->name = GetTokenString(tok);
+			return type;
+		}
 		}
 	}
 
 	SetInputState(parser, inputState);
 	return NULL;
+}
+
+static AstType* ParseType(Parser* parser);
+
+static AstType* ParseComplexType(Parser* parser, AstType* elementType)
+{
+	InputState inputState = elementType->inputState;
+
+	if (NextTokenIs(parser, TOKEN_TYPE_OP_ASTERISK))
+	{
+		NextToken(parser); // *
+
+		auto pointerType = CreateAstType<AstPointerType>(parser->module, inputState, TYPE_KIND_POINTER);
+		pointerType->elementType = elementType;
+
+		return ParseComplexType(parser, pointerType);
+	}
+	else if (NextTokenIs(parser, '['))
+	{
+		NextToken(parser); // [
+		AstExpression* length = NULL;
+		if (!NextTokenIs(parser, ']'))
+		{
+			length = ParseExpression(parser);
+		}
+		SkipToken(parser, ']');
+
+		auto arrayType = CreateAstType<AstArrayType>(parser->module, inputState, TYPE_KIND_ARRAY);
+		arrayType->elementType = elementType;
+		arrayType->length = length;
+
+		return ParseComplexType(parser, arrayType);
+	}
+
+	return elementType;
+}
+
+static AstType* ParseFunctionType(Parser* parser, AstType* elementType)
+{
+	InputState inputState = elementType->inputState;
+
+	if (NextTokenIs(parser, '('))
+	{
+		NextToken(parser); // (
+
+		List<AstType*> paramTypes = CreateList<AstType*>();
+		bool varArgs = false;
+
+		bool upcomingParamType = !NextTokenIs(parser, ')');
+		while (upcomingParamType)
+		{
+			if (NextTokenIs(parser, '.'))
+			{
+				if (SkipToken(parser, '.') && SkipToken(parser, '.') && SkipToken(parser, '.'))
+				{
+					varArgs = true;
+					upcomingParamType = false;
+				}
+				else
+				{
+					SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Variadic arguments need to be declared as '...'");
+					parser->failed = true;
+				}
+			}
+			else
+			{
+				if (AstType* paramType = ParseType(parser))
+				{
+					paramTypes.add(paramType);
+
+					if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+						NextToken(parser); // skip param names for function types for now
+
+					upcomingParamType = NextTokenIs(parser, ',');
+					if (upcomingParamType)
+						SkipToken(parser, ',');
+				}
+				else
+				{
+					DestroyList(paramTypes);
+					SetInputState(parser, inputState);
+					return NULL;
+				}
+			}
+		}
+
+		if (!NextTokenIs(parser, ')'))
+		{
+			DestroyList(paramTypes);
+			SetInputState(parser, inputState);
+			return NULL;
+		}
+
+		SkipToken(parser, ')');
+
+		auto functionType = CreateAstType<AstFunctionType>(parser->module, inputState, TYPE_KIND_FUNCTION);
+		functionType->returnType = elementType;
+		functionType->paramTypes = paramTypes;
+		functionType->varArgs = varArgs;
+
+		return ParseComplexType(parser, functionType);
+	}
+
+	return elementType;
 }
 
 static AstType* ParseType(Parser* parser)
@@ -168,21 +326,11 @@ static AstType* ParseType(Parser* parser)
 
 	if (AstType* elementType = ParseElementType(parser))
 	{
-		if (NextTokenIs(parser, TOKEN_TYPE_OP_ASTERISK))
-		{
-			NextToken(parser); // *
-
-			auto pointerType = CreateAstType<AstPointerType>(parser->module, inputState, TYPE_KIND_POINTER);
-			pointerType->elementType = elementType;
-			return pointerType;
-		}
-		return elementType;
+		return ParseFunctionType(parser, ParseComplexType(parser, elementType));
 	}
 
 	return NULL;
 }
-
-static AstExpression* ParseExpression(Parser* parser, int prec = 0);
 
 static AstExpression* ParseAtom(Parser* parser)
 {
@@ -190,8 +338,9 @@ static AstExpression* ParseAtom(Parser* parser)
 
 	if (NextTokenIs(parser, TOKEN_TYPE_INT_LITERAL))
 	{
-		char* str = GetTokenString(NextToken(parser));
-		unsigned long long value = atoll(str);
+		Token token = NextToken(parser);
+		char* str = GetTokenString(token);
+		int64_t value = strtoll(str, NULL, 0);
 		delete str;
 
 		auto expr = CreateAstExpression<AstIntegerLiteral>(parser->module, inputState, EXPR_KIND_INTEGER_LITERAL);
@@ -228,18 +377,14 @@ static AstExpression* ParseAtom(Parser* parser)
 				case '\'': c = '\''; break;
 				case '"': c = '"'; break;
 				default:
-					//PARSER_ERROR(parser, "Unknown escape character '\\%c'", token.str[i]);
-					// TODO ERROR
-					SnekAssert(false, "");
+					SnekWarn(parser->context, parser->lexer->input.state, ERROR_CODE_INVALID_LITERAL, "Undefined escape character '\\%c'", tok.str[i]);
 					break;
 				}
 			}
 			value = c;
 
 			if (i < tok.len - 1) {
-				//PARSER_ERROR(parser, "Character literal must be of length 1");
-				// TODO ERROR
-				SnekAssert(false, "");
+				SnekWarn(parser->context, parser->lexer->input.state, ERROR_CODE_INVALID_LITERAL, "Invalid character literal length: %d", tok.len - i);
 			}
 			break;
 		}
@@ -271,6 +416,35 @@ static AstExpression* ParseAtom(Parser* parser)
 
 		return CreateAstExpression<AstNullLiteral>(parser->module, inputState, EXPR_KIND_NULL_LITERAL);
 	}
+	else if (NextTokenIs(parser, TOKEN_TYPE_STRING_LITERAL))
+	{
+		Token token = NextToken(parser);
+		StringBuffer buffer = CreateStringBuffer(8);
+		for (int i = 0; i < token.len; i++)
+		{
+			char c = token.str[i];
+			if (c == '\\')
+			{
+				switch (token.str[++i])
+				{
+				case 'n': c = '\n'; break;
+				case 'r': c = '\r'; break;
+				case 't': c = '\t'; break;
+				case '\\': c = '\\'; break;
+				case '0': c = '\0'; break;
+				default:
+					SnekWarn(parser->context, parser->lexer->input.state, ERROR_CODE_INVALID_LITERAL, "Undefined escape character '\\%c'", token.str[i]);
+					break;
+				}
+			}
+			buffer << c;
+		}
+
+		auto expr = CreateAstExpression<AstStringLiteral>(parser->module, inputState, EXPR_KIND_STRING_LITERAL);
+		expr->value = buffer.buffer;
+		expr->length = buffer.length;
+		return expr;
+	}
 	else if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
 	{
 		char* name = GetTokenString(NextToken(parser));
@@ -293,11 +467,21 @@ static AstExpression* ParseAtom(Parser* parser)
 				expr->value = compoundValue;
 				return expr;
 			}
+			else
+			{
+				Token tok = NextToken(parser);
+				SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_UNEXPECTED_TOKEN, "Expected ')': %.*s", tok.len, tok.str);
+				parser->failed = true;
+				return NULL;
+			}
 		}
-
-		// TODO ERROR
-		SnekAssert(false, "");
-		return NULL;
+		else
+		{
+			Token tok = NextToken(parser);
+			SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_EXPRESSION_EXPECTED, "Expected an expression: %.*s", tok.len, tok.str);
+			parser->failed = true;
+			return NULL;
+		}
 	}
 
 	return NULL;
@@ -311,21 +495,22 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 	{
 		NextToken(parser); // (
 
-		List<AstExpression*> arguments;
+		List<AstExpression*> arguments = CreateList<AstExpression*>();
 
 		bool upcomingDeclarator = !NextTokenIs(parser, ')');
 		while (HasNext(parser) && upcomingDeclarator)
 		{
 			if (AstExpression* argument = ParseExpression(parser))
 			{
-				ListAdd(arguments, argument);
+				arguments.add(argument);
 
 				upcomingDeclarator = NextTokenIs(parser, ',');
+				if (upcomingDeclarator)
+					SkipToken(parser, ',');
 			}
 			else
 			{
-				// TODO ERROR
-				SnekAssert(false, "");
+				SnekAssert(false);
 			}
 		}
 
@@ -347,14 +532,15 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 		{
 			if (AstExpression* argument = ParseExpression(parser))
 			{
-				ListAdd(arguments, argument);
+				arguments.add(argument);
 
 				upcomingDeclarator = NextTokenIs(parser, ',');
 			}
 			else
 			{
-				// TODO ERROR
-				SnekAssert(false, "");
+				Token tok = NextToken(parser);
+				SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_EXPRESSION_EXPECTED, "Expected an expression: %.*s", tok.len, tok.str);
+				parser->failed = true;
 			}
 		}
 
@@ -428,7 +614,6 @@ static AstExpression* ParsePrefixOperator(Parser* parser)
 		}
 		else
 		{
-			SnekAssert(false, "");
 			return NULL;
 		}
 	}
@@ -440,7 +625,6 @@ static AstExpression* ParsePrefixOperator(Parser* parser)
 		}
 		else
 		{
-			SnekAssert(false, "");
 			return NULL;
 		}
 	}
@@ -487,8 +671,40 @@ static AstExpression* ParseBasicExpression(Parser* parser)
 {
 	InputState inputState = GetInputState(parser);
 
+	if (AstType* type = ParseElementType(parser))
+	{
+		if (NextTokenIs(parser, '{'))
+		{
+			NextToken(parser); // {
+
+			List<AstExpression*> values = CreateList<AstExpression*>();
+
+			bool upcomingValue = !NextTokenIs(parser, '}');
+			while (upcomingValue && HasNext(parser))
+			{
+				AstExpression* value = ParseExpression(parser);
+				values.add(value);
+
+				upcomingValue = NextTokenIs(parser, ',');
+				if (upcomingValue)
+					NextToken(parser); // ,
+			}
+
+			SkipToken(parser, '}');
+
+			auto expr = CreateAstExpression<AstStructLiteral>(parser->module, inputState, EXPR_KIND_STRUCT_LITERAL);
+			expr->structType = type;
+			expr->values = values;
+			return expr;
+		}
+		else
+		{
+			SetInputState(parser, inputState);
+		}
+	}
 	if (NextTokenIs(parser, '('))
 	{
+		NextToken(parser); // (
 		if (AstType* castType = ParseType(parser)) // Cast
 		{
 			if (NextTokenIs(parser, ')'))
@@ -496,15 +712,76 @@ static AstExpression* ParseBasicExpression(Parser* parser)
 				NextToken(parser); // )
 				if (AstExpression* value = ParsePrefixOperator(parser))
 				{
-					value = ParsePostfixOperator(parser, value);
-
-					auto expr = CreateAstExpression<AstCast>(parser->module, inputState, EXPR_KIND_CAST);
-					expr->value = value;
-					expr->castType = castType;
-					return expr;
+					if (value = ParsePostfixOperator(parser, value))
+					{
+						auto expr = CreateAstExpression<AstCast>(parser->module, inputState, EXPR_KIND_CAST);
+						expr->value = value;
+						expr->castType = castType;
+						return expr;
+					}
 				}
 			}
 		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_SIZEOF))
+	{
+		NextToken(parser); // sizeof
+
+		AstType* sizedType = ParseType(parser);
+
+		auto expr = CreateAstExpression<AstSizeof>(parser->module, inputState, EXPR_KIND_SIZEOF);
+		expr->sizedType = sizedType;
+		return expr;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_MALLOC))
+	{
+		NextToken(parser); // malloc
+
+		AstType* type = ParseComplexType(parser, ParseElementType(parser));
+		AstExpression* count = NULL;
+		bool hasArguments = false;
+		List<AstExpression*> arguments = CreateList<AstExpression*>();
+
+		if (NextTokenIs(parser, '('))
+		{
+			NextToken(parser); // (
+
+			hasArguments = true;
+
+			bool upcomingDeclarator = !NextTokenIs(parser, ')');
+			while (HasNext(parser) && upcomingDeclarator)
+			{
+				if (AstExpression* argument = ParseExpression(parser))
+				{
+					arguments.add(argument);
+
+					upcomingDeclarator = NextTokenIs(parser, ',');
+					if (upcomingDeclarator)
+						SkipToken(parser, ',');
+				}
+				else
+				{
+					Token tok = NextToken(parser);
+					SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_EXPRESSION_EXPECTED, "Expected an expression: %.*s", tok.len, tok.str);
+					parser->failed = true;
+				}
+			}
+
+			SkipToken(parser, ')');
+		}
+
+		if (NextTokenIs(parser, ':'))
+		{
+			NextToken(parser); // :
+			count = ParseExpression(parser);
+		}
+
+		auto expr = CreateAstExpression<AstMalloc>(parser->module, inputState, EXPR_KIND_MALLOC);
+		expr->mallocType = type;
+		expr->count = count;
+		expr->hasArguments = hasArguments;
+		expr->arguments = arguments;
+		return expr;
 	}
 
 	SetInputState(parser, inputState);
@@ -571,7 +848,7 @@ static AstBinaryOperatorType ParseBinaryTernaryOperatorType(Parser* parser)
 			return BINARY_OPERATOR_MOD_ASSIGN;
 		}
 		else
-			return BINARY_OPERATOR_DIV;
+			return BINARY_OPERATOR_MOD;
 	}
 	else if (tok.type == TOKEN_TYPE_OP_EQUALS)
 	{
@@ -595,10 +872,19 @@ static AstBinaryOperatorType ParseBinaryTernaryOperatorType(Parser* parser)
 				return BINARY_OPERATOR_BITSHIFT_LEFT_ASSIGN;
 			}
 			else
+			{
 				return BINARY_OPERATOR_BITSHIFT_LEFT;
+			}
+		}
+		else if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_LE;
 		}
 		else
+		{
 			return BINARY_OPERATOR_LT;
+		}
 	}
 	else if (tok.type == TOKEN_TYPE_OP_GREATER_THAN)
 	{
@@ -612,9 +898,19 @@ static AstBinaryOperatorType ParseBinaryTernaryOperatorType(Parser* parser)
 				return BINARY_OPERATOR_BITSHIFT_RIGHT_ASSIGN;
 			}
 			else
+			{
 				return BINARY_OPERATOR_BITSHIFT_RIGHT;
+			}
 		}
-		return BINARY_OPERATOR_GT;
+		else if (tok2.type == TOKEN_TYPE_OP_EQUALS)
+		{
+			NextToken(parser); // =
+			return BINARY_OPERATOR_GE;
+		}
+		else
+		{
+			return BINARY_OPERATOR_GT;
+		}
 	}
 	else if (tok.type == TOKEN_TYPE_OP_AMPERSAND)
 	{
@@ -719,7 +1015,7 @@ static int GetBinaryOperatorPrecedence(AstBinaryOperatorType operatorType)
 	}
 }
 
-static AstExpression* ParseBinaryTernaryOperator(Parser* parser, AstExpression* expression, int prec = 0)
+static AstExpression* ParseBinaryTernaryOperator(Parser* parser, AstExpression* expression, int prec = INT32_MAX)
 {
 	InputState inputState = GetInputState(parser);
 
@@ -767,20 +1063,30 @@ static AstExpression* ParseExpression(Parser* parser, int prec)
 {
 	if (AstExpression* expr = ParseBasicExpression(parser))
 	{
-		expr = ParseBinaryTernaryOperator(parser, expr);
+		expr = ParseBinaryTernaryOperator(parser, expr, prec);
 		return expr;
 	}
 
-	// TODO
-	SnekAssert(false, "");
+	Token tok = NextToken(parser);
+	SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_EXPRESSION_EXPECTED, "Expected an expression: %.*s", tok.len, tok.str);
+	SkipPastStatement(parser);
+	parser->failed = true;
 	return NULL;
 }
 
 static AstStatement* ParseStatement(Parser* parser)
 {
+	SkipWhitespace(parser);
 	InputState inputState = GetInputState(parser);
 
-	if (NextTokenIs(parser, '{'))
+	if (NextTokenIs(parser, ';'))
+	{
+		NextToken(parser); // ;
+
+		AstNoOpStatement* statement = CreateAstStatement<AstNoOpStatement>(parser->module, inputState, STATEMENT_KIND_NO_OP);
+		return statement;
+	}
+	else if (NextTokenIs(parser, '{'))
 	{
 		NextToken(parser); // {
 
@@ -789,7 +1095,7 @@ static AstStatement* ParseStatement(Parser* parser)
 		while (HasNext(parser) && !NextTokenIs(parser, '}'))
 		{
 			AstStatement* statement = ParseStatement(parser);
-			ListAdd(statements, statement);
+			statements.add(statement);
 		}
 
 		NextToken(parser); // }
@@ -798,42 +1104,189 @@ static AstStatement* ParseStatement(Parser* parser)
 		statement->statements = statements;
 		return statement;
 	}
-	else if (AstType* type = ParseType(parser))
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_IF))
 	{
-		List<AstVarDeclarator> declarators;
+		NextToken(parser); // if
 
-		bool upcomingDeclarator = true;
-		while (HasNext(parser) && upcomingDeclarator)
+		SkipToken(parser, '(');
+		AstExpression* condition = ParseExpression(parser);
+		SkipToken(parser, ')');
+
+		AstStatement* thenStatement = ParseStatement(parser);
+		AstStatement* elseStatement = NULL;
+
+		if (NextTokenIsKeyword(parser, KEYWORD_TYPE_ELSE))
 		{
-			char* name = GetTokenString(NextToken(parser));
-			AstExpression* value = NULL;
+			NextToken(parser); // else
+			elseStatement = ParseStatement(parser);
+		}
 
-			if (NextTokenIs(parser, TOKEN_TYPE_OP_EQUALS))
+		auto statement = CreateAstStatement<AstIfStatement>(parser->module, inputState, STATEMENT_KIND_IF);
+		statement->condition = condition;
+		statement->thenStatement = thenStatement;
+		statement->elseStatement = elseStatement;
+		return statement;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_WHILE))
+	{
+		NextToken(parser); // while
+
+		SkipToken(parser, '(');
+		AstExpression* condition = ParseExpression(parser);
+		SkipToken(parser, ')');
+
+		AstStatement* body = ParseStatement(parser);
+
+		auto statement = CreateAstStatement<AstWhileLoop>(parser->module, inputState, STATEMENT_KIND_WHILE);
+		statement->condition = condition;
+		statement->body = body;
+		return statement;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_FOR))
+	{
+		NextToken(parser); // for
+
+		if (SkipToken(parser, '('))
+		{
+			if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
 			{
-				NextToken(parser); // =
-				value = ParseExpression(parser);
+				char* iteratorName = GetTokenString(NextToken(parser));
+				SkipToken(parser, ',');
+				AstExpression* startValue = ParseExpression(parser);
+				SkipToken(parser, ',');
+				AstExpression* endValue = ParseExpression(parser);
+				AstExpression* deltaValue = NULL;
+				if (NextTokenIs(parser, ','))
+				{
+					NextToken(parser); // ,
+					deltaValue = ParseExpression(parser);
+				}
+				SkipToken(parser, ')');
+
+				AstStatement* body = ParseStatement(parser);
+
+				auto statement = CreateAstStatement<AstForLoop>(parser->module, inputState, STATEMENT_KIND_FOR);
+				statement->iteratorName = iteratorName;
+				statement->startValue = startValue;
+				statement->endValue = endValue;
+				statement->deltaValue = deltaValue;
+				statement->body = body;
+				return statement;
 			}
+			else
+			{
+				SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FOR_LOOP_SYNTAX, "Expected an iterator name after 'for'");
+				parser->failed = true;
+			}
+		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_BREAK))
+	{
+		NextToken(parser); // break
+		SkipToken(parser, ';');
 
-			upcomingDeclarator = NextTokenIs(parser, ',');
+		auto statement = CreateAstStatement<AstBreak>(parser->module, inputState, STATEMENT_KIND_BREAK);
+		return statement;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_CONTINUE))
+	{
+		NextToken(parser); // continue
+		SkipToken(parser, ';');
 
-			AstVarDeclarator declarator;
-			declarator.name = name;
-			declarator.value = value;
+		auto statement = CreateAstStatement<AstContinue>(parser->module, inputState, STATEMENT_KIND_CONTINUE);
+		return statement;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_RETURN))
+	{
+		NextToken(parser); // return
 
-			ListAdd(declarators, declarator);
+		AstExpression* value = NULL;
+		if (!NextTokenIs(parser, ';'))
+			value = ParseExpression(parser);
+
+		SkipToken(parser, ';');
+
+		auto statement = CreateAstStatement<AstReturn>(parser->module, inputState, STATEMENT_KIND_RETURN);
+		statement->value = value;
+		return statement;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_FREE))
+	{
+		NextToken(parser); // free
+
+		List<AstExpression*> values = CreateList<AstExpression*>();
+
+		bool upcomingValue = true;
+		while (HasNext(parser) && upcomingValue)
+		{
+			AstExpression* value = ParseExpression(parser);
+			values.add(value);
+
+			upcomingValue = NextTokenIs(parser, ',');
+			if (upcomingValue)
+				SkipToken(parser, ',');
 		}
 
 		SkipToken(parser, ';');
 
-		AstVarDeclStatement* statement = CreateAstStatement<AstVarDeclStatement>(parser->module, inputState, STATEMENT_KIND_VAR_DECL);
-		statement->type = type;
-		statement->declarators = declarators;
+		auto statement = CreateAstStatement<AstFree>(parser->module, inputState, STATEMENT_KIND_FREE);
+		statement->values = values;
+		return statement;
+	}
+	else if (AstType* type = ParseType(parser))
+	{
+		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+		{
+			List<AstVarDeclarator> declarators = CreateList<AstVarDeclarator>();
+
+			bool upcomingDeclarator = true;
+			while (HasNext(parser) && upcomingDeclarator)
+			{
+				char* name = GetTokenString(NextToken(parser));
+				AstExpression* value = NULL;
+
+				if (NextTokenIs(parser, TOKEN_TYPE_OP_EQUALS))
+				{
+					NextToken(parser); // =
+					value = ParseExpression(parser);
+				}
+
+				upcomingDeclarator = NextTokenIs(parser, ',');
+				if (upcomingDeclarator)
+					SkipToken(parser, ',');
+
+				AstVarDeclarator declarator = {};
+				declarator.name = name;
+				declarator.value = value;
+
+				declarators.add(declarator);
+			}
+
+			SkipToken(parser, ';');
+
+			AstVarDeclStatement* statement = CreateAstStatement<AstVarDeclStatement>(parser->module, inputState, STATEMENT_KIND_VAR_DECL);
+			statement->type = type;
+			statement->isConstant = false;
+			statement->declarators = declarators;
+
+			return statement;
+		}
+		else
+		{
+			SetInputState(parser, inputState);
+		}
+	}
+	if (AstExpression* expression = ParseExpression(parser))
+	{
+		SkipToken(parser, ';');
+
+		AstExprStatement* statement = CreateAstStatement<AstExprStatement>(parser->module, inputState, STATEMENT_KIND_EXPR);
+		statement->expr = expression;
 
 		return statement;
 	}
 
-	// TODO
-	SnekAssert(false, "");
+	SkipPastStatement(parser);
 	return NULL;
 }
 
@@ -841,7 +1294,575 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 {
 	InputState inputState = GetInputState(parser);
 
-	if (AstType* type = ParseType(parser))
+	uint32_t flags = DECL_FLAG_NONE;
+
+	while (NextTokenIsKeyword(parser) && HasNext(parser))
+	{
+		if (NextTokenIsKeyword(parser, KEYWORD_TYPE_EXTERN))
+		{
+			NextToken(parser); // extern
+			flags |= DECL_FLAG_EXTERN;
+		}
+		else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_DLLEXPORT))
+		{
+			NextToken(parser); // dllexport
+			flags |= DECL_FLAG_LINKAGE_DLLEXPORT;
+		}
+		else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_DLLIMPORT))
+		{
+			NextToken(parser); // dllimport
+			flags |= DECL_FLAG_LINKAGE_DLLIMPORT;
+		}
+		else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_CONSTANT))
+		{
+			NextToken(parser); // const
+			flags |= DECL_FLAG_CONSTANT;
+		}
+		else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_PUBLIC))
+		{
+			NextToken(parser); // public
+			flags |= DECL_FLAG_VISIBILITY_PUBLIC;
+		}
+		else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_PRIVATE))
+		{
+			NextToken(parser); // private
+			flags |= DECL_FLAG_VISIBILITY_PRIVATE;
+		}
+		else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_PACKED))
+		{
+			NextToken(parser); // packed
+			flags |= DECL_FLAG_PACKED;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (NextTokenIsKeyword(parser, KEYWORD_TYPE_STRUCT))
+	{
+		NextToken(parser); // struct
+		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+		{
+			char* name = GetTokenString(NextToken(parser));
+			bool hasBody = false;
+			List<AstStructField> fields = CreateList<AstStructField>();
+
+			if (NextTokenIs(parser, '{'))
+			{
+				NextToken(parser); // {
+
+				hasBody = true;
+
+				bool upcomingMember = !NextTokenIs(parser, '}');
+				while (HasNext(parser) && upcomingMember)
+				{
+					InputState fieldInputState = GetInputState(parser);
+					if (AstType* type = ParseType(parser))
+					{
+						bool upcomingField = true;
+
+						while (upcomingField && HasNext(parser))
+						{
+							if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+							{
+								char* name = GetTokenString(NextToken(parser));
+								AstStructField field = {};
+								field.inputState = fieldInputState;
+								field.type = type;
+								field.name = name;
+								field.index = fields.size;
+								fields.add(field);
+							}
+							else
+							{
+								Token tok = NextToken(parser);
+								SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_STRUCT_SYNTAX, "Expected a field name: %.*s", tok.len, tok.str);
+								SkipPastToken(parser, ';');
+								parser->failed = true;
+								break;
+							}
+
+							upcomingField = NextTokenIs(parser, ',');
+							if (upcomingField)
+							{
+								NextToken(parser); // ,
+								type = CopyType(type, parser->module);
+							}
+						}
+					}
+					else
+					{
+						Token tok = NextToken(parser);
+						SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_STRUCT_SYNTAX, "Expected a type: %.*s", tok.len, tok.str);
+						SkipPastToken(parser, ';');
+						parser->failed = true;
+					}
+
+					SkipToken(parser, ';');
+
+					upcomingMember = !NextTokenIs(parser, '}');
+				}
+				SkipToken(parser, '}');
+			}
+			else
+			{
+				SkipToken(parser, ';');
+			}
+
+			auto decl = CreateAstDeclaration<AstStruct>(parser->module, inputState, DECL_KIND_STRUCT);
+			decl->flags = flags;
+			decl->name = name;
+			decl->hasBody = hasBody;
+			decl->fields = fields;
+			return decl;
+		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_CLASS))
+	{
+		NextToken(parser); // class
+		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+		{
+			char* className = GetTokenString(NextToken(parser));
+			List<AstClassField> fields = CreateList<AstClassField>();
+			List<AstFunction*> methods = CreateList<AstFunction*>();
+			AstFunction* constructor = NULL;
+
+			if (NextTokenIs(parser, '{'))
+			{
+				NextToken(parser); // {
+
+				bool upcomingMember = !NextTokenIs(parser, '}');
+				while (HasNext(parser) && upcomingMember)
+				{
+					InputState memberInputState = GetInputState(parser);
+
+					if (AstType* type = ParseType(parser))
+					{
+						if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+						{
+							char* name = GetTokenString(NextToken(parser));
+
+							if (NextTokenIs(parser, '('))
+							{
+								NextToken(parser); // (
+
+								List<AstType*> paramTypes;
+								List<char*> paramNames;
+								bool varArgs = false;
+
+								bool upcomingDeclarator = !NextTokenIs(parser, ')');
+								while (HasNext(parser) && upcomingDeclarator)
+								{
+									if (NextTokenIs(parser, '.'))
+									{
+										if (SkipToken(parser, '.') && SkipToken(parser, '.') && SkipToken(parser, '.'))
+										{
+											varArgs = true;
+											upcomingDeclarator = false;
+										}
+										else
+										{
+											SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Variadic arguments need to be declared as '...'");
+											parser->failed = true;
+										}
+									}
+									else if (AstType* paramType = ParseType(parser))
+									{
+										if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+										{
+											char* paramName = GetTokenString(NextToken(parser));
+
+											paramTypes.add(paramType);
+											paramNames.add(paramName);
+
+											upcomingDeclarator = NextTokenIs(parser, ',');
+											if (upcomingDeclarator)
+												SkipToken(parser, ',');
+										}
+										else
+										{
+											SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Function parameter declaration needs a name");
+											parser->failed = true;
+										}
+									}
+									else
+									{
+										Token tok = NextToken(parser);
+										SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_UNEXPECTED_TOKEN, "Unexpected token: %.*s", tok.len, tok.str);
+										parser->failed = true;
+									}
+								}
+
+								SkipToken(parser, ')');
+
+								AstStatement* body = NULL;
+
+								if (NextTokenIs(parser, ';'))
+								{
+									NextToken(parser); // ;
+								}
+								else
+								{
+									body = ParseStatement(parser);
+								}
+
+								InputState endInputState = GetInputState(parser);
+
+								AstFunction* method = CreateAstDeclaration<AstFunction>(parser->module, inputState, DECL_KIND_CLASS_METHOD);
+								method->name = name;
+								method->returnType = type;
+								method->paramTypes = paramTypes;
+								method->paramNames = paramNames;
+								method->varArgs = varArgs;
+								method->body = body;
+								method->endInputState = endInputState;
+
+								methods.add(method);
+							}
+							else
+							{
+								bool upcomingField = true;
+
+								while (upcomingField && HasNext(parser))
+								{
+									AstClassField field = {};
+									field.inputState = memberInputState;
+									field.type = type;
+									field.name = name;
+									field.index = fields.size;
+									fields.add(field);
+
+									upcomingField = NextTokenIs(parser, ',');
+									if (upcomingField)
+									{
+										NextToken(parser); // ,
+										name = GetTokenString(NextToken(parser));
+										type = CopyType(type, parser->module);
+									}
+								}
+
+								SkipToken(parser, ';');
+							}
+						}
+						else
+						{
+							if (type->typeKind == TYPE_KIND_FUNCTION && ((AstFunctionType*)type)->returnType->typeKind == TYPE_KIND_NAMED_TYPE && strcmp(((AstNamedType*)((AstFunctionType*)type)->returnType)->name, className) == 0)
+							{
+								SetInputState(parser, memberInputState);
+
+								// Constructor declaration
+
+								NextToken(parser); // class name
+								SkipToken(parser, '(');
+
+								List<AstType*> paramTypes;
+								List<char*> paramNames;
+								bool varArgs = false;
+
+								bool upcomingDeclarator = !NextTokenIs(parser, ')');
+								while (HasNext(parser) && upcomingDeclarator)
+								{
+									if (NextTokenIs(parser, '.'))
+									{
+										if (SkipToken(parser, '.') && SkipToken(parser, '.') && SkipToken(parser, '.'))
+										{
+											varArgs = true;
+											upcomingDeclarator = false;
+										}
+										else
+										{
+											SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Variadic arguments need to be declared as '...'");
+											parser->failed = true;
+										}
+									}
+									else if (AstType* paramType = ParseType(parser))
+									{
+										if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+										{
+											char* paramName = GetTokenString(NextToken(parser));
+
+											paramTypes.add(paramType);
+											paramNames.add(paramName);
+
+											upcomingDeclarator = NextTokenIs(parser, ',');
+											if (upcomingDeclarator)
+												SkipToken(parser, ',');
+										}
+										else
+										{
+											SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Function parameter declaration needs a name");
+											parser->failed = true;
+										}
+									}
+									else
+									{
+										Token tok = NextToken(parser);
+										SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_UNEXPECTED_TOKEN, "Unexpected token: %.*s", tok.len, tok.str);
+										parser->failed = true;
+									}
+								}
+
+								SkipToken(parser, ')');
+
+								AstStatement* body = NULL;
+
+								if (NextTokenIs(parser, ';'))
+								{
+									NextToken(parser); // ;
+								}
+								else
+								{
+									body = ParseStatement(parser);
+								}
+
+								InputState endInputState = GetInputState(parser);
+
+								auto constructorReturnType = CreateAstType<AstNamedType>(parser->module, inputState, TYPE_KIND_NAMED_TYPE);
+								constructorReturnType->name = className;
+
+								constructor = CreateAstDeclaration<AstFunction>(parser->module, inputState, DECL_KIND_CLASS_CONSTRUCTOR);
+								constructor->returnType = constructorReturnType;
+								constructor->paramTypes = paramTypes;
+								constructor->paramNames = paramNames;
+								constructor->varArgs = varArgs;
+								constructor->body = body;
+								constructor->endInputState = endInputState;
+							}
+							else
+							{
+								Token tok = NextToken(parser);
+								SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_CLASS_SYNTAX, "Expected a field name: %.*s", tok.len, tok.str);
+								SkipPastToken(parser, ';');
+								parser->failed = true;
+							}
+						}
+					}
+					else
+					{
+						Token tok = NextToken(parser);
+						SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_CLASS_SYNTAX, "Expected a type: %.*s", tok.len, tok.str);
+						SkipPastToken(parser, ';');
+						parser->failed = true;
+					}
+
+					upcomingMember = !NextTokenIs(parser, '}');
+				}
+				SkipToken(parser, '}');
+			}
+			else
+			{
+				SkipToken(parser, ';');
+			}
+
+			auto decl = CreateAstDeclaration<AstClass>(parser->module, inputState, DECL_KIND_CLASS);
+			decl->flags = flags;
+			decl->name = className;
+			decl->fields = fields;
+			decl->methods = methods;
+			decl->constructor = constructor;
+
+			return decl;
+		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_TYPEDEF))
+	{
+		NextToken(parser); // typedef
+
+		char* name = GetTokenString(NextToken(parser));
+		if (SkipToken(parser, ':'))
+		{
+			AstType* alias = ParseType(parser);
+
+			SkipToken(parser, ';');
+
+			auto decl = CreateAstDeclaration<AstTypedef>(parser->module, inputState, DECL_KIND_TYPEDEF);
+			decl->flags = flags;
+			decl->name = name;
+			decl->alias = alias;
+
+			return decl;
+		}
+		else
+		{
+			SkipPastToken(parser, ';');
+			return NULL;
+		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_ENUM))
+	{
+		NextToken(parser); // enum
+
+		char* name = GetTokenString(NextToken(parser));
+		AstType* alias = NULL;
+		List<AstEnumValue> values = CreateList<AstEnumValue>();
+
+		if (NextTokenIs(parser, ':'))
+		{
+			NextToken(parser); // :
+			alias = ParseType(parser);
+		}
+
+		SkipToken(parser, '{');
+
+		bool upcomingEntry = NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER);
+
+		while (upcomingEntry && HasNext(parser))
+		{
+			if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+			{
+				char* entryName = GetTokenString(NextToken(parser));
+				AstExpression* entryValue = NULL;
+				if (NextTokenIs(parser, TOKEN_TYPE_OP_EQUALS))
+				{
+					NextToken(parser); // =
+					entryValue = ParseExpression(parser);
+				}
+
+				AstEnumValue value;
+				value.name = entryName;
+				value.value = entryValue;
+
+				values.add(value);
+
+				upcomingEntry = NextTokenIs(parser, ',') && !NextTokenIs(parser, '}', 1);
+				if (NextTokenIs(parser, ','))
+					NextToken(parser); // ,
+			}
+			else
+			{
+				// ERROR
+			}
+		}
+
+		SkipToken(parser, '}');
+
+		auto decl = CreateAstDeclaration<AstEnum>(parser->module, inputState, DECL_KIND_ENUM);
+		decl->flags = flags;
+		decl->name = name;
+		decl->alias = alias;
+		decl->values = values;
+
+		return decl;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_EXPRDEF))
+	{
+		NextToken(parser); // exprdef
+
+		char* name = GetTokenString(NextToken(parser));
+		if (SkipToken(parser, TOKEN_TYPE_OP_EQUALS))
+		{
+			AstExpression* expr = ParseExpression(parser);
+
+			SkipToken(parser, ';');
+
+			auto decl = CreateAstDeclaration<AstExprdef>(parser->module, inputState, DECL_KIND_EXPRDEF);
+			decl->flags = flags;
+			decl->name = name;
+			decl->alias = expr;
+
+			return decl;
+		}
+		else
+		{
+			SkipPastToken(parser, ';');
+			return NULL;
+		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_MODULE))
+	{
+		NextToken(parser); // module
+		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+		{
+			List<char*> namespaces = CreateList<char*>();
+
+			bool upcomingNamespace = true;
+			while (upcomingNamespace && HasNext(parser))
+			{
+				char* name = GetTokenString(NextToken(parser));
+				namespaces.add(name);
+
+				upcomingNamespace = NextTokenIs(parser, '.');
+				if (upcomingNamespace)
+					NextToken(parser); // .
+			}
+			SkipToken(parser, ';');
+
+			AstModuleDecl* decl = CreateAstDeclaration<AstModuleDecl>(parser->module, inputState, DECL_KIND_MODULE);
+			decl->namespaces = namespaces;
+			return decl;
+		}
+		else
+		{
+			Token tok = NextToken(parser);
+			SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_MODULE_SYNTAX, "Expected a module name: %.*s", tok.len, tok.str);
+			parser->failed = true;
+			return NULL;
+		}
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_NAMESPACE))
+	{
+		NextToken(parser); // namespace
+		char* nameSpace = GetTokenString(NextToken(parser));
+		SkipToken(parser, ';');
+
+		AstNamespaceDecl* decl = CreateAstDeclaration<AstNamespaceDecl>(parser->module, inputState, DECL_KIND_NAMESPACE);
+		decl->name = nameSpace;
+		return decl;
+	}
+	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_IMPORT))
+	{
+		NextToken(parser); // import
+		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+		{
+			List<List<char*>> imports = CreateList<List<char*>>();
+
+			bool upcomingImport = true;
+			while (upcomingImport && HasNext(parser))
+			{
+				List<char*> names = CreateList<char*>();
+
+				bool upcomingModule = true;
+				while (upcomingModule && HasNext(parser))
+				{
+					if (!(NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER) || NextTokenIs(parser, TOKEN_TYPE_OP_ASTERISK)))
+					{
+						SkipPastToken(parser, ';');
+						break;
+					}
+
+					char* name = GetTokenString(NextToken(parser));
+					names.add(name);
+
+					upcomingModule = NextTokenIs(parser, '.');
+					if (upcomingModule)
+						NextToken(parser); // .
+				}
+
+				imports.add(names);
+
+				upcomingImport = NextTokenIs(parser, ',');
+				if (upcomingImport)
+					NextToken(parser); // ,
+			}
+			SkipToken(parser, ';');
+
+			AstImport* decl = CreateAstDeclaration<AstImport>(parser->module, inputState, DECL_KIND_IMPORT);
+			decl->flags = flags;
+			decl->imports = imports;
+			//decl->modules = CreateList<AstModule*>();
+			//decl->modules.reserve(names.size);
+			return decl;
+		}
+		else
+		{
+			Token tok = NextToken(parser);
+			SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_IMPORT_SYNTAX, "Expected a module name: %.*s", tok.len, tok.str);
+			parser->failed = true;
+			return NULL;
+		}
+	}
+	else if (AstType* type = ParseType(parser))
 	{
 		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
 		{
@@ -852,31 +1873,48 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 
 				List<AstType*> paramTypes;
 				List<char*> paramNames;
+				bool varArgs = false;
 
 				bool upcomingDeclarator = !NextTokenIs(parser, ')');
 				while (HasNext(parser) && upcomingDeclarator)
 				{
-					if (AstType* paramType = ParseType(parser))
+					if (NextTokenIs(parser, '.'))
+					{
+						if (SkipToken(parser, '.') && SkipToken(parser, '.') && SkipToken(parser, '.'))
+						{
+							varArgs = true;
+							upcomingDeclarator = false;
+						}
+						else
+						{
+							SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Variadic arguments need to be declared as '...'");
+							parser->failed = true;
+						}
+					}
+					else if (AstType* paramType = ParseType(parser))
 					{
 						if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
 						{
 							char* paramName = GetTokenString(NextToken(parser));
 
-							ListAdd(paramTypes, paramType);
-							ListAdd(paramNames, paramName);
+							paramTypes.add(paramType);
+							paramNames.add(paramName);
 
 							upcomingDeclarator = NextTokenIs(parser, ',');
+							if (upcomingDeclarator)
+								SkipToken(parser, ',');
 						}
 						else
 						{
-							// TODO ERROR
-							SnekAssert(false, "");
+							SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_FUNCTION_SYNTAX, "Function parameter declaration needs a name");
+							parser->failed = true;
 						}
 					}
 					else
 					{
-						// TODO ERROR
-						SnekAssert(false, "");
+						Token tok = NextToken(parser);
+						SnekError(parser->context, parser->lexer->input.state, ERROR_CODE_UNEXPECTED_TOKEN, "Unexpected token: '%.*s'", tok.len, tok.str);
+						parser->failed = true;
 					}
 				}
 
@@ -884,50 +1922,124 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 
 				AstStatement* body = NULL;
 
-				if (!NextTokenIs(parser, ';'))
+				if (NextTokenIs(parser, ';'))
+				{
+					NextToken(parser); // ;
+				}
+				else
 				{
 					body = ParseStatement(parser);
 				}
 
+				InputState endInputState = GetInputState(parser);
+
 				AstFunction* decl = CreateAstDeclaration<AstFunction>(parser->module, inputState, DECL_KIND_FUNC);
-				decl->returnType = type;
+				decl->flags = flags;
 				decl->name = name;
+				decl->returnType = type;
 				decl->paramTypes = paramTypes;
 				decl->paramNames = paramNames;
+				decl->varArgs = varArgs;
 				decl->body = body;
+				decl->endInputState = endInputState;
+
+				return decl;
+			}
+			else
+			{
+				// Global variable declaration
+
+				AstExpression* value = NULL;
+
+				if (NextTokenIs(parser, TOKEN_TYPE_OP_EQUALS))
+				{
+					NextToken(parser); // =
+					value = ParseExpression(parser);
+				}
+
+				SkipToken(parser, ';');
+
+				AstGlobal* decl = CreateAstDeclaration<AstGlobal>(parser->module, inputState, DECL_KIND_GLOBAL);
+				decl->flags = flags;
+				decl->type = type;
+				decl->name = name;
+				decl->value = value;
 
 				return decl;
 			}
 		}
 	}
 
-	SnekAssert(false, "");
+	Token token = NextToken(parser);
+	SnekError(parser->context, inputState, ERROR_CODE_UNEXPECTED_TOKEN, "Unexpected token '%.*s", token.len, token.str);
+	parser->failed = true;
+
 	return NULL;
 }
 
-static AstModule* ParseModule(Parser* parser, const SourceFile* file, char* moduleName, int moduleID)
+static AstFile* ParseModule(Parser* parser, SourceFile* file, char* moduleName, int moduleID)
 {
-	AstModule* ast = CreateAst(moduleName, moduleID);
+	AstFile* ast = CreateAst(moduleName, moduleID, file);
 
 	parser->module = ast;
-	parser->lexer = CreateLexer(file->src, file->moduleName, parser->context);
+	parser->lexer = CreateLexer(file->src, file->filename, parser->context);
 
 	while (HasNext(parser))
 	{
-		AstDeclaration* decl = ParseDeclaration(parser);
-		ListAdd(ast->declarations, decl);
+		if (AstDeclaration* decl = ParseDeclaration(parser))
+		{
+			switch (decl->declKind)
+			{
+			case DECL_KIND_FUNC:
+				ast->functions.add((AstFunction*)decl);
+				break;
+			case DECL_KIND_STRUCT:
+				ast->structs.add((AstStruct*)decl);
+				break;
+			case DECL_KIND_CLASS:
+				ast->classes.add((AstClass*)decl);
+				break;
+			case DECL_KIND_TYPEDEF:
+				ast->typedefs.add((AstTypedef*)decl);
+				break;
+			case DECL_KIND_ENUM:
+				ast->enums.add((AstEnum*)decl);
+				break;
+			case DECL_KIND_EXPRDEF:
+				ast->exprdefs.add((AstExprdef*)decl);
+				break;
+			case DECL_KIND_GLOBAL:
+				ast->globals.add((AstGlobal*)decl);
+				break;
+			case DECL_KIND_MODULE:
+				ast->moduleDecl = (AstModuleDecl*)decl;
+				break;
+			case DECL_KIND_NAMESPACE:
+				ast->namespaceDecl = (AstNamespaceDecl*)decl;
+				break;
+			case DECL_KIND_IMPORT:
+				ast->imports.add((AstImport*)decl);
+				break;
+			default:
+				SnekAssert(false);
+				break;
+			}
+		}
 	}
 
 	return ast;
 }
 
-void ParserRun(Parser* parser)
+bool ParserRun(Parser* parser)
 {
 	// TODO multithreading
+	parser->failed = false;
 
 	for (int i = 0; i < parser->context->sourceFiles.size; i++)
 	{
 		SourceFile* file = &parser->context->sourceFiles[i];
 		parser->context->asts[i] = ParseModule(parser, file, file->moduleName, i);
 	}
+
+	return !parser->failed;
 }

@@ -6,18 +6,20 @@
 
 
 struct SkContext;
-struct AstModule;
+struct AstFile;
 
 struct Parser
 {
 	SkContext* context;
 	Lexer* lexer;
 
-	AstModule* module;
+	AstFile* module;
+
+	bool failed;
 };
 
 
 Parser* CreateParser(SkContext* context);
 void DestroyParser(Parser* parser);
 
-void ParserRun(Parser* parser);
+bool ParserRun(Parser* parser);

@@ -3,6 +3,8 @@
 
 struct InputState
 {
+	const char* filename;
+
 	const char* ptr;
 
 	const char* buffer;
@@ -18,7 +20,7 @@ struct Input
 };
 
 
-Input CreateInput(const char* src);
+Input CreateInput(const char* src, const char* filename);
 void DestroyInput(Input* input);
 
 const char* InputGetPtr(Input* input, int offset = 0);

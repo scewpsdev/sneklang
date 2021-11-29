@@ -1,0 +1,39 @@
+
+Next up:
+[X] Enums
+[X] Constant structs
+[X] module name in output filename
+[X] Change default visibility to private
+[X] Change error message format
+[X] Calling functions with method syntax
+[ ] Template functions and structs
+[ ] Switch statement
+[ ] Function overloading, Operator overloading, C++ compatible name mangling
+[ ] Remove classes
+
+
+Small fixes:
+[X] fix result = result &&
+[X] refactor AstFile to AstFile and AstNamespace to AstFile
+[X] fix import for nested modules
+[ ] throw warning if a function doesn't return a value
+[X] implement/test namespaces for global variables
+
+
+Planned features:
+[ ] Inheritance
+[ ] Public imports
+[ ] C header file conversion tool
+[ ] const checks
+[ ] pure functions
+
+
+Known issues:
+[ ] having no entry point makes the linker exit without error messages
+
+
+4Coder features:
+[ ] automatic project loading
+[ ] error parsing
+
+

@@ -1,19 +1,26 @@
 #pragma once
 
 
+#define KEYWORD_MODULE    "module"
+#define KEYWORD_NAMESPACE "namespace"
 #define KEYWORD_IMPORT    "import"
 #define KEYWORD_VAR       "var"
 #define KEYWORD_FUNC      "func"
 #define KEYWORD_STRUCT    "struct"
 #define KEYWORD_CLASS     "class"
 #define KEYWORD_TYPEDEF   "typedef"
+#define KEYWORD_EXPRDEF   "exprdef"
 #define KEYWORD_METHOD    "method"
+#define KEYWORD_ENUM      "enum"
 
 #define KEYWORD_PUBLIC    "public"
 #define KEYWORD_PRIVATE   "private"
 #define KEYWORD_STATIC    "static"
 #define KEYWORD_CONST     "const"
 #define KEYWORD_EXTERN    "extern"
+#define KEYWORD_DLLEXPORT "dllexport"
+#define KEYWORD_DLLIMPORT "dllimport"
+#define KEYWORD_PACKED    "packed"
 
 #define KEYWORD_IF        "if"
 #define KEYWORD_ELSE      "else"
@@ -27,7 +34,7 @@
 #define KEYWORD_AS        "as"
 #define KEYWORD_SIZEOF	  "sizeof"
 #define KEYWORD_ALLOCA	  "alloca"
-#define KEYWORD_MALLOC	  "malloc"
+#define KEYWORD_MALLOC	  "new"
 #define KEYWORD_FREE	  "free"
 
 #define KEYWORD_TRUE      "true"

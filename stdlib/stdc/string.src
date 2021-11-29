@@ -1,0 +1,23 @@
+module stdc;
+
+
+public extern void* memcpy(void* dest, void* src, size_t len);
+public extern void* memmove(void* dest, void* src, size_t len);
+public extern void* mempcpy(void* dest, void* src, size_t len);
+public extern void* memset(void* dest, int ch, size_t len);
+public extern void* memchr(void* str, int ch, size_t len);
+public extern int memcmp(void* str1, void* str2, size_t len);
+
+public extern char* strcpy(char* dest, char* src);
+public extern char* stpcpy(char* dest, char* src);
+public extern char* strncpy(char* dest, char* src, size_t len);
+public extern char* strcat(char* dest, char* src);
+public extern char* strncat(char* dest, char* src, size_t len);
+public extern char* strchr(char* str, int ch);
+public extern char* strrchr(char* str, int ch);
+public extern char* strstr(char* haystack, char* needle);
+public extern char* strtok(char* str, char* delim);
+public extern int strcmp(char* str1, char* str2);
+public extern int strncmp(char* str1, char* str2, size_t len);
+public extern int strcoll(char* str1, char* str2);
+public extern int strlen(char* str);

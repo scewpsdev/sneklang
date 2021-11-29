@@ -1,0 +1,1456 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"toggle_high",
+				"toggle_highlight_line_at_cursor"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/D/Tools/4coder/custom/4coder_draw.cpp",
+			"settings":
+			{
+				"buffer_size": 37724,
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+			]
+		},
+		{
+			"file": "/D/Tools/4coder/custom/4coder_default_hooks.cpp",
+			"settings":
+			{
+				"buffer_size": 42431,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					26,
+					1,
+					"insert",
+					{
+						"characters": "\n/"
+					},
+					"BAAAAGo4AAAAAAAAazgAAAAAAAAAAAAAazgAAAAAAABzOAAAAAAAAAAAAABzOAAAAAAAAHc4AAAAAAAAAAAAAHc4AAAAAAAAeDgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAajgAAAAAAABqOAAAAAAAAAAAAAAAAF9A"
+				],
+				[
+					27,
+					1,
+					"left_delete",
+					null,
+					"AQAAAHc4AAAAAAAAdzgAAAAAAAABAAAALw",
+					"AQAAAAAAAAABAAAAeDgAAAAAAAB4OAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					28,
+					1,
+					"paste",
+					null,
+					"AQAAAHc4AAAAAAAAADkAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAdzgAAAAAAAB3OAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					31,
+					1,
+					"insert",
+					{
+						"characters": "//"
+					},
+					"AgAAAA05AAAAAAAADjkAAAAAAAAAAAAADjkAAAAAAAAPOQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAADTkAAAAAAAANOQAAAAAAAAAAAAAAwFhA"
+				],
+				[
+					33,
+					1,
+					"insert",
+					{
+						"characters": "\n//"
+					},
+					"BQAAAGo4AAAAAAAAazgAAAAAAAAAAAAAazgAAAAAAABzOAAAAAAAAAAAAABzOAAAAAAAAHc4AAAAAAAAAAAAAHc4AAAAAAAAeDgAAAAAAAAAAAAAeDgAAAAAAAB5OAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAajgAAAAAAABqOAAAAAAAAAAAAAAAwFxA"
+				],
+				[
+					34,
+					1,
+					"insert",
+					{
+						"characters": " NOTE"
+					},
+					"BQAAAHk4AAAAAAAAejgAAAAAAAAAAAAAejgAAAAAAAB7OAAAAAAAAAAAAAB7OAAAAAAAAHw4AAAAAAAAAAAAAHw4AAAAAAAAfTgAAAAAAAAAAAAAfTgAAAAAAAB+OAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAeTgAAAAAAAB5OAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					35,
+					1,
+					"insert_snippet",
+					{
+						"contents": "($0)"
+					},
+					"AQAAAH44AAAAAAAAgDgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAfjgAAAAAAAB+OAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					36,
+					1,
+					"insert",
+					{
+						"characters": "scewps"
+					},
+					"BgAAAH84AAAAAAAAgDgAAAAAAAAAAAAAgDgAAAAAAACBOAAAAAAAAAAAAACBOAAAAAAAAII4AAAAAAAAAAAAAII4AAAAAAAAgzgAAAAAAAAAAAAAgzgAAAAAAACEOAAAAAAAAAAAAACEOAAAAAAAAIU4AAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAfzgAAAAAAAB/OAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					38,
+					1,
+					"insert",
+					{
+						"characters": ":"
+					},
+					"AQAAAIY4AAAAAAAAhzgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAhjgAAAAAAACGOAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					39,
+					1,
+					"insert",
+					{
+						"characters": " edit"
+					},
+					"BQAAAIc4AAAAAAAAiDgAAAAAAAAAAAAAiDgAAAAAAACJOAAAAAAAAAAAAACJOAAAAAAAAIo4AAAAAAAAAAAAAIo4AAAAAAAAizgAAAAAAAAAAAAAizgAAAAAAACMOAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAhzgAAAAAAACHOAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					40,
+					1,
+					"insert",
+					{
+						"characters": "ed"
+					},
+					"AgAAAIw4AAAAAAAAjTgAAAAAAAAAAAAAjTgAAAAAAACOOAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAjDgAAAAAAACMOAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					45,
+					1,
+					"cut",
+					null,
+					"AQAAAHc4AAAAAAAAdzgAAAAAAAAXAAAALy8gTk9URShzY2V3cHMpOiBlZGl0ZWQ",
+					"AQAAAAAAAAABAAAAdzgAAAAAAACOOAAAAAAAAP///////+9/"
+				],
+				[
+					46,
+					2,
+					"run_macro_file",
+					{
+						"file": "res://Packages/Default/Delete Line.sublime-macro"
+					},
+					"AgAAAGs4AAAAAAAAazgAAAAAAAANAAAAICAgICAgICAgICAgCms4AAAAAAAAazgAAAAAAACWAAAAICAgICAgICAgICAgZHJhd19vcmlnaW5hbF80Y29kZXJfc3R5bGVfY3Vyc29yX21hcmtfaGlnaGxpZ2h0KGFwcCwgdmlld19pZCwgaXNfYWN0aXZlX3ZpZXcsIGJ1ZmZlciwgdGV4dF9sYXlvdXRfaWQsIGN1cnNvcl9yb3VuZG5lc3MsIG1hcmtfdGhpY2tuZXNzKTsK",
+					"AQAAAAAAAAABAAAAdzgAAAAAAAB3OAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					48,
+					2,
+					"right_delete",
+					null,
+					"AgAAAHc4AAAAAAAAdzgAAAAAAAABAAAAL3c4AAAAAAAAdzgAAAAAAAABAAAALw",
+					"AQAAAAAAAAABAAAAdzgAAAAAAAB3OAAAAAAAAAAAAAAAwFhA"
+				]
+			]
+		},
+		{
+			"file": "/D/Tools/4coder/build.bat",
+			"settings":
+			{
+				"buffer_size": 109,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+				[
+					3,
+					1,
+					"left_delete",
+					null,
+					"AQAAAD8AAAAAAAAAPwAAAAAAAAABAAAAKg",
+					"AQAAAAAAAAABAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					4,
+					1,
+					"insert",
+					{
+						"characters": "4coder_scewps_"
+					},
+					"DgAAAD8AAAAAAAAAQAAAAAAAAAAAAAAAQAAAAAAAAABBAAAAAAAAAAAAAABBAAAAAAAAAEIAAAAAAAAAAAAAAEIAAAAAAAAAQwAAAAAAAAAAAAAAQwAAAAAAAABEAAAAAAAAAAAAAABEAAAAAAAAAEUAAAAAAAAAAAAAAEUAAAAAAAAARgAAAAAAAAAAAAAARgAAAAAAAABHAAAAAAAAAAAAAABHAAAAAAAAAEgAAAAAAAAAAAAAAEgAAAAAAAAASQAAAAAAAAAAAAAASQAAAAAAAABKAAAAAAAAAAAAAABKAAAAAAAAAEsAAAAAAAAAAAAAAEsAAAAAAAAATAAAAAAAAAAAAAAATAAAAAAAAABNAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAPwAAAAAAAAA/AAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					5,
+					1,
+					"insert",
+					{
+						"characters": "custom"
+					},
+					"BgAAAE0AAAAAAAAATgAAAAAAAAAAAAAATgAAAAAAAABPAAAAAAAAAAAAAABPAAAAAAAAAFAAAAAAAAAAAAAAAFAAAAAAAAAAUQAAAAAAAAAAAAAAUQAAAAAAAABSAAAAAAAAAAAAAABSAAAAAAAAAFMAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAATQAAAAAAAABNAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					9,
+					1,
+					"right_delete",
+					null,
+					"AQAAAEwAAAAAAAAATAAAAAAAAAAHAAAAX2N1c3RvbQ",
+					"AQAAAAAAAAABAAAAUwAAAAAAAABMAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					14,
+					1,
+					"insert",
+					{
+						"characters": " 4coder_scewps"
+					},
+					"DgAAAFAAAAAAAAAAUQAAAAAAAAAAAAAAUQAAAAAAAABSAAAAAAAAAAAAAABSAAAAAAAAAFMAAAAAAAAAAAAAAFMAAAAAAAAAVAAAAAAAAAAAAAAAVAAAAAAAAABVAAAAAAAAAAAAAABVAAAAAAAAAFYAAAAAAAAAAAAAAFYAAAAAAAAAVwAAAAAAAAAAAAAAVwAAAAAAAABYAAAAAAAAAAAAAABYAAAAAAAAAFkAAAAAAAAAAAAAAFkAAAAAAAAAWgAAAAAAAAAAAAAAWgAAAAAAAABbAAAAAAAAAAAAAABbAAAAAAAAAFwAAAAAAAAAAAAAAFwAAAAAAAAAXQAAAAAAAAAAAAAAXQAAAAAAAABeAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAUAAAAAAAAABQAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					15,
+					1,
+					"insert",
+					{
+						"characters": "/4coder_scew"
+					},
+					"DAAAAF4AAAAAAAAAXwAAAAAAAAAAAAAAXwAAAAAAAABgAAAAAAAAAAAAAABgAAAAAAAAAGEAAAAAAAAAAAAAAGEAAAAAAAAAYgAAAAAAAAAAAAAAYgAAAAAAAABjAAAAAAAAAAAAAABjAAAAAAAAAGQAAAAAAAAAAAAAAGQAAAAAAAAAZQAAAAAAAAAAAAAAZQAAAAAAAABmAAAAAAAAAAAAAABmAAAAAAAAAGcAAAAAAAAAAAAAAGcAAAAAAAAAaAAAAAAAAAAAAAAAaAAAAAAAAABpAAAAAAAAAAAAAABpAAAAAAAAAGoAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAXgAAAAAAAABeAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					16,
+					1,
+					"insert",
+					{
+						"characters": "ps_"
+					},
+					"AwAAAGoAAAAAAAAAawAAAAAAAAAAAAAAawAAAAAAAABsAAAAAAAAAAAAAABsAAAAAAAAAG0AAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAagAAAAAAAABqAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					17,
+					1,
+					"insert",
+					{
+						"characters": "hooks.cpp"
+					},
+					"CQAAAG0AAAAAAAAAbgAAAAAAAAAAAAAAbgAAAAAAAABvAAAAAAAAAAAAAABvAAAAAAAAAHAAAAAAAAAAAAAAAHAAAAAAAAAAcQAAAAAAAAAAAAAAcQAAAAAAAAByAAAAAAAAAAAAAAByAAAAAAAAAHMAAAAAAAAAAAAAAHMAAAAAAAAAdAAAAAAAAAAAAAAAdAAAAAAAAAB1AAAAAAAAAAAAAAB1AAAAAAAAAHYAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAbQAAAAAAAABtAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					18,
+					33,
+					"left_delete",
+					null,
+					"IQAAAHUAAAAAAAAAdQAAAAAAAAABAAAAcHQAAAAAAAAAdAAAAAAAAAABAAAAcHMAAAAAAAAAcwAAAAAAAAABAAAAY3IAAAAAAAAAcgAAAAAAAAABAAAALnEAAAAAAAAAcQAAAAAAAAABAAAAc3AAAAAAAAAAcAAAAAAAAAABAAAAa28AAAAAAAAAbwAAAAAAAAABAAAAb24AAAAAAAAAbgAAAAAAAAABAAAAb20AAAAAAAAAbQAAAAAAAAABAAAAaGwAAAAAAAAAbAAAAAAAAAABAAAAX2sAAAAAAAAAawAAAAAAAAABAAAAc2oAAAAAAAAAagAAAAAAAAABAAAAcGkAAAAAAAAAaQAAAAAAAAABAAAAd2gAAAAAAAAAaAAAAAAAAAABAAAAZWcAAAAAAAAAZwAAAAAAAAABAAAAY2YAAAAAAAAAZgAAAAAAAAABAAAAc2UAAAAAAAAAZQAAAAAAAAABAAAAX2QAAAAAAAAAZAAAAAAAAAABAAAAcmMAAAAAAAAAYwAAAAAAAAABAAAAZWIAAAAAAAAAYgAAAAAAAAABAAAAZGEAAAAAAAAAYQAAAAAAAAABAAAAb2AAAAAAAAAAYAAAAAAAAAABAAAAY18AAAAAAAAAXwAAAAAAAAABAAAANF4AAAAAAAAAXgAAAAAAAAABAAAAL10AAAAAAAAAXQAAAAAAAAABAAAAc1wAAAAAAAAAXAAAAAAAAAABAAAAcFsAAAAAAAAAWwAAAAAAAAABAAAAd1oAAAAAAAAAWgAAAAAAAAABAAAAZVkAAAAAAAAAWQAAAAAAAAABAAAAY1gAAAAAAAAAWAAAAAAAAAABAAAAc1cAAAAAAAAAVwAAAAAAAAABAAAAX1YAAAAAAAAAVgAAAAAAAAABAAAAclUAAAAAAAAAVQAAAAAAAAABAAAAZQ",
+					"AQAAAAAAAAABAAAAdgAAAAAAAAB2AAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					19,
+					5,
+					"left_delete",
+					null,
+					"BQAAAFQAAAAAAAAAVAAAAAAAAAABAAAAZFMAAAAAAAAAUwAAAAAAAAABAAAAb1IAAAAAAAAAUgAAAAAAAAABAAAAY1EAAAAAAAAAUQAAAAAAAAABAAAANFAAAAAAAAAAUAAAAAAAAAABAAAAIA",
+					"AQAAAAAAAAABAAAAVQAAAAAAAABVAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					21,
+					1,
+					"insert",
+					{
+						"characters": "\npushd"
+					},
+					"BgAAAAkAAAAAAAAACgAAAAAAAAAAAAAACgAAAAAAAAALAAAAAAAAAAAAAAALAAAAAAAAAAwAAAAAAAAAAAAAAAwAAAAAAAAADQAAAAAAAAAAAAAADQAAAAAAAAAOAAAAAAAAAAAAAAAOAAAAAAAAAA8AAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAACQAAAAAAAAAJAAAAAAAAAAAAAAAACIJA"
+				],
+				[
+					24,
+					1,
+					"insert",
+					{
+						"characters": "\npopd"
+					},
+					"BQAAAGEAAAAAAAAAYgAAAAAAAAAAAAAAYgAAAAAAAABjAAAAAAAAAAAAAABjAAAAAAAAAGQAAAAAAAAAAAAAAGQAAAAAAAAAZQAAAAAAAAAAAAAAZQAAAAAAAABmAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAYQAAAAAAAABhAAAAAAAAAP///////+9/"
+				],
+				[
+					27,
+					1,
+					"insert",
+					{
+						"characters": " "
+					},
+					"AQAAAA8AAAAAAAAAEAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAADwAAAAAAAAAPAAAAAAAAAP///////+9/"
+				],
+				[
+					28,
+					1,
+					"insert",
+					{
+						"characters": "custom/4coder_s"
+					},
+					"DwAAABAAAAAAAAAAEQAAAAAAAAAAAAAAEQAAAAAAAAASAAAAAAAAAAAAAAASAAAAAAAAABMAAAAAAAAAAAAAABMAAAAAAAAAFAAAAAAAAAAAAAAAFAAAAAAAAAAVAAAAAAAAAAAAAAAVAAAAAAAAABYAAAAAAAAAAAAAABYAAAAAAAAAFwAAAAAAAAAAAAAAFwAAAAAAAAAYAAAAAAAAAAAAAAAYAAAAAAAAABkAAAAAAAAAAAAAABkAAAAAAAAAGgAAAAAAAAAAAAAAGgAAAAAAAAAbAAAAAAAAAAAAAAAbAAAAAAAAABwAAAAAAAAAAAAAABwAAAAAAAAAHQAAAAAAAAAAAAAAHQAAAAAAAAAeAAAAAAAAAAAAAAAeAAAAAAAAAB8AAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					29,
+					1,
+					"insert",
+					{
+						"characters": "cewps"
+					},
+					"BQAAAB8AAAAAAAAAIAAAAAAAAAAAAAAAIAAAAAAAAAAhAAAAAAAAAAAAAAAhAAAAAAAAACIAAAAAAAAAAAAAACIAAAAAAAAAIwAAAAAAAAAAAAAAIwAAAAAAAAAkAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAHwAAAAAAAAAfAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					37,
+					1,
+					"insert",
+					{
+						"characters": ".."
+					},
+					"AwAAACoAAAAAAAAAKwAAAAAAAAAAAAAAKwAAAAAAAAArAAAAAAAAAAYAAABjdXN0b20rAAAAAAAAACwAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAKgAAAAAAAAAwAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					42,
+					1,
+					"right_delete",
+					null,
+					"AQAAAEgAAAAAAAAASAAAAAAAAAAOAAAANGNvZGVyX3NjZXdwcy8",
+					"AQAAAAAAAAABAAAASAAAAAAAAABWAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					53,
+					1,
+					"insert",
+					{
+						"characters": "./"
+					},
+					"AgAAAEgAAAAAAAAASQAAAAAAAAAAAAAASQAAAAAAAABKAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAASAAAAAAAAABIAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					54,
+					1,
+					"insert",
+					{
+						"characters": "  "
+					},
+					"AgAAAEoAAAAAAAAASwAAAAAAAAAAAAAASwAAAAAAAABMAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAASgAAAAAAAABKAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					55,
+					2,
+					"left_delete",
+					null,
+					"AgAAAEsAAAAAAAAASwAAAAAAAAABAAAAIEoAAAAAAAAASgAAAAAAAAABAAAAIA",
+					"AQAAAAAAAAABAAAATAAAAAAAAABMAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					58,
+					1,
+					"insert",
+					{
+						"characters": "./"
+					},
+					"AgAAABAAAAAAAAAAEQAAAAAAAAAAAAAAEQAAAAAAAAASAAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					65,
+					1,
+					"insert",
+					{
+						"characters": "\""
+					},
+					"AQAAACwAAAAAAAAALQAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAALAAAAAAAAAAsAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					67,
+					1,
+					"insert",
+					{
+						"characters": "\""
+					},
+					"AQAAAEoAAAAAAAAASwAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAASgAAAAAAAABKAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					69,
+					2,
+					"right_delete",
+					null,
+					"AgAAAEwAAAAAAAAATAAAAAAAAAABAAAALkwAAAAAAAAATAAAAAAAAAABAAAALw",
+					"AQAAAAAAAAABAAAATAAAAAAAAABMAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					74,
+					2,
+					"right_delete",
+					null,
+					"AgAAABAAAAAAAAAAEAAAAAAAAAABAAAALhAAAAAAAAAAEAAAAAAAAAABAAAALw",
+					"AQAAAAAAAAABAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					77,
+					1,
+					"insert",
+					{
+						"characters": "\""
+					},
+					"AQAAABAAAAAAAAAAEQAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					79,
+					1,
+					"insert",
+					{
+						"characters": "\""
+					},
+					"AQAAACUAAAAAAAAAJgAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAJQAAAAAAAAAlAAAAAAAAAP///////+9/"
+				]
+			]
+		},
+		{
+			"contents": "/*\n4coder_default_hooks.cpp - Sets up the hooks for the default framework.\n*/\n\n// TOP\n\nCUSTOM_COMMAND_SIG(default_startup)\nCUSTOM_DOC(\"Default command for responding to a startup event\")\n{\n    ProfileScope(app, \"default startup\");\n    User_Input input = get_current_input(app);\n    if (match_core_code(&input, CoreCode_Startup)){\n        String_Const_u8_Array file_names = input.event.core.file_names;\n        load_themes_default_folder(app);\n        default_4coder_initialize(app, file_names);\n        default_4coder_side_by_side_panels(app, file_names);\n        b32 auto_load = def_get_config_b32(vars_save_string_lit(\"automatically_load_project\"));\n        if (auto_load){\n            load_project(app);\n        }\n    }\n\t\n    {\n        def_audio_init();\n    }\n\t\n    {\n        def_enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit(\"enable_virtual_whitespace\"));\n        clear_all_layouts(app);\n\t}\n}\n\nCUSTOM_COMMAND_SIG(default_try_exit)\nCUSTOM_DOC(\"Default command for responding to a try-exit event\")\n{\n    User_Input input = get_current_input(app);\n    if (match_core_code(&input, CoreCode_TryExit)){\n        b32 do_exit = true;\n        if (!allow_immediate_close_without_checking_for_changes){\n            b32 has_unsaved_changes = false;\n            for (Buffer_ID buffer = get_buffer_next(app, 0, Access_Always);\n                 buffer != 0;\n                 buffer = get_buffer_next(app, buffer, Access_Always)){\n                Dirty_State dirty = buffer_get_dirty_state(app, buffer);\n                if (HasFlag(dirty, DirtyState_UnsavedChanges)){\n                    has_unsaved_changes = true;\n                    break;\n                }\n            }\n            if (has_unsaved_changes){\n                View_ID view = get_active_view(app, Access_Always);\n                do_exit = do_4coder_close_user_check(app, view);\n            }\n        }\n        if (do_exit){\n            hard_exit(app);\n        }\n    }\n}\n\nfunction Implicit_Map_Result\ndefault_implicit_map(Application_Links *app, String_ID lang, String_ID mode, Input_Event *event){\n    Implicit_Map_Result result = {};\n\t\n    View_ID view = get_this_ctx_view(app, Access_Always);\n\t\n    Command_Map_ID map_id = default_get_map_id(app, view);\n    Command_Binding binding = map_get_binding_recursive(&framework_mapping, map_id, event);\n\t\n    // TODO(allen): map_id <-> map name?\n    result.map = 0;\n    result.command = binding.custom;\n\t\n    return(result);\n}\n\nCUSTOM_COMMAND_SIG(default_view_input_handler)\nCUSTOM_DOC(\"Input consumption loop for default view behavior\")\n{\n    Scratch_Block scratch(app);\n    default_input_handler_init(app, scratch);\n\t\n    View_ID view = get_this_ctx_view(app, Access_Always);\n    Managed_Scope scope = view_get_managed_scope(app, view);\n\t\n    for (;;){\n        // NOTE(allen): Get input\n        User_Input input = get_next_input(app, EventPropertyGroup_Any, 0);\n        if (input.abort){\n            break;\n        }\n\t\t\n        ProfileScopeNamed(app, \"before view input\", view_input_profile);\n\t\t\n        // NOTE(allen): Mouse Suppression\n        Event_Property event_properties = get_event_properties(&input.event);\n        if (suppressing_mouse && (event_properties & EventPropertyGroup_AnyMouseEvent) != 0){\n            continue;\n        }\n\t\t\n        // NOTE(allen): Get binding\n        if (implicit_map_function == 0){\n            implicit_map_function = default_implicit_map;\n        }\n        Implicit_Map_Result map_result = implicit_map_function(app, 0, 0, &input.event);\n        if (map_result.command == 0){\n            leave_current_input_unhandled(app);\n            continue;\n        }\n\t\t\n        // NOTE(allen): Run the command and pre/post command stuff\n        default_pre_command(app, scope);\n        ProfileCloseNow(view_input_profile);\n        map_result.command(app);\n        ProfileScope(app, \"after view input\");\n        default_post_command(app, scope);\n    }\n}\n\nfunction void\ncode_index_update_tick(Application_Links *app){\n    Scratch_Block scratch(app);\n    for (Buffer_Modified_Node *node = global_buffer_modified_set.first;\n         node != 0;\n         node = node->next){\n        Temp_Memory_Block temp(scratch);\n        Buffer_ID buffer_id = node->buffer;\n\t\t\n        String_Const_u8 contents = push_whole_buffer(app, scratch, buffer_id);\n        Token_Array tokens = get_token_array_from_buffer(app, buffer_id);\n        if (tokens.count == 0){\n            continue;\n        }\n\t\t\n        Arena arena = make_arena_system(KB(16));\n        Code_Index_File *index = push_array_zero(&arena, Code_Index_File, 1);\n        index->buffer = buffer_id;\n\t\t\n        Generic_Parse_State state = {};\n        generic_parse_init(app, &arena, contents, &tokens, &state);\n        // TODO(allen): Actually determine this in a fair way.\n        // Maybe switch to an enum?\n        // Actually probably a pointer to a struct that defines the language.\n        state.do_cpp_parse = true;\n        generic_parse_full_input_breaks(index, &state, max_i32);\n\t\t\n        code_index_lock();\n        code_index_set_file(buffer_id, arena, index);\n        code_index_unlock();\n        buffer_clear_layout_cache(app, buffer_id);\n    }\n\t\n    buffer_modified_set_clear();\n}\n\nfunction void\ndefault_tick(Application_Links *app, Frame_Info frame_info){\n    ////////////////////////////////\n    // NOTE(allen): Update code index\n\t\n    code_index_update_tick(app);\n\t\n    ////////////////////////////////\n    // NOTE(allen): Update fade ranges\n\t\n    if (tick_all_fade_ranges(app, frame_info.animation_dt)){\n        animate_in_n_milliseconds(app, 0);\n    }\n\t\n    ////////////////////////////////\n    // NOTE(allen): Clear layouts if virtual whitespace setting changed.\n\t\n    {\n        b32 enable_virtual_whitespace = def_get_config_b32(vars_save_string_lit(\"enable_virtual_whitespace\"));\n        if (enable_virtual_whitespace != def_enable_virtual_whitespace){\n            def_enable_virtual_whitespace = enable_virtual_whitespace;\n            clear_all_layouts(app);\n        }\n    }\n}\n\nfunction Rect_f32\ndefault_buffer_region(Application_Links *app, View_ID view_id, Rect_f32 region){\n    Buffer_ID buffer = view_get_buffer(app, view_id, Access_Always);\n    Face_ID face_id = get_face_id(app, buffer);\n    Face_Metrics metrics = get_face_metrics(app, face_id);\n    f32 line_height = metrics.line_height;\n    f32 digit_advance = metrics.decimal_digit_advance;\n\t\n    // NOTE(allen): margins\n    region = rect_inner(region, 3.f);\n\t\n    // NOTE(allen): file bar\n    b64 showing_file_bar = false;\n    if (view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) &&\n        showing_file_bar){\n        Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);\n        region = pair.max;\n    }\n\t\n    // NOTE(allen): query bars\n    {\n        Query_Bar *space[32];\n        Query_Bar_Ptr_Array query_bars = {};\n        query_bars.ptrs = space;\n        if (get_active_query_bars(app, view_id, ArrayCount(space), &query_bars)){\n            Rect_f32_Pair pair = layout_query_bar_on_top(region, line_height, query_bars.count);\n            region = pair.max;\n        }\n    }\n\t\n    // NOTE(allen): FPS hud\n    if (show_fps_hud){\n        Rect_f32_Pair pair = layout_fps_hud_on_bottom(region, line_height);\n        region = pair.min;\n    }\n\t\n    // NOTE(allen): line numbers\n    b32 show_line_number_margins = def_get_config_b32(vars_save_string_lit(\"show_line_number_margins\"));\n    if (show_line_number_margins){\n        Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);\n        region = pair.max;\n    }\n\t\n    return(region);\n}\n\nfunction void\nrecursive_nest_highlight(Application_Links *app, Text_Layout_ID layout_id, Range_i64 range,\n                         Code_Index_Nest_Ptr_Array *array, i32 counter){\n    Code_Index_Nest **ptr = array->ptrs;\n    Code_Index_Nest **ptr_end = ptr + array->count;\n\t\n    for (;ptr < ptr_end; ptr += 1){\n        Code_Index_Nest *nest = *ptr;\n        if (!nest->is_closed){\n            break;\n        }\n        if (range.first <= nest->close.max){\n            break;\n        }\n    }\n\t\n    ARGB_Color argb = finalize_color(defcolor_text_cycle, counter);\n\t\n    for (;ptr < ptr_end; ptr += 1){\n        Code_Index_Nest *nest = *ptr;\n        if (range.max <= nest->open.min){\n            break;\n        }\n\t\t\n        paint_text_color(app, layout_id, nest->open, argb);\n        if (nest->is_closed){\n            paint_text_color(app, layout_id, nest->close, argb);\n        }\n        recursive_nest_highlight(app, layout_id, range, &nest->nest_array, counter + 1);\n    }\n}\n\nfunction void\nrecursive_nest_highlight(Application_Links *app, Text_Layout_ID layout_id, Range_i64 range,\n                         Code_Index_File *file){\n    recursive_nest_highlight(app, layout_id, range, &file->nest_array, 0);\n}\n\nfunction void primitive_highlight_draw_cpp_token_colors( Application_Links *app, Text_Layout_ID text_layout_id, Token_Array *array, Buffer_ID buffer );\n\nfunction void\ncustom_render_buffer(Application_Links *app, View_ID view_id, Face_ID face_id,\n                      Buffer_ID buffer, Text_Layout_ID text_layout_id,\n                      Rect_f32 rect){\n    ProfileScope(app, \"render buffer\");\n\t\n    View_ID active_view = get_active_view(app, Access_Always);\n    b32 is_active_view = (active_view == view_id);\n    Rect_f32 prev_clip = draw_set_clip(app, rect);\n\t\n    Range_i64 visible_range = text_layout_get_visible_range(app, text_layout_id);\n\t\n    // NOTE(allen): Cursor shape\n    Face_Metrics metrics = get_face_metrics(app, face_id);\n    u64 cursor_roundness_100 = def_get_config_u64(app, vars_save_string_lit(\"cursor_roundness\"));\n    f32 cursor_roundness = metrics.normal_advance*cursor_roundness_100*0.01f;\n    f32 mark_thickness = (f32)def_get_config_u64(app, vars_save_string_lit(\"mark_thickness\"));\n\t\n    // NOTE(allen): Token colorizing\n    Token_Array token_array = get_token_array_from_buffer(app, buffer);\n    if (token_array.tokens != 0){\n        //draw_cpp_token_colors(app, text_layout_id, &token_array);\n\t\tprimitive_highlight_draw_cpp_token_colors(app, text_layout_id, &token_array, buffer);\n\t\t\n        // NOTE(allen): Scan for TODOs and NOTEs\n        b32 use_comment_keyword = def_get_config_b32(vars_save_string_lit(\"use_comment_keyword\"));\n        if (use_comment_keyword){\n            Comment_Highlight_Pair pairs[] = {\n                {string_u8_litexpr(\"NOTE\"), finalize_color(defcolor_comment_pop, 0)},\n                {string_u8_litexpr(\"TODO\"), finalize_color(defcolor_comment_pop, 1)},\n            };\n            draw_comment_highlights(app, buffer, text_layout_id, &token_array, pairs, ArrayCount(pairs));\n        }\n\t\t\n#if 0\n        // TODO(allen): Put in 4coder_draw.cpp\n        // NOTE(allen): Color functions\n\t\t\n        Scratch_Block scratch(app);\n        ARGB_Color argb = 0xFFFF00FF;\n\t\t\n        Token_Iterator_Array it = token_iterator_pos(0, &token_array, visible_range.first);\n        for (;;){\n            if (!token_it_inc_non_whitespace(&it)){\n                break;\n            }\n            Token *token = token_it_read(&it);\n            String_Const_u8 lexeme = push_token_lexeme(app, scratch, buffer, token);\n            Code_Index_Note *note = code_index_note_from_string(lexeme);\n            if (note != 0 && note->note_kind == CodeIndexNote_Function){\n                paint_text_color(app, text_layout_id, Ii64_size(token->pos, token->size), argb);\n            }\n        }\n#endif\n    }\n    else{\n        paint_text_color_fcolor(app, text_layout_id, visible_range, fcolor_id(defcolor_text_default));\n    }\n\t\n    i64 cursor_pos = view_correct_cursor(app, view_id);\n    view_correct_mark(app, view_id);\n\t\n    // NOTE(allen): Scope highlight\n    b32 use_scope_highlight = def_get_config_b32(vars_save_string_lit(\"use_scope_highlight\"));\n    if (use_scope_highlight){\n        Color_Array colors = finalize_color_array(defcolor_back_cycle);\n        draw_scope_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);\n    }\n\t\n    b32 use_error_highlight = def_get_config_b32(vars_save_string_lit(\"use_error_highlight\"));\n    b32 use_jump_highlight = def_get_config_b32(vars_save_string_lit(\"use_jump_highlight\"));\n    if (use_error_highlight || use_jump_highlight){\n        // NOTE(allen): Error highlight\n        String_Const_u8 name = string_u8_litexpr(\"*compilation*\");\n        Buffer_ID compilation_buffer = get_buffer_by_name(app, name, Access_Always);\n        if (use_error_highlight){\n            draw_jump_highlights(app, buffer, text_layout_id, compilation_buffer,\n                                 fcolor_id(defcolor_highlight_junk));\n        }\n\t\t\n        // NOTE(allen): Search highlight\n        if (use_jump_highlight){\n            Buffer_ID jump_buffer = get_locked_jump_buffer(app);\n            if (jump_buffer != compilation_buffer){\n                draw_jump_highlights(app, buffer, text_layout_id, jump_buffer,\n                                     fcolor_id(defcolor_highlight_white));\n            }\n        }\n    }\n\t\n    // NOTE(allen): Color parens\n    b32 use_paren_helper = def_get_config_b32(vars_save_string_lit(\"use_paren_helper\"));\n    if (use_paren_helper){\n        Color_Array colors = finalize_color_array(defcolor_text_cycle);\n        draw_paren_highlight(app, buffer, text_layout_id, cursor_pos, colors.vals, colors.count);\n    }\n\t\n    // NOTE(allen): Line highlight\n    b32 highlight_line_at_cursor = def_get_config_b32(vars_save_string_lit(\"highlight_line_at_cursor\"));\n    if (highlight_line_at_cursor && is_active_view){\n        i64 line_number = get_line_number_from_pos(app, buffer, cursor_pos);\n        draw_line_highlight(app, text_layout_id, line_number, fcolor_id(defcolor_highlight_cursor_line));\n    }\n\t\n    // NOTE(allen): Whitespace highlight\n    b64 show_whitespace = false;\n    view_get_setting(app, view_id, ViewSetting_ShowWhitespace, &show_whitespace);\n    if (show_whitespace){\n        if (token_array.tokens == 0){\n            draw_whitespace_highlight(app, buffer, text_layout_id, cursor_roundness);\n        }\n        else{\n            draw_whitespace_highlight(app, text_layout_id, &token_array, cursor_roundness);\n        }\n    }\n\t\n    // NOTE(allen): Cursor\n    switch (fcoder_mode){\n        case FCoderMode_Original:\n        {\n            draw_original_4coder_style_cursor_mark_highlight(app, view_id, is_active_view, buffer, text_layout_id, cursor_roundness, mark_thickness);\n        }break;\n        case FCoderMode_NotepadLike:\n        {\n            draw_notepad_style_cursor_highlight(app, view_id, buffer, text_layout_id, cursor_roundness);\n        }break;\n    }\n\t\n    // NOTE(allen): Fade ranges\n    paint_fade_ranges(app, text_layout_id, buffer);\n\t\n    // NOTE(allen): put the actual text on the actual screen\n    draw_text_layout_default(app, text_layout_id);\n\t\n    draw_set_clip(app, prev_clip);\n}\n\nfunction Rect_f32\ndefault_draw_query_bars(Application_Links *app, Rect_f32 region, View_ID view_id, Face_ID face_id){\n    Face_Metrics face_metrics = get_face_metrics(app, face_id);\n    f32 line_height = face_metrics.line_height;\n\t\n    Query_Bar *space[32];\n    Query_Bar_Ptr_Array query_bars = {};\n    query_bars.ptrs = space;\n    if (get_active_query_bars(app, view_id, ArrayCount(space), &query_bars)){\n        for (i32 i = 0; i < query_bars.count; i += 1){\n            Rect_f32_Pair pair = layout_query_bar_on_top(region, line_height, 1);\n            draw_query_bar(app, query_bars.ptrs[i], face_id, pair.min);\n            region = pair.max;\n        }\n    }\n    return(region);\n}\n\nfunction void\ncustom_render_caller(Application_Links *app, Frame_Info frame_info, View_ID view_id){\n    ProfileScope(app, \"default render caller\");\n    View_ID active_view = get_active_view(app, Access_Always);\n    b32 is_active_view = (active_view == view_id);\n\t\n    Rect_f32 region = draw_background_and_margin(app, view_id, is_active_view);\n    Rect_f32 prev_clip = draw_set_clip(app, region);\n\t\n    Buffer_ID buffer = view_get_buffer(app, view_id, Access_Always);\n    Face_ID face_id = get_face_id(app, buffer);\n    Face_Metrics face_metrics = get_face_metrics(app, face_id);\n    f32 line_height = face_metrics.line_height;\n    f32 digit_advance = face_metrics.decimal_digit_advance;\n\t\n    // NOTE(allen): file bar\n    b64 showing_file_bar = false;\n    if (view_get_setting(app, view_id, ViewSetting_ShowFileBar, &showing_file_bar) && showing_file_bar){\n        Rect_f32_Pair pair = layout_file_bar_on_top(region, line_height);\n        draw_file_bar(app, view_id, buffer, face_id, pair.min);\n        region = pair.max;\n    }\n\t\n    Buffer_Scroll scroll = view_get_buffer_scroll(app, view_id);\n\t\n    Buffer_Point_Delta_Result delta = delta_apply(app, view_id,\n                                                  frame_info.animation_dt, scroll);\n    if (!block_match_struct(&scroll.position, &delta.point)){\n        block_copy_struct(&scroll.position, &delta.point);\n        view_set_buffer_scroll(app, view_id, scroll, SetBufferScroll_NoCursorChange);\n    }\n    if (delta.still_animating){\n        animate_in_n_milliseconds(app, 0);\n    }\n\t\n    // NOTE(allen): query bars\n    region = default_draw_query_bars(app, region, view_id, face_id);\n\t\n    // NOTE(allen): FPS hud\n    if (show_fps_hud){\n        Rect_f32_Pair pair = layout_fps_hud_on_bottom(region, line_height);\n        draw_fps_hud(app, frame_info, face_id, pair.max);\n        region = pair.min;\n        animate_in_n_milliseconds(app, 1000);\n    }\n\t\n    // NOTE(allen): layout line numbers\n    b32 show_line_number_margins = def_get_config_b32(vars_save_string_lit(\"show_line_number_margins\"));\n    Rect_f32 line_number_rect = {};\n    if (show_line_number_margins){\n        Rect_f32_Pair pair = layout_line_number_margin(app, buffer, region, digit_advance);\n        line_number_rect = pair.min;\n        region = pair.max;\n    }\n\t\n    // NOTE(allen): begin buffer render\n    Buffer_Point buffer_point = scroll.position;\n    Text_Layout_ID text_layout_id = text_layout_create(app, buffer, region, buffer_point);\n\t\n    // NOTE(allen): draw line numbers\n    if (show_line_number_margins){\n        draw_line_number_margin(app, view_id, buffer, face_id, text_layout_id, line_number_rect);\n    }\n\t\n    // NOTE(allen): draw the buffer\n    default_render_buffer(app, view_id, face_id, buffer, text_layout_id, region);\n\t\n    text_layout_free(app, text_layout_id);\n    draw_set_clip(app, prev_clip);\n}\n\nfunction void\ndefault_whole_screen_render_caller(Application_Links *app, Frame_Info frame_info){\n#if 0\n    Rect_f32 region = global_get_screen_rectangle(app);\n    Vec2_f32 center = rect_center(region);\n\t\n    Face_ID face_id = get_face_id(app, 0);\n    Scratch_Block scratch(app);\n    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),\n                         SCu8(\"Hello, World!\"), center - V2f32(200.f, 300.f),\n                         0, V2f32(0.f, -1.f));\n    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),\n                         SCu8(\"Hello, World!\"), center - V2f32(240.f, 300.f),\n                         0, V2f32(0.f, 1.f));\n    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),\n                         SCu8(\"Hello, World!\"), center - V2f32(400.f, 400.f),\n                         0, V2f32(-1.f, 0.f));\n    draw_string_oriented(app, face_id, finalize_color(defcolor_text_default, 0),\n                         SCu8(\"Hello, World!\"), center - V2f32(400.f, -100.f),\n                         0, V2f32(cos_f32(pi_f32*.333f), sin_f32(pi_f32*.333f)));\n#endif\n}\n\nHOOK_SIG(default_view_adjust){\n    // NOTE(allen): Called whenever the view layout/sizes have been modified,\n    // including by full window resize.\n    return(0);\n}\n\nBUFFER_NAME_RESOLVER_SIG(default_buffer_name_resolution){\n    ProfileScope(app, \"default buffer name resolution\");\n    if (conflict_count > 1){\n        // List of unresolved conflicts\n        Scratch_Block scratch(app);\n\t\t\n        i32 *unresolved = push_array(scratch, i32, conflict_count);\n        i32 unresolved_count = conflict_count;\n        for (i32 i = 0; i < conflict_count; ++i){\n            unresolved[i] = i;\n        }\n\t\t\n        // Resolution Loop\n        i32 x = 0;\n        for (;;){\n            // Resolution Pass\n            ++x;\n            for (i32 i = 0; i < unresolved_count; ++i){\n                i32 conflict_index = unresolved[i];\n                Buffer_Name_Conflict_Entry *conflict = &conflicts[conflict_index];\n\t\t\t\t\n                u64 size = conflict->base_name.size;\n                size = clamp_top(size, conflict->unique_name_capacity);\n                conflict->unique_name_len_in_out = size;\n                block_copy(conflict->unique_name_in_out, conflict->base_name.str, size);\n\t\t\t\t\n                if (conflict->file_name.str != 0){\n                    Temp_Memory_Block temp(scratch);\n                    String_Const_u8 uniqueifier = {};\n\t\t\t\t\t\n                    String_Const_u8 file_name = string_remove_last_folder(conflict->file_name);\n                    if (file_name.size > 0){\n                        file_name = string_chop(file_name, 1);\n                        u8 *end = file_name.str + file_name.size;\n                        b32 past_the_end = false;\n                        for (i32 j = 0; j < x; ++j){\n                            file_name = string_remove_last_folder(file_name);\n                            if (j + 1 < x){\n                                file_name = string_chop(file_name, 1);\n                            }\n                            if (file_name.size == 0){\n                                if (j + 1 < x){\n                                    past_the_end = true;\n                                }\n                                break;\n                            }\n                        }\n                        u8 *start = file_name.str + file_name.size;\n\t\t\t\t\t\t\n                        uniqueifier = SCu8(start, end);\n                        if (past_the_end){\n                            uniqueifier = push_u8_stringf(scratch, \"%.*s~%d\",\n                                                          string_expand(uniqueifier), i);\n                        }\n                    }\n                    else{\n                        uniqueifier = push_u8_stringf(scratch, \"%d\", i);\n                    }\n\t\t\t\t\t\n                    String_u8 builder = Su8(conflict->unique_name_in_out,\n                                            conflict->unique_name_len_in_out,\n                                            conflict->unique_name_capacity);\n                    string_append(&builder, string_u8_litexpr(\" <\"));\n                    string_append(&builder, uniqueifier);\n                    string_append(&builder, string_u8_litexpr(\">\"));\n                    conflict->unique_name_len_in_out = builder.size;\n                }\n            }\n\t\t\t\n            // Conflict Check Pass\n            b32 has_conflicts = false;\n            for (i32 i = 0; i < unresolved_count; ++i){\n                i32 conflict_index = unresolved[i];\n                Buffer_Name_Conflict_Entry *conflict = &conflicts[conflict_index];\n                String_Const_u8 conflict_name = SCu8(conflict->unique_name_in_out,\n                                                     conflict->unique_name_len_in_out);\n\t\t\t\t\n                b32 hit_conflict = false;\n                if (conflict->file_name.str != 0){\n                    for (i32 j = 0; j < unresolved_count; ++j){\n                        if (i == j) continue;\n\t\t\t\t\t\t\n                        i32 conflict_j_index = unresolved[j];\n                        Buffer_Name_Conflict_Entry *conflict_j = &conflicts[conflict_j_index];\n\t\t\t\t\t\t\n                        String_Const_u8 conflict_name_j = SCu8(conflict_j->unique_name_in_out,\n                                                               conflict_j->unique_name_len_in_out);\n\t\t\t\t\t\t\n                        if (string_match(conflict_name, conflict_name_j)){\n                            hit_conflict = true;\n                            break;\n                        }\n                    }\n                }\n\t\t\t\t\n                if (hit_conflict){\n                    has_conflicts = true;\n                }\n                else{\n                    --unresolved_count;\n                    unresolved[i] = unresolved[unresolved_count];\n                    --i;\n                }\n            }\n\t\t\t\n            if (!has_conflicts){\n                break;\n            }\n        }\n    }\n}\n\nfunction void\nparse_async__inner(Async_Context *actx, Buffer_ID buffer_id,\n                   String_Const_u8 contents, Token_Array *tokens, i32 limit_factor){\n    Application_Links *app = actx->app;\n    ProfileBlock(app, \"async parse\");\n\t\n    Arena arena = make_arena_system(KB(16));\n    Code_Index_File *index = push_array_zero(&arena, Code_Index_File, 1);\n    index->buffer = buffer_id;\n\t\n    Generic_Parse_State state = {};\n    generic_parse_init(app, &arena, contents, tokens, &state);\n\t\n    b32 canceled = false;\n\t\n    for (;;){\n        if (generic_parse_full_input_breaks(index, &state, limit_factor)){\n            break;\n        }\n        if (async_check_canceled(actx)){\n            canceled = true;\n            break;\n        }\n    }\n\t\n    if (!canceled){\n        acquire_global_frame_mutex(app);\n        code_index_lock();\n        code_index_set_file(buffer_id, arena, index);\n        code_index_unlock();\n        buffer_clear_layout_cache(app, buffer_id);\n        release_global_frame_mutex(app);\n    }\n    else{\n        linalloc_clear(&arena);\n    }\n}\n\nfunction void\ndo_full_lex_async__inner(Async_Context *actx, Buffer_ID buffer_id){\n    Application_Links *app = actx->app;\n    ProfileScope(app, \"async lex\");\n    Scratch_Block scratch(app);\n\t\n    String_Const_u8 contents = {};\n    {\n        ProfileBlock(app, \"async lex contents (before mutex)\");\n        acquire_global_frame_mutex(app);\n        ProfileBlock(app, \"async lex contents (after mutex)\");\n        contents = push_whole_buffer(app, scratch, buffer_id);\n        release_global_frame_mutex(app);\n    }\n\t\n    i32 limit_factor = 10000;\n\t\n    Token_List list = {};\n    b32 canceled = false;\n\t\n    Lex_State_Cpp state = {};\n    lex_full_input_cpp_init(&state, contents);\n    for (;;){\n        ProfileBlock(app, \"async lex block\");\n        if (lex_full_input_cpp_breaks(scratch, &list, &state, limit_factor)){\n            break;\n        }\n        if (async_check_canceled(actx)){\n            canceled = true;\n            break;\n        }\n    }\n\t\n    if (!canceled){\n        ProfileBlock(app, \"async lex save results (before mutex)\");\n        acquire_global_frame_mutex(app);\n        ProfileBlock(app, \"async lex save results (after mutex)\");\n        Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);\n        if (scope != 0){\n            Base_Allocator *allocator = managed_scope_allocator(app, scope);\n            Token_Array *tokens_ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);\n            base_free(allocator, tokens_ptr->tokens);\n            Token_Array tokens = {};\n            tokens.tokens = base_array(allocator, Token, list.total_count);\n            tokens.count = list.total_count;\n            tokens.max = list.total_count;\n            token_fill_memory_from_list(tokens.tokens, &list);\n            block_copy_struct(tokens_ptr, &tokens);\n        }\n        buffer_mark_as_modified(buffer_id);\n        release_global_frame_mutex(app);\n    }\n}\n\nfunction void\ndo_full_lex_async(Async_Context *actx, String_Const_u8 data){\n    if (data.size == sizeof(Buffer_ID)){\n        Buffer_ID buffer = *(Buffer_ID*)data.str;\n        do_full_lex_async__inner(actx, buffer);\n    }\n}\n\nBUFFER_HOOK_SIG(default_begin_buffer){\n    ProfileScope(app, \"begin buffer\");\n\t\n    Scratch_Block scratch(app);\n\t\n    b32 treat_as_code = false;\n    String_Const_u8 file_name = push_buffer_file_name(app, scratch, buffer_id);\n    if (file_name.size > 0){\n        String_Const_u8 treat_as_code_string = def_get_config_string(scratch, vars_save_string_lit(\"treat_as_code\"));\n        String_Const_u8_Array extensions = parse_extension_line_to_extension_list(app, scratch, treat_as_code_string);\n        String_Const_u8 ext = string_file_extension(file_name);\n        for (i32 i = 0; i < extensions.count; ++i){\n            if (string_match(ext, extensions.strings[i])){\n\t\t\t\t\n                if (string_match(ext, string_u8_litexpr(\"cpp\")) ||\n                    string_match(ext, string_u8_litexpr(\"h\")) ||\n                    string_match(ext, string_u8_litexpr(\"c\")) ||\n                    string_match(ext, string_u8_litexpr(\"hpp\")) ||\n                    string_match(ext, string_u8_litexpr(\"cc\")) ||\n                    string_match(ext, string_u8_litexpr(\"e\"))){\n                    treat_as_code = true;\n                }\n\t\t\t\t\n#if 0\n                treat_as_code = true;\n\t\t\t\t\n                if (string_match(ext, string_u8_litexpr(\"cs\"))){\n                    if (parse_context_language_cs == 0){\n                        init_language_cs(app);\n                    }\n                    parse_context_id = parse_context_language_cs;\n                }\n\t\t\t\t\n                if (string_match(ext, string_u8_litexpr(\"java\"))){\n                    if (parse_context_language_java == 0){\n                        init_language_java(app);\n                    }\n                    parse_context_id = parse_context_language_java;\n                }\n\t\t\t\t\n                if (string_match(ext, string_u8_litexpr(\"rs\"))){\n                    if (parse_context_language_rust == 0){\n                        init_language_rust(app);\n                    }\n                    parse_context_id = parse_context_language_rust;\n                }\n\t\t\t\t\n                if (string_match(ext, string_u8_litexpr(\"cpp\")) ||\n                    string_match(ext, string_u8_litexpr(\"h\")) ||\n                    string_match(ext, string_u8_litexpr(\"c\")) ||\n                    string_match(ext, string_u8_litexpr(\"hpp\")) ||\n                    string_match(ext, string_u8_litexpr(\"cc\"))){\n                    if (parse_context_language_cpp == 0){\n                        init_language_cpp(app);\n                    }\n                    parse_context_id = parse_context_language_cpp;\n                }\n\t\t\t\t\n                // TODO(NAME): Real GLSL highlighting\n                if (string_match(ext, string_u8_litexpr(\"glsl\"))){\n                    if (parse_context_language_cpp == 0){\n                        init_language_cpp(app);\n                    }\n                    parse_context_id = parse_context_language_cpp;\n                }\n\t\t\t\t\n                // TODO(NAME): Real Objective-C highlighting\n                if (string_match(ext, string_u8_litexpr(\"m\"))){\n                    if (parse_context_language_cpp == 0){\n                        init_language_cpp(app);\n                    }\n                    parse_context_id = parse_context_language_cpp;\n                }\n#endif\n\t\t\t\t\n                break;\n            }\n        }\n    }\n\t\n    String_ID file_map_id = vars_save_string_lit(\"keys_file\");\n    String_ID code_map_id = vars_save_string_lit(\"keys_code\");\n\t\n    Command_Map_ID map_id = (treat_as_code)?(code_map_id):(file_map_id);\n    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);\n    Command_Map_ID *map_id_ptr = scope_attachment(app, scope, buffer_map_id, Command_Map_ID);\n    *map_id_ptr = map_id;\n\t\n    Line_Ending_Kind setting = guess_line_ending_kind_from_buffer(app, buffer_id);\n    Line_Ending_Kind *eol_setting = scope_attachment(app, scope, buffer_eol_setting, Line_Ending_Kind);\n    *eol_setting = setting;\n\t\n    // NOTE(allen): Decide buffer settings\n    b32 wrap_lines = true;\n    b32 use_lexer = false;\n    if (treat_as_code){\n        wrap_lines = def_get_config_b32(vars_save_string_lit(\"enable_code_wrapping\"));\n        use_lexer = true;\n    }\n\t\n    String_Const_u8 buffer_name = push_buffer_base_name(app, scratch, buffer_id);\n    if (buffer_name.size > 0 && buffer_name.str[0] == '*' && buffer_name.str[buffer_name.size - 1] == '*'){\n        wrap_lines = def_get_config_b32(vars_save_string_lit(\"enable_output_wrapping\"));\n    }\n\t\n    if (use_lexer){\n        ProfileBlock(app, \"begin buffer kick off lexer\");\n        Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);\n        *lex_task_ptr = async_task_no_dep(&global_async_system, do_full_lex_async, make_data_struct(&buffer_id));\n    }\n\t\n    {\n        b32 *wrap_lines_ptr = scope_attachment(app, scope, buffer_wrap_lines, b32);\n        *wrap_lines_ptr = wrap_lines;\n    }\n\t\n    if (use_lexer){\n        buffer_set_layout(app, buffer_id, layout_virt_indent_index_generic);\n    }\n    else{\n        if (treat_as_code){\n            buffer_set_layout(app, buffer_id, layout_virt_indent_literal_generic);\n        }\n        else{\n            buffer_set_layout(app, buffer_id, layout_generic);\n        }\n    }\n\t\n    // no meaning for return\n    return(0);\n}\n\nBUFFER_HOOK_SIG(default_new_file){\n    Scratch_Block scratch(app);\n    String_Const_u8 file_name = push_buffer_base_name(app, scratch, buffer_id);\n    if (!string_match(string_postfix(file_name, 2), string_u8_litexpr(\".h\"))) {\n        return(0);\n    }\n\t\n    List_String_Const_u8 guard_list = {};\n    for (u64 i = 0; i < file_name.size; ++i){\n        u8 c[2] = {};\n        u64 c_size = 1;\n        u8 ch = file_name.str[i];\n        if ('A' <= ch && ch <= 'Z'){\n            c_size = 2;\n            c[0] = '_';\n            c[1] = ch;\n        }\n        else if ('0' <= ch && ch <= '9'){\n            c[0] = ch;\n        }\n        else if ('a' <= ch && ch <= 'z'){\n            c[0] = ch - ('a' - 'A');\n        }\n        else{\n            c[0] = '_';\n        }\n        String_Const_u8 part = push_string_copy(scratch, SCu8(c, c_size));\n        string_list_push(scratch, &guard_list, part);\n    }\n    String_Const_u8 guard = string_list_flatten(scratch, guard_list);\n\t\n    Date_Time date_time = system_now_date_time_universal();\n    date_time = system_local_date_time_from_universal(&date_time);\n    String_Const_u8 date_string = date_time_format(scratch, \"month day yyyy h:mimi ampm\", &date_time);\n\t\n    Buffer_Insertion insert = begin_buffer_insertion_at_buffered(app, buffer_id, 0, scratch, KB(16));\n    insertf(&insert,\n            \"/* date = %.*s */\\n\"\n            \"\\n\",\n            string_expand(date_string));\n    insertf(&insert,\n            \"#ifndef %.*s\\n\"\n            \"#define %.*s\\n\"\n            \"\\n\"\n            \"#endif //%.*s\\n\",\n            string_expand(guard),\n            string_expand(guard),\n            string_expand(guard));\n    end_buffer_insertion(&insert);\n\t\n    return(0);\n}\n\nBUFFER_HOOK_SIG(default_file_save){\n    // buffer_id\n    ProfileScope(app, \"default file save\");\n\t\n    b32 auto_indent = def_get_config_b32(vars_save_string_lit(\"automatically_indent_text_on_save\"));\n    b32 is_virtual = def_get_config_b32(vars_save_string_lit(\"enable_virtual_whitespace\"));\n    if (auto_indent && is_virtual){\n        auto_indent_buffer(app, buffer_id, buffer_range(app, buffer_id));\n    }\n\t\n    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);\n    Line_Ending_Kind *eol = scope_attachment(app, scope, buffer_eol_setting,\n                                             Line_Ending_Kind);\n    switch (*eol){\n        case LineEndingKind_LF:\n        {\n            rewrite_lines_to_lf(app, buffer_id);\n        }break;\n        case LineEndingKind_CRLF:\n        {\n            rewrite_lines_to_crlf(app, buffer_id);\n        }break;\n    }\n\t\n    // no meaning for return\n    return(0);\n}\n\nBUFFER_EDIT_RANGE_SIG(default_buffer_edit_range){\n    // buffer_id, new_range, original_size\n    ProfileScope(app, \"default edit range\");\n\t\n    Range_i64 old_range = Ii64(old_cursor_range.min.pos, old_cursor_range.max.pos);\n\t\n    buffer_shift_fade_ranges(buffer_id, old_range.max, (new_range.max - old_range.max));\n\t\n    {\n        code_index_lock();\n        Code_Index_File *file = code_index_get_file(buffer_id);\n        if (file != 0){\n            code_index_shift(file, old_range, range_size(new_range));\n        }\n        code_index_unlock();\n    }\n\t\n    i64 insert_size = range_size(new_range);\n    i64 text_shift = replace_range_shift(old_range, insert_size);\n\t\n    Scratch_Block scratch(app);\n\t\n    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);\n    Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);\n\t\n    Base_Allocator *allocator = managed_scope_allocator(app, scope);\n    b32 do_full_relex = false;\n\t\n    if (async_task_is_running_or_pending(&global_async_system, *lex_task_ptr)){\n        async_task_cancel(app, &global_async_system, *lex_task_ptr);\n        buffer_unmark_as_modified(buffer_id);\n        do_full_relex = true;\n        *lex_task_ptr = 0;\n    }\n\t\n    Token_Array *ptr = scope_attachment(app, scope, attachment_tokens, Token_Array);\n    if (ptr != 0 && ptr->tokens != 0){\n        ProfileBlockNamed(app, \"attempt resync\", profile_attempt_resync);\n\t\t\n        i64 token_index_first = token_relex_first(ptr, old_range.first, 1);\n        i64 token_index_resync_guess =\n            token_relex_resync(ptr, old_range.one_past_last, 16);\n\t\t\n        if (token_index_resync_guess - token_index_first >= 4000){\n            do_full_relex = true;\n        }\n        else{\n            Token *token_first = ptr->tokens + token_index_first;\n            Token *token_resync = ptr->tokens + token_index_resync_guess;\n\t\t\t\n            Range_i64 relex_range = Ii64(token_first->pos, token_resync->pos + token_resync->size + text_shift);\n            String_Const_u8 partial_text = push_buffer_range(app, scratch, buffer_id, relex_range);\n\t\t\t\n            Token_List relex_list = lex_full_input_cpp(scratch, partial_text);\n            if (relex_range.one_past_last < buffer_get_size(app, buffer_id)){\n                token_drop_eof(&relex_list);\n            }\n\t\t\t\n            Token_Relex relex = token_relex(relex_list, relex_range.first - text_shift, ptr->tokens, token_index_first, token_index_resync_guess);\n\t\t\t\n            ProfileCloseNow(profile_attempt_resync);\n\t\t\t\n            if (!relex.successful_resync){\n                do_full_relex = true;\n            }\n            else{\n                ProfileBlock(app, \"apply resync\");\n\t\t\t\t\n                i64 token_index_resync = relex.first_resync_index;\n\t\t\t\t\n                Range_i64 head = Ii64(0, token_index_first);\n                Range_i64 replaced = Ii64(token_index_first, token_index_resync);\n                Range_i64 tail = Ii64(token_index_resync, ptr->count);\n                i64 resynced_count = (token_index_resync_guess + 1) - token_index_resync;\n                i64 relexed_count = relex_list.total_count - resynced_count;\n                i64 tail_shift = relexed_count - (token_index_resync - token_index_first);\n\t\t\t\t\n                i64 new_tokens_count = ptr->count + tail_shift;\n                Token *new_tokens = base_array(allocator, Token, new_tokens_count);\n\t\t\t\t\n                Token *old_tokens = ptr->tokens;\n                block_copy_array_shift(new_tokens, old_tokens, head, 0);\n                token_fill_memory_from_list(new_tokens + replaced.first, &relex_list, relexed_count);\n                for (i64 i = 0, index = replaced.first; i < relexed_count; i += 1, index += 1){\n                    new_tokens[index].pos += relex_range.first;\n                }\n                for (i64 i = tail.first; i < tail.one_past_last; i += 1){\n                    old_tokens[i].pos += text_shift;\n                }\n                block_copy_array_shift(new_tokens, ptr->tokens, tail, tail_shift);\n\t\t\t\t\n                base_free(allocator, ptr->tokens);\n\t\t\t\t\n                ptr->tokens = new_tokens;\n                ptr->count = new_tokens_count;\n                ptr->max = new_tokens_count;\n\t\t\t\t\n                buffer_mark_as_modified(buffer_id);\n            }\n        }\n    }\n\t\n    if (do_full_relex){\n        *lex_task_ptr = async_task_no_dep(&global_async_system, do_full_lex_async,\n                                          make_data_struct(&buffer_id));\n    }\n\t\n    // no meaning for return\n    return(0);\n}\n\nBUFFER_HOOK_SIG(default_end_buffer){\n    Managed_Scope scope = buffer_get_managed_scope(app, buffer_id);\n    Async_Task *lex_task_ptr = scope_attachment(app, scope, buffer_lex_task, Async_Task);\n    if (lex_task_ptr != 0){\n        async_task_cancel(app, &global_async_system, *lex_task_ptr);\n    }\n    buffer_unmark_as_modified(buffer_id);\n    code_index_lock();\n    code_index_erase_file(buffer_id);\n    code_index_unlock();\n    // no meaning for return\n    return(0);\n}\n\nfunction void\ndefault_view_change_buffer(Application_Links *app, View_ID view_id,\n                           Buffer_ID old_buffer_id, Buffer_ID new_buffer_id){\n    Managed_Scope scope = view_get_managed_scope(app, view_id);\n    Buffer_ID *prev_buffer_id = scope_attachment(app, scope, view_previous_buffer, Buffer_ID);\n\tif (prev_buffer_id != 0){\n\t\t*prev_buffer_id = old_buffer_id;\n\t}\n}\n\ninternal void\nset_all_default_hooks(Application_Links *app){\n    set_custom_hook(app, HookID_BufferViewerUpdate, default_view_adjust);\n\t\n    set_custom_hook(app, HookID_ViewEventHandler, default_view_input_handler);\n    set_custom_hook(app, HookID_Tick, default_tick);\n    set_custom_hook(app, HookID_RenderCaller, default_render_caller);\n    set_custom_hook(app, HookID_WholeScreenRenderCaller, default_whole_screen_render_caller);\n\t\n    set_custom_hook(app, HookID_DeltaRule, fixed_time_cubic_delta);\n    set_custom_hook_memory_size(app, HookID_DeltaRule,\n                                delta_ctx_size(fixed_time_cubic_delta_memory_size));\n\t\n    set_custom_hook(app, HookID_BufferNameResolver, default_buffer_name_resolution);\n\t\n    set_custom_hook(app, HookID_BeginBuffer, default_begin_buffer);\n    set_custom_hook(app, HookID_EndBuffer, end_buffer_close_jump_list);\n    set_custom_hook(app, HookID_NewFile, default_new_file);\n    set_custom_hook(app, HookID_SaveFile, default_file_save);\n    set_custom_hook(app, HookID_BufferEditRange, default_buffer_edit_range);\n    set_custom_hook(app, HookID_BufferRegion, default_buffer_region);\n    set_custom_hook(app, HookID_ViewChangeBuffer, default_view_change_buffer);\n\t\n    set_custom_hook(app, HookID_Layout, layout_unwrapped);\n    //set_custom_hook(app, HookID_Layout, layout_wrap_anywhere);\n    //set_custom_hook(app, HookID_Layout, layout_wrap_whitespace);\n    //set_custom_hook(app, HookID_Layout, layout_virt_indent_unwrapped);\n    //set_custom_hook(app, HookID_Layout, layout_unwrapped_small_blank_lines);\n}\n\n// BOTTOM\n\n",
+			"file": "/D/Tools/4coder/4coder_scewps/4coder_scewps_hooks.cpp",
+			"file_size": 42431,
+			"file_write_time": 132756854340951028,
+			"settings":
+			{
+				"buffer_size": 42429,
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					42,
+					1,
+					"insert",
+					{
+						"characters": "de"
+					},
+					"AwAAAJU8AAAAAAAAljwAAAAAAAAAAAAAljwAAAAAAACWPAAAAAAAABUAAABkZWZhdWx0X3JlbmRlcl9jYWxsZXKWPAAAAAAAAJc8AAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAlTwAAAAAAACqPAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					43,
+					2,
+					"left_delete",
+					null,
+					"AgAAAJY8AAAAAAAAljwAAAAAAAABAAAAZZU8AAAAAAAAlTwAAAAAAAABAAAAZA",
+					"AQAAAAAAAAABAAAAlzwAAAAAAACXPAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					44,
+					1,
+					"insert",
+					{
+						"characters": "custom_render_cal"
+					},
+					"EQAAAJU8AAAAAAAAljwAAAAAAAAAAAAAljwAAAAAAACXPAAAAAAAAAAAAACXPAAAAAAAAJg8AAAAAAAAAAAAAJg8AAAAAAAAmTwAAAAAAAAAAAAAmTwAAAAAAACaPAAAAAAAAAAAAACaPAAAAAAAAJs8AAAAAAAAAAAAAJs8AAAAAAAAnDwAAAAAAAAAAAAAnDwAAAAAAACdPAAAAAAAAAAAAACdPAAAAAAAAJ48AAAAAAAAAAAAAJ48AAAAAAAAnzwAAAAAAAAAAAAAnzwAAAAAAACgPAAAAAAAAAAAAACgPAAAAAAAAKE8AAAAAAAAAAAAAKE8AAAAAAAAojwAAAAAAAAAAAAAojwAAAAAAACjPAAAAAAAAAAAAACjPAAAAAAAAKQ8AAAAAAAAAAAAAKQ8AAAAAAAApTwAAAAAAAAAAAAApTwAAAAAAACmPAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAlTwAAAAAAACVPAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					45,
+					1,
+					"insert",
+					{
+						"characters": "ler"
+					},
+					"AwAAAKY8AAAAAAAApzwAAAAAAAAAAAAApzwAAAAAAACoPAAAAAAAAAAAAACoPAAAAAAAAKk8AAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAApjwAAAAAAACmPAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					76,
+					1,
+					"insert",
+					{
+						"characters": "cz"
+					},
+					"AwAAAPciAAAAAAAA+CIAAAAAAAAAAAAA+CIAAAAAAAD4IgAAAAAAAAcAAABkZWZhdWx0+CIAAAAAAAD5IgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA9yIAAAAAAAD+IgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					77,
+					1,
+					"left_delete",
+					null,
+					"AQAAAPgiAAAAAAAA+CIAAAAAAAABAAAAeg",
+					"AQAAAAAAAAABAAAA+SIAAAAAAAD5IgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					78,
+					1,
+					"insert",
+					{
+						"characters": "ustom"
+					},
+					"BQAAAPgiAAAAAAAA+SIAAAAAAAAAAAAA+SIAAAAAAAD6IgAAAAAAAAAAAAD6IgAAAAAAAPsiAAAAAAAAAAAAAPsiAAAAAAAA/CIAAAAAAAAAAAAA/CIAAAAAAAD9IgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA+CIAAAAAAAD4IgAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "/D/Tools/4coder/custom/4coder_scewps/4coder_scewps.cpp",
+			"settings":
+			{
+				"buffer_size": 1487,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					21,
+					1,
+					"insert",
+					{
+						"characters": "\n\n\n"
+					},
+					"AwAAAJsBAAAAAAAAnAEAAAAAAAAAAAAAnAEAAAAAAACdAQAAAAAAAAAAAACdAQAAAAAAAJ4BAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAmwEAAAAAAACbAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					23,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AQAAAJ0BAAAAAAAAngEAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAnQEAAAAAAACdAQAAAAAAAAAAAAAAAAAA"
+				],
+				[
+					24,
+					1,
+					"insert",
+					{
+						"characters": "#include"
+					},
+					"CAAAAJ4BAAAAAAAAnwEAAAAAAAAAAAAAnwEAAAAAAACgAQAAAAAAAAAAAACgAQAAAAAAAKEBAAAAAAAAAAAAAKEBAAAAAAAAogEAAAAAAAAAAAAAogEAAAAAAACjAQAAAAAAAAAAAACjAQAAAAAAAKQBAAAAAAAAAAAAAKQBAAAAAAAApQEAAAAAAAAAAAAApQEAAAAAAACmAQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAngEAAAAAAACeAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					25,
+					1,
+					"insert",
+					{
+						"characters": " "
+					},
+					"AQAAAKYBAAAAAAAApwEAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAApgEAAAAAAACmAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					26,
+					1,
+					"insert_snippet",
+					{
+						"contents": "\"$0\""
+					},
+					"AQAAAKcBAAAAAAAAqQEAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAApwEAAAAAAACnAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					27,
+					1,
+					"insert",
+					{
+						"characters": "co"
+					},
+					"AgAAAKgBAAAAAAAAqQEAAAAAAAAAAAAAqQEAAAAAAACqAQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAqAEAAAAAAACoAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					28,
+					2,
+					"left_delete",
+					null,
+					"AgAAAKkBAAAAAAAAqQEAAAAAAAABAAAAb6gBAAAAAAAAqAEAAAAAAAABAAAAYw",
+					"AQAAAAAAAAABAAAAqgEAAAAAAACqAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					29,
+					1,
+					"insert",
+					{
+						"characters": "4coder_"
+					},
+					"BwAAAKgBAAAAAAAAqQEAAAAAAAAAAAAAqQEAAAAAAACqAQAAAAAAAAAAAACqAQAAAAAAAKsBAAAAAAAAAAAAAKsBAAAAAAAArAEAAAAAAAAAAAAArAEAAAAAAACtAQAAAAAAAAAAAACtAQAAAAAAAK4BAAAAAAAAAAAAAK4BAAAAAAAArwEAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAqAEAAAAAAACoAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					30,
+					1,
+					"insert",
+					{
+						"characters": "scep"
+					},
+					"BAAAAK8BAAAAAAAAsAEAAAAAAAAAAAAAsAEAAAAAAACxAQAAAAAAAAAAAACxAQAAAAAAALIBAAAAAAAAAAAAALIBAAAAAAAAswEAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAArwEAAAAAAACvAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					31,
+					1,
+					"left_delete",
+					null,
+					"AQAAALIBAAAAAAAAsgEAAAAAAAABAAAAcA",
+					"AQAAAAAAAAABAAAAswEAAAAAAACzAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					32,
+					1,
+					"insert",
+					{
+						"characters": "wps_hooks.c"
+					},
+					"CwAAALIBAAAAAAAAswEAAAAAAAAAAAAAswEAAAAAAAC0AQAAAAAAAAAAAAC0AQAAAAAAALUBAAAAAAAAAAAAALUBAAAAAAAAtgEAAAAAAAAAAAAAtgEAAAAAAAC3AQAAAAAAAAAAAAC3AQAAAAAAALgBAAAAAAAAAAAAALgBAAAAAAAAuQEAAAAAAAAAAAAAuQEAAAAAAAC6AQAAAAAAAAAAAAC6AQAAAAAAALsBAAAAAAAAAAAAALsBAAAAAAAAvAEAAAAAAAAAAAAAvAEAAAAAAAC9AQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAsgEAAAAAAACyAQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					33,
+					1,
+					"insert",
+					{
+						"characters": "pp"
+					},
+					"AgAAAL0BAAAAAAAAvgEAAAAAAAAAAAAAvgEAAAAAAAC/AQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAvQEAAAAAAAC9AQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					37,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AgAAAL8CAAAAAAAAwAIAAAAAAAAAAAAAwAIAAAAAAADBAgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAvwIAAAAAAAC/AgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					40,
+					1,
+					"insert",
+					{
+						"characters": "\n\n"
+					},
+					"BgAAAMECAAAAAAAAwgIAAAAAAAAAAAAAwgIAAAAAAADDAgAAAAAAAAAAAADAAgAAAAAAAMACAAAAAAAAAQAAAAnCAgAAAAAAAMMCAAAAAAAAAAAAAMMCAAAAAAAAxAIAAAAAAAAAAAAAwQIAAAAAAADBAgAAAAAAAAEAAAAJ",
+					"AQAAAAAAAAABAAAAwQIAAAAAAADBAgAAAAAAAAAAAAAAgEBA"
+				],
+				[
+					43,
+					1,
+					"reindent",
+					null,
+					"AQAAAMECAAAAAAAAwgIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAwQIAAAAAAADBAgAAAAAAAP///////+9/"
+				],
+				[
+					44,
+					1,
+					"insert",
+					{
+						"characters": "//"
+					},
+					"AwAAAMICAAAAAAAAwwIAAAAAAAAAAAAAxAIAAAAAAADEAgAAAAAAAAEAAAAJwwIAAAAAAADEAgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAwgIAAAAAAADCAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					45,
+					1,
+					"insert",
+					{
+						"characters": " NOTE"
+					},
+					"BQAAAMQCAAAAAAAAxQIAAAAAAAAAAAAAxQIAAAAAAADGAgAAAAAAAAAAAADGAgAAAAAAAMcCAAAAAAAAAAAAAMcCAAAAAAAAyAIAAAAAAAAAAAAAyAIAAAAAAADJAgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAxAIAAAAAAADEAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					46,
+					1,
+					"insert_snippet",
+					{
+						"contents": "($0)"
+					},
+					"AQAAAMkCAAAAAAAAywIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAyQIAAAAAAADJAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					47,
+					1,
+					"insert",
+					{
+						"characters": "scwp"
+					},
+					"BAAAAMoCAAAAAAAAywIAAAAAAAAAAAAAywIAAAAAAADMAgAAAAAAAAAAAADMAgAAAAAAAM0CAAAAAAAAAAAAAM0CAAAAAAAAzgIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAygIAAAAAAADKAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					48,
+					2,
+					"left_delete",
+					null,
+					"AgAAAM0CAAAAAAAAzQIAAAAAAAABAAAAcMwCAAAAAAAAzAIAAAAAAAABAAAAdw",
+					"AQAAAAAAAAABAAAAzgIAAAAAAADOAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					49,
+					1,
+					"insert",
+					{
+						"characters": "ewps"
+					},
+					"BAAAAMwCAAAAAAAAzQIAAAAAAAAAAAAAzQIAAAAAAADOAgAAAAAAAAAAAADOAgAAAAAAAM8CAAAAAAAAAAAAAM8CAAAAAAAA0AIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAzAIAAAAAAADMAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					51,
+					1,
+					"insert",
+					{
+						"characters": "Ö"
+					},
+					"AQAAANECAAAAAAAA0gIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA0QIAAAAAAADRAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					52,
+					1,
+					"left_delete",
+					null,
+					"AQAAANECAAAAAAAA0QIAAAAAAAACAAAAw5Y",
+					"AQAAAAAAAAABAAAA0gIAAAAAAADSAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					53,
+					1,
+					"insert",
+					{
+						"characters": ":"
+					},
+					"AQAAANECAAAAAAAA0gIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA0QIAAAAAAADRAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					54,
+					1,
+					"insert",
+					{
+						"characters": " custom"
+					},
+					"BwAAANICAAAAAAAA0wIAAAAAAAAAAAAA0wIAAAAAAADUAgAAAAAAAAAAAADUAgAAAAAAANUCAAAAAAAAAAAAANUCAAAAAAAA1gIAAAAAAAAAAAAA1gIAAAAAAADXAgAAAAAAAAAAAADXAgAAAAAAANgCAAAAAAAAAAAAANgCAAAAAAAA2QIAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA0gIAAAAAAADSAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					55,
+					1,
+					"insert",
+					{
+						"characters": " hooks"
+					},
+					"BgAAANkCAAAAAAAA2gIAAAAAAAAAAAAA2gIAAAAAAADbAgAAAAAAAAAAAADbAgAAAAAAANwCAAAAAAAAAAAAANwCAAAAAAAA3QIAAAAAAAAAAAAA3QIAAAAAAADeAgAAAAAAAAAAAADeAgAAAAAAAN8CAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA2QIAAAAAAADZAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					56,
+					1,
+					"insert",
+					{
+						"characters": "\n"
+					},
+					"AgAAAN8CAAAAAAAA4AIAAAAAAAAAAAAA4AIAAAAAAADhAgAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA3wIAAAAAAADfAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					57,
+					1,
+					"paste",
+					null,
+					"AQAAAOECAAAAAAAAIgMAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAA4QIAAAAAAADhAgAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					63,
+					1,
+					"insert",
+					{
+						"characters": "custom_render_caller"
+					},
+					"FQAAAAsDAAAAAAAADAMAAAAAAAAAAAAADAMAAAAAAAAMAwAAAAAAABUAAABkZWZhdWx0X3JlbmRlcl9jYWxsZXIMAwAAAAAAAA0DAAAAAAAAAAAAAA0DAAAAAAAADgMAAAAAAAAAAAAADgMAAAAAAAAPAwAAAAAAAAAAAAAPAwAAAAAAABADAAAAAAAAAAAAABADAAAAAAAAEQMAAAAAAAAAAAAAEQMAAAAAAAASAwAAAAAAAAAAAAASAwAAAAAAABMDAAAAAAAAAAAAABMDAAAAAAAAFAMAAAAAAAAAAAAAFAMAAAAAAAAVAwAAAAAAAAAAAAAVAwAAAAAAABYDAAAAAAAAAAAAABYDAAAAAAAAFwMAAAAAAAAAAAAAFwMAAAAAAAAYAwAAAAAAAAAAAAAYAwAAAAAAABkDAAAAAAAAAAAAABkDAAAAAAAAGgMAAAAAAAAAAAAAGgMAAAAAAAAbAwAAAAAAAAAAAAAbAwAAAAAAABwDAAAAAAAAAAAAABwDAAAAAAAAHQMAAAAAAAAAAAAAHQMAAAAAAAAeAwAAAAAAAAAAAAAeAwAAAAAAAB8DAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAACwMAAAAAAAAgAwAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+		[
+			[
+				[
+					"Packages/C++/C Single File.sublime-build",
+					""
+				],
+				[
+					"Packages/C++/C Single File.sublime-build",
+					"Run"
+				]
+			],
+			[
+				"Packages/C++/C Single File.sublime-build",
+				"Run"
+			]
+		],
+		[
+			[
+				[
+					"Packages/C++/C++ Single File.sublime-build",
+					""
+				],
+				[
+					"Packages/C++/C++ Single File.sublime-build",
+					"Run"
+				]
+			],
+			[
+				"Packages/C++/C++ Single File.sublime-build",
+				"Run"
+			]
+		]
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"break",
+				"Debugger: Add Function Breakpoint"
+			],
+			[
+				"breakpoin",
+				"Debugger: Clear Breakpoints"
+			],
+			[
+				"remove ",
+				"Package Control: Remove Package"
+			],
+			[
+				"sublimegdb",
+				"SublimeGDB: Open Breakpoint View"
+			],
+			[
+				"install pack",
+				"Package Control: Install Package"
+			],
+			[
+				"remove pa",
+				"Package Control: Remove Package"
+			],
+			[
+				"package control: remo",
+				"Package Control: Remove Package"
+			],
+			[
+				"",
+				"Debugger: Start"
+			],
+			[
+				"debugger:s",
+				"Debugger: Start"
+			],
+			[
+				"split",
+				"File: Split View"
+			],
+			[
+				"install pa",
+				"Package Control: Install Package"
+			],
+			[
+				"install packag",
+				"Package Control: Install Package"
+			],
+			[
+				"debugger:con",
+				"Debugger: Add or Select Configuration"
+			],
+			[
+				"debugger: set",
+				"Debugger: Add or Select Configuration"
+			],
+			[
+				"install pak",
+				"Package Control: Install Package"
+			],
+			[
+				"debug",
+				"Debugger: Open"
+			],
+			[
+				"debugger",
+				"Debugger: Open"
+			],
+			[
+				"debugger: ll",
+				"Debugger: LLDB Display Options"
+			],
+			[
+				"debugger:op",
+				"Debugger: Open"
+			],
+			[
+				"debugger:i",
+				"Debugger: Install Adapters"
+			],
+			[
+				"debugger: install",
+				"Debugger: Install Adapters"
+			],
+			[
+				"install p",
+				"Package Control: Install Package"
+			],
+			[
+				"remove pac",
+				"Package Control: Remove Package"
+			],
+			[
+				"install ",
+				"Package Control: Install Package"
+			],
+			[
+				"install package",
+				"Package Control: Install Package"
+			],
+			[
+				"color scheme",
+				"UI: Customize Color Scheme"
+			],
+			[
+				"remove pack",
+				"Package Control: Remove Package"
+			],
+			[
+				"install pac",
+				"Package Control: Install Package"
+			],
+			[
+				"color sch",
+				"UI: Select Color Scheme"
+			],
+			[
+				"packa",
+				"Package Control: Install Package"
+			],
+			[
+				"ui them",
+				"UI: Select Theme"
+			],
+			[
+				"ui",
+				"UI: Customize Theme"
+			],
+			[
+				"ui th",
+				"UI: Select Color Scheme"
+			],
+			[
+				"color s",
+				"UI: Select Color Scheme"
+			],
+			[
+				"package control: instl",
+				"Package Control: Install Package"
+			],
+			[
+				"theme",
+				"UI: Select Theme"
+			],
+			[
+				"install",
+				"Install Package Control"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 397.0,
+		"history":
+		[
+			"git bash",
+			"cmd",
+			"clear",
+			"cls",
+			"bin/a.exe"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/D/Projects/sneklang6/snekc/test",
+		"/D/Projects/sneklang6/snekc/test/bin",
+		"/D/Projects/sneklang6/snekc/test/src"
+	],
+	"file_history":
+	[
+		"/D/Tools/4coder/build_with_lexer.bat",
+		"/D/Tools/4coder/build.bat",
+		"/D/Tools/4coder/custom/bin/buildsuper_x64-win.bat",
+		"/D/Tools/4coder/4coder_scewps/4coder_scewps_custom.cpp",
+		"/D/Tools/4coder/custom/bin/build_one_time.bat",
+		"/D/Tools/4coder/custom/generated/lexer_cpp.h",
+		"/D/Tools/4coder/custom/4coder_draw.cpp",
+		"/D/Projects/sneklang6/snekc/test/src/Tests.c",
+		"/D/Projects/sneklang6/snekc/test/src/Main.c",
+		"/D/Projects/sneklang6/snekc/test/build.bat",
+		"/D/Tools/vscode/bin/code.cmd",
+		"/D/Projects/sneklang6/snekc/test/bin/Main.ll",
+		"/C/Users/faris/AppData/Roaming/Sublime Text 3/Packages/Debugger/Commands/Commands.sublime-commands",
+		"/D/Projects/sneklang6/snekc/test/test.sublime-project",
+		"/D/Projects/sneklang6/snekc/test/Main.ll",
+		"/D/Projects/sneklang6/snekc/test/bin/a.pdb",
+		"/D/Projects/sneklang3/libsnek/src/codegen/codegen.cpp",
+		"/D/Projects/sneklang6/snekc/test/build.sublime-build",
+		"/D/Projects/sneklang6/snekc/test/bin/Tests.ll",
+		"/D/Projects/sneklang6/snekc/test/src/Tests.sk",
+		"/D/Projects/sneklang6/snekc/test/src/Main.sk",
+		"/D/Projects/sneklang6/snekc/test/bin/List.ll",
+		"/D/Projects/sneklang5/snekc/stdlib/console.sk",
+		"/D/Projects/sneklang6/snekc/test/src/Window.sk",
+		"/D/Projects/sneklang6/snekc/test/src/Console.sk",
+		"/D/Projects/sneklang6/snekc/test/src/List.sk",
+		"/D/Projects/sneklang6/snekc/test/bin/Console.ll",
+		"/D/Projects/sneklang6/snekc/test/bin/Console.c",
+		"/D/Projects/sneklang6/snekc/test/src/Glfw.sk",
+		"/D/Projects/sneklang6/snekc/Main.ll",
+		"/D/Projects/snek-test/src/window.sk",
+		"/D/Projects/snek-test/src/main.sk",
+		"/D/Projects/sneklang6/snekc/test/bin/Main.c",
+		"/D/Projects/sneklang6/snekc/test/bin/Glfw.c",
+		"/D/Projects/sneklang6/snekc/test/bin/Tests.c",
+		"/D/Projects/sneklang6/snekc/test/bin/Window.c",
+		"/D/Projects/sneklang6/snekc/test/bin/List.c",
+		"/D/Projects/sneklang6/snekc/test/Syntax.sk",
+		"/D/Projects/sneklang6/snekc/test/Syntax.e",
+		"/D/Projects/sneklang6/snekc/test/src/Tests.e",
+		"/D/Projects/sneklang6/snekc/test/src/Console.e",
+		"/D/Projects/sneklang6/snekc/test/src/Main.e",
+		"/D/Projects/Misa/Misa.sln",
+		"/D/Projects/Misa/MisaCore/MisaCore.vcxproj.user",
+		"/D/Projects/Misa/MisaCore/MisaCore.vcxproj.filters",
+		"/D/Projects/Misa/MisaCore/MisaCore.vcxproj",
+		"/D/Projects/Misa/Sandbox/Sandbox.vcxproj",
+		"/D/Projects/MediaLib/MediaLib/src/graphics/renderer/MasterRenderer.cs",
+		"/D/Projects/MediaLib/MediaLib/src/shaders/shadows/shadowmapping.glsl",
+		"/D/Projects/MediaLib/MediaLib/src/graphics/renderer/shadowmapping/ShadowFbo.cs",
+		"/C/Users/faris/AppData/Roaming/Sublime Text 3/Packages/User/Snek.sublime-build",
+		"/D/Projects/sneklang6/snekc/test/project.sublime-workspace",
+		"/D/Projects/sneklang6/snekc/test/Console.e",
+		"/D/Projects/sneklang6/snekc/test/Tests.e",
+		"/D/Projects/sneklang6/snekc/test/Main.e",
+		"/D/Projects/sneklang6/snekc/test/main.e",
+		"/D/Projects/sneklang6/snekc/build/main.c",
+		"/D/Projects/sneklang6/snekc/build/Console.c",
+		"/D/Projects/sneklang6/snekc/test/project.4coder",
+		"/D/Tools/4coder/custom/extensions/primitive_highlight.cpp",
+		"/D/Projects/4coder-custom/themes/theme-scewps.4coder",
+		"/D/Tools/4coder/custom/languages/4coder_cpp_lexer_gen.cpp",
+		"/D/Tools/4coder/themes/theme-scewps.4coder",
+		"/D/Tools/4coder/custom/bin/setup_cl_x64.bat",
+		"/D/Tools/4coder/custom/bin/setup_cl_generic.bat",
+		"/D/Tools/4coder/custom/4coder_default_bindings.cpp",
+		"/D/Tools/4coder/custom/4coder_custom.cpp",
+		"/D/Tools/4coder/custom/lexer_generator/4coder_lex_gen_main.cpp",
+		"/D/Tools/4coder/custom_layer.cpp",
+		"/D/Tools/4coder/custom/4coder_default_colors.h",
+		"/D/Tools/4coder/custom/4coder_draw.h",
+		"/D/Tools/4coder/config.4coder",
+		"/D/Tools/4coder/custom/4coder_default_hooks.cpp",
+		"/D/Projects/4coder-custom/custom/4coder_default_hooks.cpp",
+		"/D/Projects/4coder-custom/config.4coder",
+		"/D/Projects/4coder-custom/build_with_lexer.bat",
+		"/D/Projects/4coder-custom/custom/languages/4coder_cpp_lexer_gen.cpp",
+		"/D/Projects/4coder-custom/custom/4coder_base_commands.cpp",
+		"/D/Projects/4coder-custom/custom/4coder_code_index.cpp",
+		"/D/Projects/4coder-custom/custom/4coder_code_index_listers.cpp",
+		"/D/Projects/4coder-custom/custom/4coder_helper.cpp",
+		"/D/Projects/4coder-custom/custom_layer.cpp",
+		"/D/Projects/sneklang6/snekc/main.c",
+		"/C/Users/faris/Downloads/tcc/examples/libtcc_test.c",
+		"/D/Projects/sneklang5/snekc/packages/test/.vscode/tasks.json",
+		"/D/Tools/4coder/custom/4coder_default_include.cpp",
+		"/D/Tools/4coder/custom/4coder_default_framework.h",
+		"/D/Tools/4coder/custom/4coder_build_commands.cpp",
+		"/D/Tools/4coder/custom/4coder_project_commands.h",
+		"/D/Tools/4coder/custom/generated/lexer_cpp.cpp",
+		"/D/Tools/4coder/themes/theme-4coder.4coder",
+		"/D/Tools/4coder/lex.bat",
+		"/D/Tools/_tmp/custom/4coder_code_index.cpp",
+		"/D/Projects/sneklang5/libsnek/src/parser/keywords.h",
+		"/D/Tools/4coder/custom/4coder_jumping.cpp",
+		"/D/Tools/4coder/custom/4coder_code_index.h",
+		"/D/Tools/4coder/custom/4coder_code_index.cpp",
+		"/D/Tools/4coder/4coder_fleury/theme-fleury.4coder",
+		"/D/Tools/4coder/custom/bin/buildsuper_x86-win.bat",
+		"/D/Tools/4coder/bindings.4coder",
+		"/C/Users/faris/Desktop/ab_glitchless",
+		"/D/Games/PTDE/DARK SOULS - Prepare To Die Edition/DATA/DSfix.ini",
+		"/C/Users/faris/Desktop/hww.ahk",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/backup.bat",
+		"/D/Projects/sneklang5/snekc/packages/stdlib/console.sk",
+		"/D/Projects/sneklang5/snekc/packages/stdlib/math.sk",
+		"/D/Projects/sneklang5/snekc/packages/stdlib/string.sk",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_14_4Kings.bat",
+		"/D/Projects/sneklang3/snekc/packages/stdlib/list.sk",
+		"/D/Projects/sneklang3/snekc/packages/stdlib/memory.sk",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_2_Setup.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_1_NewLondo.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_15_Gwyn.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_13_BedOfChaos.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_12_LavaSkip.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_11_Nito.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_9_Seath.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_8_DukeSkip.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_7_O&S.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_10_Catacombs.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_3_Gargoyles.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_4_Quelaag.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_5_Sif.bat",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_6_Rafters.bat",
+		"/D/Projects/sneklang3/snekc/packages/stdlib/string.sk",
+		"/C/Users/faris/Documents/NBGI/DARK SOULS REMASTERED/471140628/_3 Gargoyles.bat",
+		"/D/Projects/sneklang3/snekc/packages/test/obj/console/output.sk",
+		"/D/Projects/sneklang3/snekc/test/obj/a/test.sk"
+	],
+	"find":
+	{
+		"height": 39.0
+	},
+	"find_in_files":
+	{
+		"height": 102.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"default_render_buffer",
+			"cursor"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/D/Tools/4coder/custom/4coder_draw.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 37724,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								33458,
+								33466
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 15087.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "/D/Tools/4coder/custom/4coder_default_hooks.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 42431,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								41190,
+								41190
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 19137.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/D/Tools/4coder/build.bat",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 109,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								38,
+								38
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Batch File/Batch File.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "/D/Tools/4coder/4coder_scewps/4coder_scewps_hooks.cpp",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 42429,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								8782,
+								8782
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 4377.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/D/Tools/4coder/custom/4coder_scewps/4coder_scewps.cpp",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1487,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								799,
+								799
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/C++/C++.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 27.0
+	},
+	"input":
+	{
+		"height": 39.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.Cmder-2":
+	{
+		"height": 120.0
+	},
+	"output.Debugger":
+	{
+		"height": 315.0
+	},
+	"output.Debugger: Console":
+	{
+		"height": 0.0
+	},
+	"output.Debugger: Protocol":
+	{
+		"height": 0.0
+	},
+	"output.exec":
+	{
+		"height": 335.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/User/Snek.sublime-build",
+	"project": "test.sublime-project",
+	"replace":
+	{
+		"height": 50.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 351.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

@@ -1,0 +1,54 @@
+module stdc;
+
+
+public typedef size_t : uint64;
+public typedef wchar_t : int32;
+
+public struct div_t
+{
+	int quot;
+	int rem;
+}
+
+public typedef ldiv_t : div_t;
+
+public struct lldiv_t
+{
+	long quot;
+	long rem;
+}
+
+
+public const int NULL = 0;
+
+public const int EXIT_FAILURE = 1;
+public const int EXIT_SUCCESS = 0;
+
+public const int RAND_MAX = 0x7fffffff;
+
+
+public extern double atof(char* str);
+public extern int atoi(char* str);
+public extern int atol(char* str);
+public extern double strtod(char* str, char** endptr);
+public extern int strtol(char* str, char** endptr, int base);
+public extern uint strtoul(char* str, char** endptr, int base);
+public extern void* calloc(size_t nitems, size_t size);
+public extern void free(void* ptr);
+public extern void* malloc(size_t size);
+public extern void* realloc(void* ptr, size_t size);
+public extern void abort();
+public extern int atexit(void() func);
+public extern void exit(int status);
+public extern char* getenv(char* name);
+public extern int system(char* str);
+public extern void* bsearch(void* key, void* base, size_t nitems, size_t size, int(void*, void*) compar);
+public extern void qsort(void* base, size_t nitems, size_t size, int(void*, void*) compar);
+public extern int abs(int x);
+public extern div_t div(int numer, int denom);
+public extern int labs(int x);
+public extern ldiv_t ldiv(int number, int denom);
+public extern int rand();
+public extern void srand(uint seed);
+
+public extern char* itoa(int value, char* buffer, int radix);

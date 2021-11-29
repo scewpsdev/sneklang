@@ -3,10 +3,10 @@
 
 struct SkContext;
 struct CBackend;
-struct AstModule;
+struct AstFile;
 
 
 CBackend* CreateCBackend(SkContext* context);
 void DestroyCBackend(CBackend* cb);
 
-bool CBackendCompile(CBackend* cb, AstModule** asts, int numModules, const char* filename, const char* buildFolder);
+bool CBackendCompile(CBackend* cb, AstFile** asts, int numModules, const char* filename, const char* buildFolder);

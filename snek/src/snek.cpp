@@ -11,6 +11,7 @@ SkContext* CreateSnekContext(MessageCallback_t msgCallback)
 	SkContext* context = new SkContext();
 
 	context->sourceFiles = CreateList<SourceFile>();
+	context->linkerFiles = CreateList<LinkerFile>();
 
 	context->msgCallback = msgCallback;
 
@@ -19,34 +20,47 @@ SkContext* CreateSnekContext(MessageCallback_t msgCallback)
 
 void DestroySnekContext(SkContext* context)
 {
+	DestroyList(context->sourceFiles);
+	DestroyList(context->linkerFiles);
+
 	delete context;
 }
 
-void SnekAddSource(SkContext* context, char* src, char* moduleName)
+void SnekAddSource(SkContext* context, char* src, char* path, char* moduleName, char* filename, char* directory)
 {
-	SourceFile file;
+	SourceFile file = {};
 	file.src = src;
+	file.path = path;
 	file.moduleName = moduleName;
-	ListAdd(context->sourceFiles, file);
+	file.filename = filename;
+	file.directory = directory;
+	context->sourceFiles.add(file);
+}
+
+void SnekAddLinkerFile(SkContext* context, const char* path)
+{
+	LinkerFile file = {};
+	file.path = path;
+	context->linkerFiles.add(file);
 }
 
 bool SnekRunParser(SkContext* context)
 {
-	context->asts = CreateList<AstModule*>(context->sourceFiles.size);
-	ListResize(context->asts, context->sourceFiles.size);
+	context->asts = CreateList<AstFile*>(context->sourceFiles.size);
+	context->asts.resize(context->sourceFiles.size);
 
 	Parser* parser = CreateParser(context);
-	ParserRun(parser);
+	bool result = ParserRun(parser);
 	DestroyParser(parser);
 
-	return true;
+	return result;
 }
 
 bool SnekRunResolver(SkContext* context)
 {
 	Resolver* resolver = CreateResolver(context);
-	ResolverRun(resolver);
+	bool result = ResolverRun(resolver);
 	DestroyResolver(resolver);
 
-	return true;
+	return result;
 }

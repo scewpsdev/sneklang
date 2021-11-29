@@ -76,7 +76,7 @@ void StringBufferAppend(StringBuffer& buffer, double d, int fpDigits)
 void StringBufferAppend(StringBuffer& buffer, double d)
 {
 	char str[32];
-	sprintf(str, "%.14g", d);
+	sprintf(str, "%.14e", d);
 	StringBufferAppend(buffer, str);
 }
 

@@ -1,0 +1,63 @@
+module stdc;
+
+public extern double acos(double x);
+public extern double asin(double x);
+public extern double atan(double x);
+public extern double atan2(double y, double x);
+public extern double cos(double x);
+public extern double cosh(double x);
+public extern double sin(double x);
+public extern double sinh(double x);
+public extern double tanh(double x);
+public extern double exp(double x);
+public extern double frexp(double x, int* exponent);
+public extern double ldexp(double x, int exponent);
+public extern double log(double x);
+public extern double log10(double x);
+public extern double modf(double x, double* integer);
+public extern double pow(double x, double y);
+public extern double sqrt(double x);
+public extern double ceil(double x);
+public extern double fabs(double x);
+public extern double floor(double x);
+public extern double fmod(double x, double y);
+
+public float cosf(float f) {
+	return (float)cos((double)f);
+}
+
+public float sinf(float f) {
+	return (float)sin((double)f);
+}
+
+public float expf(float f) {
+	return (float)exp((double)f);
+}
+
+public float powf(float a, float b) {
+	return (float)pow((double)a, (double)b);
+}
+
+public float sqrtf(float f) {
+	return (float)sqrt((double)f);
+}
+
+public float ceilf(float f) {
+	return (float)ceil((double)f);
+}
+
+public float fabsf(float x) {
+	return (float)fabs((double)x);
+}
+
+public float floorf(float f) {
+	return (float)floor((double)f);
+}
+
+public float fmodf(float a, float b) {
+	return (float)fmod((double)a, (double)b);
+}
+
+public float sign(float f) {
+	return f < 0.0 ? -1.0 : f > 0.0 ? 1.0 : 0.0;
+}

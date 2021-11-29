@@ -19,16 +19,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\log.cpp" />
     <ClCompile Include="src\ast.cpp" />
+    <ClCompile Include="src\mangle.cpp" />
     <ClCompile Include="src\resolver.cpp" />
     <ClCompile Include="src\input.cpp" />
     <ClCompile Include="src\lexer.cpp" />
     <ClCompile Include="src\parser.cpp" />
     <ClCompile Include="src\snek.cpp" />
-    <ClCompile Include="src\types.cpp" />
+    <ClCompile Include="src\stringbuffer.cpp" />
+    <ClCompile Include="src\type.cpp" />
+    <ClCompile Include="src\utils.cpp" />
     <ClCompile Include="src\variable.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\mangle.h" />
     <ClInclude Include="src\resolver.h" />
     <ClInclude Include="src\ast.h" />
     <ClInclude Include="src\input.h" />
@@ -38,7 +43,9 @@
     <ClInclude Include="src\log.h" />
     <ClInclude Include="src\parser.h" />
     <ClInclude Include="src\snek.h" />
-    <ClInclude Include="src\types.h" />
+    <ClInclude Include="src\stringbuffer.h" />
+    <ClInclude Include="src\type.h" />
+    <ClInclude Include="src\utils.h" />
     <ClInclude Include="src\variable.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

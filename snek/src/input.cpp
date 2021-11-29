@@ -1,14 +1,16 @@
 #include "input.h"
 
 
-Input CreateInput(const char* src) {
-	Input input;
+Input CreateInput(const char* src, const char* filename) {
+	Input input = {};
 
 	input.buffer = src;
 
-	InputState state;
+	InputState state = {};
 	state.line = 1;
 	state.col = 1;
+
+	state.filename = filename;
 
 	state.buffer = input.buffer;
 	state.index = 0;
@@ -32,7 +34,8 @@ char InputNext(Input* input) {
 	if (c == '\n') {
 		input->state.line++;
 		input->state.col = 1;
-	} else {
+	}
+	else {
 		input->state.col++;
 	}
 	return c;

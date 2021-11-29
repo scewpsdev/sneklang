@@ -4,19 +4,23 @@
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>test/main.sk -build build</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>test/main.sk -build build</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>test/main.sk -build build</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>test/main.sk -build build</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

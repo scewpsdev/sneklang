@@ -13,19 +13,26 @@ static const Token NULL_TOKEN = {};
 
 static const std::map<std::string, KeywordType> keywords =
 {
+	{ KEYWORD_MODULE, KEYWORD_TYPE_MODULE },
+	{ KEYWORD_NAMESPACE, KEYWORD_TYPE_NAMESPACE },
 	{ KEYWORD_IMPORT, KEYWORD_TYPE_IMPORT },
 	{ KEYWORD_VAR, KEYWORD_TYPE_VARIABLE },
 	{ KEYWORD_FUNC, KEYWORD_TYPE_FUNCTION },
 	{ KEYWORD_STRUCT, KEYWORD_TYPE_STRUCT },
 	{ KEYWORD_CLASS, KEYWORD_TYPE_CLASS },
 	{ KEYWORD_TYPEDEF, KEYWORD_TYPE_TYPEDEF },
+	{ KEYWORD_EXPRDEF, KEYWORD_TYPE_EXPRDEF },
 	{ KEYWORD_METHOD, KEYWORD_TYPE_METHOD },
+	{ KEYWORD_ENUM, KEYWORD_TYPE_ENUM },
 
 	{ KEYWORD_PUBLIC, KEYWORD_TYPE_PUBLIC },
 	{ KEYWORD_PRIVATE, KEYWORD_TYPE_PRIVATE },
 	{ KEYWORD_STATIC, KEYWORD_TYPE_STATIC },
 	{ KEYWORD_CONST, KEYWORD_TYPE_CONSTANT },
 	{ KEYWORD_EXTERN, KEYWORD_TYPE_EXTERN },
+	{ KEYWORD_DLLEXPORT, KEYWORD_TYPE_DLLEXPORT },
+	{ KEYWORD_DLLIMPORT, KEYWORD_TYPE_DLLIMPORT },
+	{ KEYWORD_PACKED, KEYWORD_TYPE_PACKED },
 
 	{ KEYWORD_IF, KEYWORD_TYPE_IF },
 	{ KEYWORD_ELSE, KEYWORD_TYPE_ELSE },
@@ -95,7 +102,7 @@ Lexer* CreateLexer(const char* src, const char* filename, SkContext* context)
 {
 	Lexer* lexer = new Lexer();
 
-	lexer->input = CreateInput(src);
+	lexer->input = CreateInput(src, filename);
 	lexer->filename = filename;
 
 	lexer->context = context;
@@ -177,12 +184,6 @@ static bool nextIsIdentifier(Lexer* lexer)
 	return isalpha(c) || c == '_';
 }
 
-static void skipWhitespace(Lexer* lexer)
-{
-	while (nextIsWhitespace(lexer))
-		InputNext(&lexer->input);
-}
-
 static void skipComment(Lexer* lexer)
 {
 	InputNext(&lexer->input);
@@ -203,6 +204,17 @@ static void skipComment(Lexer* lexer)
 	}
 	else
 		assert(false && "SkipComment error");
+}
+
+static void skipWhitespace(Lexer* lexer)
+{
+	while (nextIsWhitespace(lexer) || nextIsComment(lexer))
+	{
+		if (nextIsComment(lexer))
+			skipComment(lexer);
+		else
+			InputNext(&lexer->input);
+	}
 }
 
 static Token readStringLiteral(Lexer* lexer)
@@ -297,7 +309,7 @@ static Token readPunctuation(Lexer* lexer)
 {
 	InputState state = lexer->input.state;
 
-	Token token;
+	Token token = {};
 	token.type = (TokenType)InputNext(&lexer->input);
 	token.line = state.line;
 	token.col = state.col;
@@ -310,13 +322,14 @@ static Token readPunctuation(Lexer* lexer)
 
 static Token readOperator(Lexer* lexer)
 {
-	Token token;
-	//token.type
+	InputState state = lexer->input.state;
+
+	Token token = {};
 	token.line = lexer->input.state.line;
 	token.col = lexer->input.state.col;
 
-	token.str = nullptr;
-	token.len = 0;
+	token.str = state.ptr;
+	token.len = 1;
 
 	switch (InputNext(&lexer->input))
 	{
@@ -379,12 +392,6 @@ Token LexerNext(Lexer* lexer)
 
 	if (InputHasNext(&lexer->input))
 	{
-		if (nextIsComment(lexer))
-		{
-			skipComment(lexer);
-			return LexerNext(lexer);
-		}
-
 		if (nextIsStringLiteral(lexer))
 			return readStringLiteral(lexer);
 		if (nextIsCharLiteral(lexer))
@@ -398,10 +405,7 @@ Token LexerNext(Lexer* lexer)
 		if (nextIsIdentifier(lexer))
 			return readIdentifier(lexer);
 
-		//ParserError(lexer->name, lexer->input.state.line, lexer->failed, "Can't handle character '%c'", inputNext(&lexer->input));
-		// TODO ERROR
-		SnekAssert(false, "");
-		//LEXER_ERROR(lexer, "Can't handle character '%c'", InputNext(&lexer->input));
+		SnekError(lexer->context, lexer->input.state, ERROR_CODE_UNDEFINED_CHARACTER, "Undefined character '%c' (%d)", InputNext(&lexer->input));
 	}
 
 	return NULL_TOKEN;

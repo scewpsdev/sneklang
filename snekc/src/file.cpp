@@ -1,6 +1,7 @@
 #include "file.h"
 
 #include <stdio.h>
+#include <Windows.h>
 
 
 char* LoadTextFile(const char* path)
@@ -30,4 +31,11 @@ bool WriteTextFile(const char* str, const char* path)
 	fclose(file);
 
 	return true;
+}
+
+char* GetExecutablePath()
+{
+	char* buffer = new char[64];
+	GetModuleFileNameA(NULL, (LPSTR)buffer, 64);
+	return buffer;
 }
