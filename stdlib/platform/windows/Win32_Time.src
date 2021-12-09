@@ -1,11 +1,11 @@
-module win32;
-namespace win32;
+module std.win32;
+namespace Win32;
 
 extern int QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 extern int QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
 
 
-int64 getTimestamp()
+public int64 Timestamp()
 {
 	LARGE_INTEGER ticks;
 	LARGE_INTEGER freq;

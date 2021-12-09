@@ -4,23 +4,23 @@
     <ShowAllFiles>true</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -out bin/a.exe-stdlib</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:/Users/faris/Documents/Dev/aoc</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -out bin/a.exe-stdlib</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:/Users/faris/Documents/Dev/aoc</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -out bin/a.exe-stdlib</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:/Users/faris/Documents/Dev/aoc</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>src/**.src -build obj -g -stdlib -out bin/snek-test.exe</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build obj -out bin/a.exe-stdlib</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>C:/Users/faris/Documents/Dev/aoc</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

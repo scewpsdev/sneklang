@@ -525,6 +525,8 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 		LLVMValueRef instance = GenExpression(llb, module, expression->methodInstance);
 		// TODO dont gen this twice
 		SnekAssert(expression->methodInstance->lvalue || expression->methodInstance->type->typeKind == TYPE_KIND_POINTER);
+		if (expression->methodInstance->type->typeKind == TYPE_KIND_POINTER && expression->methodInstance->lvalue)
+			instance = LLVM_CALL(LLVMBuildLoad, module->builder, instance, "");
 		//arguments.add(LLVM_CALL(LLVMBuildLoad, module->builder, instance, ""));
 		arguments.add(instance);
 	}

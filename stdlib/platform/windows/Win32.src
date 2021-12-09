@@ -1,4 +1,5 @@
-module win32;
+module std.win32;
+namespace Win32;
 
 
 typedef HANDLE : void*;

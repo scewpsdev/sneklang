@@ -1,7 +1,7 @@
-module file;
+module std.io;
 namespace File;
 
-import stdc;
+import stdc.stdio;
 
 
 public string ReadText(string path)

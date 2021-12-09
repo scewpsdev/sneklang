@@ -51,17 +51,17 @@ static char* GetModuleNameFromPath(const char* path)
 		slash++;
 	else
 		slash = path;
-
+	
 	const char* dot = strrchr(slash, '.');
 	if (!dot)
 		dot = slash + strlen(slash);
-
+	
 	int length = (int)(dot - slash);
-
+	
 	char* name = new char[length + 1];
 	strncpy(name, slash, length);
 	name[length] = 0;
-
+	
 	return name;
 }
 
@@ -74,7 +74,7 @@ static const char* GetFilenameFromPath(const char* path)
 		slash++;
 	else
 		slash = path;
-
+	
 	return slash;
 }
 
@@ -85,13 +85,13 @@ static char* GetFolderFromPath(const char* path)
 	const char* slash = (forwardSlash && backwardSlash) ? (const char*)max((uint64_t)forwardSlash, (uint64_t)backwardSlash) : forwardSlash ? forwardSlash : backwardSlash ? backwardSlash : NULL;
 	if (!slash)
 		slash = path;
-
+	
 	int length = (int)(slash - path);
-
+	
 	char* folder = new char[length + 1];
 	strncpy(folder, path, length);
 	folder[length] = 0;
-
+	
 	return folder;
 }
 
@@ -102,7 +102,7 @@ static const char* GetExtensionFromPath(const char* path)
 		ext++;
 	else
 		ext = path + strlen(path);
-
+	
 	return ext;
 }
 
@@ -148,9 +148,9 @@ static bool AddSourceFolder(SkContext* context, const char* folder, const char* 
 		SnekFatal(context, ERROR_CODE_FOLDER_NOT_FOUND, "Unknown folder '%s'", folder);
 		return false;
 	}
-
+	
 	bool result = true;
-
+	
 	for (auto& de : std::filesystem::directory_iterator(folder)) {
 		std::u8string dePathStr = de.path().u8string();
 		const char* dePath = (const char*)dePathStr.c_str();
@@ -166,7 +166,7 @@ static bool AddSourceFolder(SkContext* context, const char* folder, const char* 
 			}
 		}
 	}
-
+	
 	return result;
 }
 
@@ -179,38 +179,38 @@ static void OnCompilerMessage(MessageType msgType, const char* filename, int lin
 		"error",
 		"fatal error",
 	};
-
+	
 	static char message[1024] = {};
-
+	
 	if (filename)
 		sprintf(message + strlen(message), "%s:%d:%d: ", filename, line, col);
-
+	
 	sprintf(message + strlen(message), "%s: ", MSG_TYPE_NAMES[msgType]);
-
+	
 	va_list args;
 	va_start(args, msg);
 	vsprintf(message + strlen(message), msg, args);
 	va_end(args);
-
+	
 	compilerMessages << message << std::endl;
 }
 
 int main(int argc, char* argv[])
 {
 	compilerDirectory = GetFolderFromPath(GetExecutablePath());
-
+	
 	SkContext* context = CreateSnekContext(OnCompilerMessage);
-
+	
 	const char* buildFolder = ".";
 	const char* filename = "a.exe";
 	bool genDebugInfo = false;
 	bool emitLLVM = false;
 	int optLevel = 0;
-
+	
 	List<const char*> additionalLibPaths = CreateList<const char*>();
-
+	
 	bool result = true;
-
+	
 	for (int i = 1; i < argc; i++)
 	{
 		const char* arg = argv[i];
@@ -322,37 +322,37 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
-
+	
 	if (result)
 	{
 		bool benchmark = true;
-
+		
 		int64_t parser_before = 0, parser_after = 0;
 		int64_t resolver_before = 0, resolver_after = 0;
 		int64_t codegen_before = 0, codegen_after = 0;
 		int64_t link_before = 0, link_after = 0;
-
+		
 		float parser_duration = 0.0f;
 		float resolver_duration = 0.0f;
 		float codegen_duration = 0.0f;
 		float link_duration = 0.0f;
-
+		
 		parser_before = getNanos();
-
+		
 		fprintf(stderr, "Parsing... ");
 		if (SnekRunParser(context))
 		{
 			parser_after = getNanos();
 			parser_duration = (parser_after - parser_before) / 1e9f;
 			resolver_before = parser_after;
-
+			
 			fprintf(stderr, "Done. %fs\nSemantic analysis... ", parser_duration);
 			if (SnekRunResolver(context))
 			{
 				resolver_after = getNanos();
 				resolver_duration = (resolver_after - resolver_before) / 1e9f;
 				codegen_before = resolver_after;
-
+				
 				fprintf(stderr, "Done. %fs\nGenerating code... ", resolver_duration);
 				LLVMBackend* cb = CreateLLVMBackend(context);
 				if (LLVMBackendCompile(cb, context->asts.buffer, context->asts.size, filename, buildFolder, genDebugInfo, emitLLVM, optLevel))
@@ -360,13 +360,13 @@ int main(int argc, char* argv[])
 					codegen_after = getNanos();
 					codegen_duration = (codegen_after - codegen_before) / 1e9f;
 					link_before = codegen_after;
-
+					
 					fprintf(stderr, "Done. %fs\nLinking... ", codegen_duration);
 					if (LLVMLink(cb, argv[0], filename, genDebugInfo, optLevel, additionalLibPaths))
 					{
 						link_after = getNanos();
 						link_duration = (link_after - link_before) / 1e9f;
-
+						
 						fprintf(stderr, "Done. %fs\nBuild complete in %fs\n", link_duration, parser_duration + resolver_duration + codegen_duration + link_duration);
 					}
 					else
@@ -380,7 +380,7 @@ int main(int argc, char* argv[])
 					printf("Failed!\n");
 					result = false;
 				}
-
+				
 				DestroyLLVMBackend(cb);
 			}
 			else
@@ -395,12 +395,12 @@ int main(int argc, char* argv[])
 			result = false;
 		}
 	}
-
+	
 	fprintf(stderr, "%s", compilerMessages.str().c_str());
-
+	
 	DestroySnekContext(context);
-
+	
 	DestroyList(additionalLibPaths);
-
+	
 	return !result;
 }

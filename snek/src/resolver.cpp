@@ -610,7 +610,8 @@ static bool CanConvertImplicit(TypeID argType, TypeID paramType, bool argIsConst
 		if (argType->integerType.bitWidth == paramType->integerType.bitWidth)
 			return true;
 		else if (argType->integerType.bitWidth <= paramType->integerType.bitWidth)
-			return argIsConstant;
+			//return argIsConstant;
+			return true;
 	}
 	else if (argType->typeKind == TYPE_KIND_INTEGER && paramType->typeKind == TYPE_KIND_BOOL)
 	{
@@ -822,10 +823,13 @@ static bool ResolveFunctionCall(Resolver* resolver, AstFuncCall* expr)
 		{
 			if (ResolveExpression(resolver, expr->arguments[i]))
 			{
-				if (i < functionType->functionType.numParams)
+				int paramOffset = expr->isMethodCall ? 1 : 0;
+				int paramCount = functionType->functionType.numParams - expr->isMethodCall ? 1 : 0;
+
+				if (i < paramCount)
 				{
 					TypeID argType = expr->arguments[i]->type;
-					TypeID paramType = functionType->functionType.paramTypes[i];
+					TypeID paramType = functionType->functionType.paramTypes[paramOffset + i];
 					bool argIsConstant = IsConstant(expr->arguments[i]);
 
 					if (!CanConvertImplicit(argType, paramType, argIsConstant))
@@ -837,7 +841,7 @@ static bool ResolveFunctionCall(Resolver* resolver, AstFuncCall* expr)
 
 						if (function)
 						{
-							SnekError(resolver->context, expr->inputState, ERROR_CODE_FUNCTION_CALL_ARGUMENT_MISMATCH, "Wrong type of argument #%d '%s': should be %s instead of %s", i + 1, function->paramNames[i], paramTypeStr, argTypeStr);
+							SnekError(resolver->context, expr->inputState, ERROR_CODE_FUNCTION_CALL_ARGUMENT_MISMATCH, "Wrong type of argument #%d '%s': should be %s instead of %s", i + 1, function->paramNames[paramOffset + i], paramTypeStr, argTypeStr);
 						}
 						else
 						{
