@@ -31,6 +31,7 @@
     <ClInclude Include="src\llvm\debug.h" />
     <ClInclude Include="src\llvm\debug_info.h" />
     <ClInclude Include="src\llvm\function.h" />
+    <ClInclude Include="src\llvm\generics.h" />
     <ClInclude Include="src\llvm\linker.h" />
     <ClInclude Include="src\llvm\llvm_backend.h" />
     <ClInclude Include="src\llvm\operators.h" />
@@ -41,6 +42,7 @@
     <ClCompile Include="src\file.cpp" />
     <ClCompile Include="src\llvm\debug_info.cpp" />
     <ClCompile Include="src\llvm\function.cpp" />
+    <ClCompile Include="src\llvm\generics.cpp" />
     <ClCompile Include="src\llvm\linker.cpp" />
     <ClCompile Include="src\llvm\llvm_backend.cpp" />
     <ClCompile Include="src\llvm\operators.cpp" />

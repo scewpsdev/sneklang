@@ -11,8 +11,8 @@
 #define SnekAssertMsg(condition, message)
 #endif
 
-#define SnekWarn(context, inputState, code, msg, ...) GetMsgCallback(context)(MESSAGE_TYPE_WARNING, (inputState).filename, (inputState).line, (inputState).col, code, msg, ##__VA_ARGS__)
-#define SnekError(context, inputState, code, msg, ...) GetMsgCallback(context)(MESSAGE_TYPE_ERROR, (inputState).filename, (inputState).line, (inputState).col, code, msg, ##__VA_ARGS__)
+#define SnekWarn(context, location, code, msg, ...) GetMsgCallback(context)(MESSAGE_TYPE_WARNING, (location).filename, (location).line, (location).col, code, msg, ##__VA_ARGS__)
+#define SnekError(context, location, code, msg, ...) GetMsgCallback(context)(MESSAGE_TYPE_ERROR, (location).filename, (location).line, (location).col, code, msg, ##__VA_ARGS__)
 #define SnekFatal(context, code, msg, ...) GetMsgCallback(context)(MESSAGE_TYPE_FATAL_ERROR, NULL, 0, 0, code, msg, ##__VA_ARGS__)
 
 
@@ -75,6 +75,11 @@ enum MessageCode
 	ERROR_CODE_TERNARY_OPERATOR_TYPE_MISMATCH,
 	ERROR_CODE_NON_VISIBLE_DECLARATION,
 	ERROR_CODE_CONSTANT_INITIALIZER_NON_CONSTANT,
+
+
+	// WARNINGS
+
+	ERROR_CODE_VARIABLE_SHADOWING,
 };
 
 

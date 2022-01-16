@@ -1,50 +1,33 @@
-#include "resolver.h"
+#include "Variable.h"
 
-#include "ast.h"
+#include "Resolver.h"
+
 #include "log.h"
 
 
-AstVariable* RegisterLocalVariable(Resolver* resolver, TypeID type, AstExpression* value, const char* name, bool isConstant, AstFile* module)
+Variable::Variable(AST::File* file, char* name, TypeID type, AST::Expression* value, bool isConstant, AST::Visibility visibility)
+	: file(file), name(name), type(type), value(value), isConstant(isConstant), visibility(visibility)
 {
-	Scope* scope = resolver->scope;
+	mangledName = _strdup(name); // TODO Mangle
+}
 
-	AstVariable* variable = CreateAstVariable(resolver->file, resolver->currentElement->inputState);
-	variable->name = _strdup(name);
-	variable->mangledName = _strdup(name); // TODO Mangle
-	variable->isConstant = isConstant;
-	variable->type = type;
-	variable->value = value;
-	variable->module = module;
-
+void Resolver::registerLocalVariable(Variable* variable)
+{
 	scope->localVariables.add(variable);
-
-	return variable;
 }
 
-AstVariable* RegisterGlobalVariable(Resolver* resolver, TypeID type, AstExpression* value, const char* name, bool isConstant, AstVisibility visibility, AstFile* module, AstGlobal* declaration)
+void Resolver::registerGlobalVariable(Variable* variable, AST::GlobalVariable* global)
 {
-	AstVariable* variable = CreateAstVariable(resolver->file, resolver->currentElement->inputState);
-	variable->name = _strdup(name);
-	variable->mangledName = _strdup(name); // TODO Mangle
-	variable->isConstant = isConstant;
-	variable->visibility = visibility;
-	variable->type = type;
-	variable->value = value;
-	variable->module = module;
-	variable->globalDecl = declaration;
-
-	SnekAssert(variable);
-
-	return variable;
+	variable->globalDecl = global;
 }
 
-static AstVariable* FindVariableInScope(Resolver* resolver, const char* name, Scope* scope, bool recursive)
+Variable* Resolver::findLocalVariableInScope(const char* name, Scope* scope, bool recursive)
 {
 	if (!scope)
-		return NULL;
+		return nullptr;
 	for (int i = 0; i < scope->localVariables.size; i++)
 	{
-		AstVariable* variable = scope->localVariables[i];
+		Variable* variable = scope->localVariables[i];
 		if (strcmp(variable->name, name) == 0)
 		{
 			return variable;
@@ -52,91 +35,92 @@ static AstVariable* FindVariableInScope(Resolver* resolver, const char* name, Sc
 	}
 	if (recursive && scope->parent)
 	{
-		return FindVariableInScope(resolver, name, scope->parent, recursive);
+		return findLocalVariableInScope(name, scope->parent, recursive);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-AstVariable* FindGlobalVariableInFile(Resolver* resolver, AstFile* file, const char* name)
+Variable* Resolver::findGlobalVariableInFile(const char* name, AST::File* file)
 {
 	for (int i = 0; i < file->globals.size; i++)
 	{
-		AstVariable* variable = file->globals[i]->variable;
-		if (strcmp(variable->name, name) == 0)
+		for (int j = 0; j < file->globals[i]->declarators.size; j++)
 		{
-			return variable;
+			Variable* variable = file->globals[i]->declarators[j]->variable;
+			if (strcmp(variable->name, name) == 0)
+			{
+				return variable;
+			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstVariable* FindGlobalVariableInNamespace(Resolver* resolver, AstModule* ns, const char* name, AstModule* currentNamespace)
+Variable* Resolver::findGlobalVariableInModule(const char* name, AST::Module* module, AST::Module* current)
 {
-	for (int i = 0; i < ns->files.size; i++)
+	for (int i = 0; i < module->files.size; i++)
 	{
-		AstFile* module = ns->files[i];
-		if (AstVariable* variable = FindGlobalVariableInFile(resolver, module, name))
+		AST::File* file = module->files[i];
+		if (Variable* variable = findGlobalVariableInFile(name, file))
 		{
-			if (variable->visibility >= VISIBILITY_PUBLIC || currentNamespace == ns)
+			if (variable->visibility >= AST::Visibility::Public || current == module)
 				return variable;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Variable '%s' is not visible", variable->name);
-				return NULL;
+				SnekError(context, currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Variable '%s' is not visible", variable->name);
+				return nullptr;
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstVariable* FindVariable(Resolver* resolver, const char* name)
+Variable* Resolver::findVariable(const char* name)
 {
-	if (AstVariable* variable = FindVariableInScope(resolver, name, resolver->scope, true))
+	if (Variable* variable = findLocalVariableInScope(name, scope, true))
 		return variable;
 
-	if (AstVariable* variable = FindGlobalVariableInFile(resolver, resolver->file, name))
-	{
+	if (Variable* variable = findGlobalVariableInFile(name, currentFile))
 		return variable;
-	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	for (int i = 0; i < ns->files.size; i++)
+	AST::Module* module = currentFile->moduleDecl ? currentFile->moduleDecl->ns : globalNamespace;
+	for (int i = 0; i < module->files.size; i++)
 	{
-		AstFile* module = ns->files[i];
-		if (module != resolver->file)
+		AST::File* file = module->files[i];
+		if (file != currentFile)
 		{
-			if (AstVariable* variable = FindGlobalVariableInFile(resolver, resolver->file, name))
+			if (Variable* variable = findGlobalVariableInFile(name, currentFile))
 			{
-				if (variable->visibility >= VISIBILITY_PUBLIC)
+				if (variable->visibility >= AST::Visibility::Public)
 					return variable;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Variable '%s' is not visible", variable->name);
-					return NULL;
+					SnekError(context, currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Variable '%s' is not visible", variable->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
+		AST::Module* dependency = currentFile->dependencies[i];
 		for (int j = 0; j < dependency->files.size; j++)
 		{
-			AstFile* module = dependency->files[j];
-			if (AstVariable* variable = FindGlobalVariableInFile(resolver, module, name))
+			AST::File* file = dependency->files[j];
+			if (Variable* variable = findGlobalVariableInFile(name, file))
 			{
-				if (variable->visibility >= VISIBILITY_PUBLIC)
+				if (variable->visibility >= AST::Visibility::Public)
 					return variable;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Variable '%s' is not visible", variable->name);
-					return NULL;
+					SnekError(context, currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Variable '%s' is not visible", variable->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 AstFunction* FindFunctionInFile(Resolver* resolver, AstFile* file, const char* name)

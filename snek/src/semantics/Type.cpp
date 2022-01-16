@@ -1,10 +1,11 @@
-#include "type.h"
+#include "Type.h"
 
 #include "log.h"
 #include "ast.h"
 #include "resolver.h"
 
 #include <map>
+#include "..\ast\Type.h"
 
 
 struct TypeDataStorage

@@ -13,6 +13,15 @@ struct List
 	int size = 0;
 
 
+	~List()
+	{
+		if (buffer)
+		{
+			free(buffer);
+			buffer = NULL;
+		}
+	}
+
 	T& operator[](int idx)
 	{
 		if (idx < this->size)

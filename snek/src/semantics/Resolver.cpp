@@ -1,7 +1,6 @@
-#include "resolver.h"
+#include "Resolver.h"
 
 #include "snek.h"
-#include "ast.h"
 #include "variable.h"
 #include "type.h"
 #include "mangle.h"
@@ -10,6 +9,27 @@
 #include <math.h>
 
 #include <stddef.h>
+
+
+Resolver::Resolver(SkContext* context)
+{
+}
+
+Resolver::~Resolver()
+{
+}
+
+void Resolver::run()
+{
+}
+
+void Resolver::pushScope(const char* name)
+{
+}
+
+void Resolver::popScope()
+{
+}
 
 
 static AstModule* CreateModule(Resolver* resolver, const char* name, AstModule* parent);
@@ -819,12 +839,25 @@ static bool ResolveFunctionCall(Resolver* resolver, AstFuncCall* expr)
 
 	if (result)
 	{
+		for (int i = 0; i < expr->genericArgs.size; i++)
+		{
+			// TODO check generic arg count
+
+			if (ResolveType(resolver, expr->genericArgs[i]))
+			{
+			}
+			else
+			{
+				result = false;
+			}
+		}
+
 		for (int i = 0; i < expr->arguments.size; i++)
 		{
 			if (ResolveExpression(resolver, expr->arguments[i]))
 			{
 				int paramOffset = expr->isMethodCall ? 1 : 0;
-				int paramCount = functionType->functionType.numParams - expr->isMethodCall ? 1 : 0;
+				int paramCount = functionType->functionType.numParams - (expr->isMethodCall ? 1 : 0);
 
 				if (i < paramCount)
 				{
@@ -1361,10 +1394,19 @@ static TypeID BinaryOperatorTypeMeet(Resolver* resolver, TypeID leftType, TypeID
 	{
 		return leftType;
 	}
+	else if (leftType->typeKind == TYPE_KIND_POINTER && rightType->typeKind == TYPE_KIND_POINTER)
+	{
+		if (leftType->pointerType.elementType->typeKind == TYPE_KIND_VOID)
+			return rightType;
+		if (rightType->pointerType.elementType->typeKind == TYPE_KIND_VOID)
+			return leftType;
+		SnekAssert(false);
+		return nullptr;
+	}
 	else
 	{
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -1569,6 +1611,13 @@ static bool ResolveVarDeclStatement(Resolver* resolver, AstVarDeclStatement* sta
 		for (int i = 0; i < statement->declarators.size; i++)
 		{
 			AstVarDeclarator& declarator = statement->declarators[i];
+
+			// Check if variable with that name already exists in the current function
+			if (AstVariable* variableWithSameName = FindVariable(resolver, declarator.name))
+			{
+				SnekWarn(resolver->context, statement->inputState, ERROR_CODE_VARIABLE_SHADOWING, "Variable with name '%s' already exists at %s:%d:%d, will be shadowed", declarator.name, variableWithSameName->inputState.filename, variableWithSameName->inputState.line, variableWithSameName->inputState.col);
+			}
+
 			if (declarator.value)
 			{
 				if (ResolveExpression(resolver, declarator.value))
@@ -1585,7 +1634,7 @@ static bool ResolveVarDeclStatement(Resolver* resolver, AstVarDeclStatement* sta
 					result = false;
 				}
 			}
-			declarator.variable = RegisterLocalVariable(resolver, statement->type->typeID, declarator.value, declarator.name, statement->isConstant, resolver->file);
+			declarator.variable = RegisterLocalVariable(resolver, statement->type->typeID, declarator.value, declarator.name, statement->isConstant, resolver->file, declarator.inputState);
 		}
 	}
 	else
@@ -1652,7 +1701,7 @@ static bool ResolveForLoop(Resolver* resolver, AstForLoop* statement)
 		statement->direction = 1;
 	}
 
-	statement->iterator = RegisterLocalVariable(resolver, GetIntegerType(32, true), statement->startValue, statement->iteratorName, false, resolver->file);
+	statement->iterator = RegisterLocalVariable(resolver, GetIntegerType(32, true), statement->startValue, statement->iteratorName, false, resolver->file, statement->inputState);
 
 	result = ResolveStatement(resolver, statement->body) && result;
 
@@ -1822,29 +1871,33 @@ static bool ResolveFunctionHeader(Resolver* resolver, AstFunction* decl)
 	decl->mangledName = MangleFunctionName(decl);
 	decl->visibility = GetVisibilityFromFlags(decl->flags);
 
-	if (strcmp(decl->name, "Main") == 0)
+	decl->isEntryPoint = strcmp(decl->name, "Main") == 0;
+	if (decl->isEntryPoint)
 	{
 		result = CheckEntrypointDecl(resolver, decl) && result;
 	}
+
+	if (decl->isGeneric)
+	{
+		// Don't resolve types
+	}
 	else
 	{
+		result = ResolveType(resolver, decl->returnType) && result;
+		for (int i = 0; i < decl->paramTypes.size; i++)
+		{
+			result = ResolveType(resolver, decl->paramTypes[i]) && result;
+		}
 
+		int numParams = decl->paramTypes.size;
+		TypeID returnType = decl->returnType->typeID;
+		TypeID* paramTypes = new TypeID[numParams];
+		for (int i = 0; i < numParams; i++)
+		{
+			paramTypes[i] = decl->paramTypes[i]->typeID;
+		}
+		decl->type = GetFunctionType(returnType, numParams, paramTypes, decl->varArgs, false, decl);
 	}
-
-	result = ResolveType(resolver, decl->returnType) && result;
-	for (int i = 0; i < decl->paramTypes.size; i++)
-	{
-		result = ResolveType(resolver, decl->paramTypes[i]) && result;
-	}
-
-	int numParams = decl->paramTypes.size;
-	TypeID returnType = decl->returnType->typeID;
-	TypeID* paramTypes = new TypeID[numParams];
-	for (int i = 0; i < numParams; i++)
-	{
-		paramTypes[i] = decl->paramTypes[i]->typeID;
-	}
-	decl->type = GetFunctionType(returnType, numParams, paramTypes, decl->varArgs, false, decl);
 
 	return result;
 }
@@ -1866,27 +1919,34 @@ static bool ResolveFunction(Resolver* resolver, AstFunction* decl)
 		}
 	}
 
-	if (decl->body)
+	if (decl->isGeneric)
 	{
-		AstFunction* lastFunction = resolver->currentFunction;
-		resolver->currentFunction = decl;
-
-		ResolverPushScope(resolver, decl->name);
-
-		decl->paramVariables = CreateList<AstVariable*>();
-		decl->paramVariables.resize(decl->paramTypes.size);
-
-		for (int i = 0; i < decl->paramTypes.size; i++)
+		// Don't resolve types
+	}
+	else
+	{
+		if (decl->body)
 		{
-			AstVariable* variable = RegisterLocalVariable(resolver, decl->paramTypes[i]->typeID, NULL, decl->paramNames[i], false, resolver->file);
-			decl->paramVariables[i] = variable;
+			AstFunction* lastFunction = resolver->currentFunction;
+			resolver->currentFunction = decl;
+
+			ResolverPushScope(resolver, decl->name);
+
+			decl->paramVariables = CreateList<AstVariable*>();
+			decl->paramVariables.resize(decl->paramTypes.size);
+
+			for (int i = 0; i < decl->paramTypes.size; i++)
+			{
+				AstVariable* variable = RegisterLocalVariable(resolver, decl->paramTypes[i]->typeID, NULL, decl->paramNames[i], false, resolver->file, decl->paramTypes[i]->inputState);
+				decl->paramVariables[i] = variable;
+			}
+
+			result = ResolveStatement(resolver, decl->body) && result;
+
+			ResolverPopScope(resolver);
+
+			resolver->currentFunction = lastFunction;
 		}
-
-		result = ResolveStatement(resolver, decl->body) && result;
-
-		ResolverPopScope(resolver);
-
-		resolver->currentFunction = lastFunction;
 	}
 
 	return result;
@@ -2091,10 +2151,10 @@ static bool ResolveClassMethod(Resolver* resolver, AstFunction* decl)
 	decl->paramVariables = CreateList<AstVariable*>();
 	decl->paramVariables.resize(decl->paramTypes.size);
 
-	decl->instanceVariable = RegisterLocalVariable(resolver, decl->instanceType, NULL, "this", false, resolver->file);
+	decl->instanceVariable = RegisterLocalVariable(resolver, decl->instanceType, NULL, "this", false, resolver->file, decl->inputState);
 	for (int i = 0; i < decl->paramTypes.size; i++)
 	{
-		AstVariable* variable = RegisterLocalVariable(resolver, decl->paramTypes[i]->typeID, NULL, decl->paramNames[i], false, resolver->file);
+		AstVariable* variable = RegisterLocalVariable(resolver, decl->paramTypes[i]->typeID, NULL, decl->paramNames[i], false, resolver->file, decl->paramTypes[i]->inputState);
 		decl->paramVariables[i] = variable;
 	}
 
@@ -2123,10 +2183,10 @@ static bool ResolveClassConstructor(Resolver* resolver, AstFunction* decl)
 	decl->paramVariables = CreateList<AstVariable*>();
 	decl->paramVariables.resize(decl->paramTypes.size);
 
-	decl->instanceVariable = RegisterLocalVariable(resolver, decl->instanceType, NULL, "this", false, resolver->file);
+	decl->instanceVariable = RegisterLocalVariable(resolver, decl->instanceType, NULL, "this", false, resolver->file, decl->inputState);
 	for (int i = 0; i < decl->paramTypes.size; i++)
 	{
-		AstVariable* variable = RegisterLocalVariable(resolver, decl->paramTypes[i]->typeID, NULL, decl->paramNames[i], false, resolver->file);
+		AstVariable* variable = RegisterLocalVariable(resolver, decl->paramTypes[i]->typeID, NULL, decl->paramNames[i], false, resolver->file, decl->inputState);
 		decl->paramVariables[i] = variable;
 	}
 

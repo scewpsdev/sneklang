@@ -45,6 +45,9 @@
     <ClInclude Include="src\llvm\linker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\llvm\generics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\llvm\debug_info.cpp">
@@ -72,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\llvm\linker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\llvm\generics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

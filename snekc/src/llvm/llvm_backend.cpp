@@ -10,6 +10,7 @@
 #include "values.h"
 #include "operators.h"
 #include "debug_info.h"
+#include "generics.h"
 
 #include <string.h>
 #include <sstream>
@@ -161,23 +162,6 @@ static LLVMTypeRef GenPointerType(LLVMBackend* llb, SkModule* module, TypeID typ
 		return LLVM_CALL(LLVMPointerType, elementType, 0);
 }
 
-LLVMTypeRef CanPassByValue(LLVMBackend* llb, SkModule* module, LLVMTypeRef type)
-{
-	LLVMTypeKind typeKind = LLVMGetTypeKind(type);
-	if (typeKind == LLVMStructTypeKind)
-	{
-		unsigned long long size = LLVMSizeOfTypeInBits(llb->targetData, type);
-		if (size == 1 || size == 2 || size == 4 || size == 8 || size == 16 || size == 32 || size == 64)
-			return LLVMIntTypeInContext(llb->llvmContext, (unsigned int)size);
-		else
-			return NULL;
-	}
-	else
-	{
-		return type;
-	}
-}
-
 static LLVMTypeRef GenFunctionType(LLVMBackend* llb, SkModule* module, TypeID type, AstFunctionType* ast)
 {
 	// x64 calling convention
@@ -273,7 +257,7 @@ static LLVMTypeRef GenTypeID(LLVMBackend* llb, SkModule* module, TypeID type, As
 	}
 }
 
-static LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AstType* type)
+LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AstType* type)
 {
 	return GenTypeID(llb, module, type->typeID, type);
 }
@@ -460,27 +444,40 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 
 	if (expression->function)
 	{
-		if (expression->function->module == expression->module)
+		if (expression->function->isGeneric)
 		{
-			//callee = (LLVMValueRef)expression->function->valueHandle;
-			// TODO check this
-			callee = module->functionValues[expression->function];
+			List<LLVMTypeRef> genericTypes = CreateList<LLVMTypeRef>();
+			for (int i = 0; i < expression->genericArgs.size; i++)
+			{
+				genericTypes.add(GenType(llb, module, expression->genericArgs[i]));
+			}
+			callee = GenGenericFunctionInstance(llb, module, expression->function, genericTypes, functionType);
 		}
 		else
 		{
-			// Import function
-			auto it = module->functionValues.find(expression->function);
-			if (it != module->functionValues.end())
-				callee = it->second;
+			if (expression->function->module == expression->module)
+			{
+				//callee = (LLVMValueRef)expression->function->valueHandle;
+				// TODO check this
+				callee = module->functionValues[expression->function];
+			}
 			else
 			{
-				if (expression->methodInstance)
-					callee = GenClassMethodHeader(llb, module, expression->function, expression->function->instanceType->classType.declaration);
+				// Import function
+				auto it = module->functionValues.find(expression->function);
+				if (it != module->functionValues.end())
+					callee = it->second;
 				else
-					callee = GenFunctionHeader(llb, module, expression->function);
+				{
+					if (expression->methodInstance)
+						//callee = GenClassMethodHeader(llb, module, expression->function, expression->function->instanceType->classType.declaration);
+						callee = GenFunctionHeader(llb, module, expression->function);
+					else
+						callee = GenFunctionHeader(llb, module, expression->function);
+				}
 			}
+			functionType = expression->function->type;
 		}
-		functionType = expression->function->type;
 	}
 	else if (expression->calleeExpr)
 	{
@@ -531,14 +528,16 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 		arguments.add(instance);
 	}
 
+	int paramCount = numParams - (expression->isMethodCall ? 1 : 0);
+	int paramOffset = expression->isMethodCall ? 1 : 0;
 	for (int i = 0; i < numArgs; i++)
 	{
 		LLVMValueRef arg = GenExpression(llb, module, expression->arguments[i]);
 		//LLVMTypeRef paramType = paramTypes[i + returnValueAsArg ? 1 : 0];
-		if (i < numParams)
+		if (i < paramCount)
 		{
-			LLVMTypeRef paramType = GenTypeID(llb, module, functionType->functionType.paramTypes[i]);
-			arg = ConvertArgumentValue(llb, module, arg, paramType, expression->arguments[i]->type, functionType->functionType.paramTypes[i], expression->arguments[i]->lvalue, IsConstant(expression->arguments[i]));
+			LLVMTypeRef paramType = GenTypeID(llb, module, functionType->functionType.paramTypes[paramOffset + i]);
+			arg = ConvertArgumentValue(llb, module, arg, paramType, expression->arguments[i]->type, functionType->functionType.paramTypes[paramOffset + i], expression->arguments[i]->lvalue, IsConstant(expression->arguments[i]));
 
 			if (LLVMTypeRef _paramType = CanPassByValue(llb, module, paramType))
 			{
@@ -935,9 +934,7 @@ static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AstExpress
 	}
 }
 
-static void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement);
-
-static bool BlockHasBranched(LLVMBackend* llb, SkModule* module)
+bool BlockHasBranched(LLVMBackend* llb, SkModule* module)
 {
 	LLVMBasicBlockRef block = LLVM_CALL(LLVMGetInsertBlock, module->builder);
 	if (LLVMValueRef lastInst = LLVM_CALL(LLVMGetLastInstruction, block)) {
@@ -1124,6 +1121,7 @@ static void GenForLoop(LLVMBackend* llb, SkModule* module, AstForLoop* statement
 	LLVM_CALL(LLVMAppendExistingBasicBlock, llvmFunction, iterateBlock);
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, iterateBlock);
 
+	itValue = LLVM_CALL(LLVMBuildLoad, module->builder, it, "");
 	LLVMValueRef nextItValue = LLVM_CALL(LLVMBuildAdd, module->builder, itValue, delta, "");
 	LLVM_CALL(LLVMBuildStore, module->builder, nextItValue, it);
 	LLVM_CALL(LLVMBuildBr, module->builder, headerBlock);
@@ -1209,7 +1207,7 @@ static void GenFree(LLVMBackend* llb, SkModule* module, AstFree* statement)
 	}
 }
 
-static void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement)
+void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement)
 {
 	if (module->hasDebugInfo)
 	{
@@ -1262,51 +1260,41 @@ static LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AstFun
 	AstFunction* lastFunction = module->currentFunction;
 	module->currentFunction = decl;
 
-	LLVMLinkage linkage = LLVMInternalLinkage;
-	if (decl->flags & DECL_FLAG_EXTERN || !decl->body)
-		linkage = LLVMExternalLinkage;
-	else if (decl->flags & DECL_FLAG_LINKAGE_DLLEXPORT)
-		linkage = LLVMDLLExportLinkage;
-	else if (decl->flags & DECL_FLAG_LINKAGE_DLLIMPORT)
-		linkage = LLVMDLLImportLinkage;
-	else if (decl->visibility == VISIBILITY_PRIVATE)
-		linkage = LLVMPrivateLinkage;
-	else if (decl->visibility == VISIBILITY_PUBLIC)
-		linkage = LLVMExternalLinkage;
+	LLVMValueRef llvmValue = nullptr;
 
-
-	LLVMTypeRef functionReturnType = NULL;
-	List<LLVMTypeRef> functionParamTypes = CreateList<LLVMTypeRef>();
-
-	LLVMTypeRef returnType = GenType(llb, module, decl->returnType);
-	if (LLVMTypeRef _returnType = CanPassByValue(llb, module, returnType))
+	if (decl->isGeneric)
 	{
-		functionReturnType = _returnType;
 	}
 	else
 	{
-		functionReturnType = LLVMVoidTypeInContext(llb->llvmContext);
-		functionParamTypes.add(LLVMPointerType(returnType, 0));
-	}
+		LLVMLinkage linkage = LLVMInternalLinkage;
+		if (decl->flags & DECL_FLAG_EXTERN || !decl->body)
+			linkage = LLVMExternalLinkage;
+		else if (decl->flags & DECL_FLAG_LINKAGE_DLLEXPORT)
+			linkage = LLVMDLLExportLinkage;
+		else if (decl->flags & DECL_FLAG_LINKAGE_DLLIMPORT)
+			linkage = LLVMDLLImportLinkage;
+		else if (decl->visibility == VISIBILITY_PRIVATE)
+			linkage = LLVMPrivateLinkage;
+		else if (decl->visibility == VISIBILITY_PUBLIC)
+			linkage = LLVMExternalLinkage;
 
-	int numParams = decl->paramTypes.size;
-	for (int i = 0; i < numParams; i++)
-	{
-		LLVMTypeRef paramType = GenType(llb, module, decl->paramTypes[i]);
-		if (LLVMTypeRef _paramType = CanPassByValue(llb, module, paramType))
+		LLVMTypeRef returnType = GenType(llb, module, decl->returnType);
+		List<LLVMTypeRef> paramTypes = CreateList<LLVMTypeRef>();
+		bool entryPoint = decl->isEntryPoint;
+
+		int numParams = decl->paramTypes.size;
+		for (int i = 0; i < numParams; i++)
 		{
-			functionParamTypes.add(_paramType);
+			LLVMTypeRef paramType = GenType(llb, module, decl->paramTypes[i]);
+			paramTypes.add(paramType);
 		}
-		else
-		{
-			functionParamTypes.add(LLVMPointerType(paramType, 0));
-		}
+
+		llvmValue = CreateFunction(llb, module, decl->mangledName, returnType, paramTypes, decl->varArgs, entryPoint, linkage, module->llvmModule);
+		decl->valueHandle = llvmValue;
+
+		module->functionValues.emplace(decl, llvmValue);
 	}
-
-	LLVMValueRef llvmValue = CreateFunction(decl->mangledName, functionReturnType, functionParamTypes.size, functionParamTypes.buffer, decl->varArgs, module->llvmModule, linkage);
-	decl->valueHandle = llvmValue;
-
-	module->functionValues.emplace(decl, llvmValue);
 
 	module->currentFunction = lastFunction;
 
@@ -1318,115 +1306,24 @@ static LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AstFunction*
 	AstFunction* lastFunction = module->currentFunction;
 	module->currentFunction = decl;
 
-	LLVMValueRef llvmValue = NULL;
-	if (module->functionValues.find(decl) != module->functionValues.end())
-		llvmValue = module->functionValues[decl];
+	LLVMValueRef llvmValue = nullptr;
+
+	if (decl->isGeneric)
+	{
+	}
 	else
 	{
-		//llvmValue = GenFunctionHeader(llb, module, decl);
-		SnekAssert(false);
-	}
-
-	if (decl->body)
-	{
-		LLVMTypeRef returnType = GenType(llb, module, decl->returnType);
-		bool returnValueAsArg = !CanPassByValue(llb, module, returnType);
-
-		LLVMBasicBlockRef parentBlock = LLVM_CALL(LLVMGetInsertBlock, module->builder);
-		LLVMBasicBlockRef entryBlock = LLVM_CALL(LLVMAppendBasicBlockInContext, llb->llvmContext, llvmValue, "entry");
-		LLVMBasicBlockRef returnBlock = LLVM_CALL(LLVMCreateBasicBlockInContext, llb->llvmContext, "return");
-		LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, entryBlock);
-
-		if (module->hasDebugInfo)
-		{
-			LLVMMetadataRef subProgram = DebugInfoBeginFunction(llb, module, decl, llvmValue, NULL);
-			DebugInfoEmitNullLocation(llb, module, module->builder);
-			DebugInfoEmitNullLocation(llb, module, module->entryBuilder);
-		}
-
-		module->returnBlock = returnBlock;
-		module->returnAlloc = NULL;
-		if (decl->returnType->typeKind != TYPE_KIND_VOID)
-		{
-			if (!returnValueAsArg)
-			{
-				module->returnAlloc = AllocateLocalVariable(llb, module, returnType, "ret_val");
-				LLVMBuildStore(module->builder, LLVMConstNull(returnType), module->returnAlloc);
-			}
-			else
-			{
-				module->returnAlloc = LLVMGetParam(llvmValue, 0);
-			}
-		}
-
-		for (int i = 0; i < decl->paramTypes.size; i++) {
-			LLVMValueRef arg = NULL;
-			if (!returnValueAsArg)
-				arg = LLVM_CALL(LLVMGetParam, llvmValue, i);
-			else
-				arg = LLVM_CALL(LLVMGetParam, llvmValue, i + 1);
-
-			LLVMTypeRef paramType = GenType(llb, module, decl->paramTypes[i]);
-			LLVMValueRef argAlloc = NULL;
-
-			if (LLVMTypeRef _paramType = CanPassByValue(llb, module, paramType))
-			{
-				argAlloc = AllocateLocalVariable(llb, module, paramType, decl->paramNames[i]);
-				if (paramType != _paramType)
-				{
-					LLVMValueRef bitcasted = LLVMBuildBitCast(module->builder, argAlloc, LLVMPointerType(_paramType, 0), "");
-					LLVM_CALL(LLVMBuildStore, module->builder, arg, bitcasted);
-				}
-				else
-				{
-					LLVM_CALL(LLVMBuildStore, module->builder, arg, argAlloc);
-				}
-			}
-			else
-			{
-				argAlloc = arg;
-			}
-
-			if (module->hasDebugInfo)
-			{
-				DebugInfoDeclareParameter(llb, module, argAlloc, i, decl->paramTypes[i]->typeID, decl->paramNames[i], decl->paramTypes[i]->inputState.line, decl->paramTypes[i]->inputState.col);
-			}
-
-			decl->paramVariables[i]->allocHandle = argAlloc;
-		}
-
-		GenStatement(llb, module, decl->body);
-
-		LLVM_CALL(LLVMAppendExistingBasicBlock, llvmValue, returnBlock);
-
-		if (!BlockHasBranched(llb, module))
-			LLVM_CALL(LLVMBuildBr, module->builder, returnBlock);
-		if (LLVM_CALL(LLVMGetInsertBlock, module->builder) != returnBlock)
-			LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, returnBlock);
-
-		// Emit return location
-		if (module->hasDebugInfo)
-		{
-			DebugInfoEmitSourceLocation(llb, module, module->builder, decl->endInputState.line, decl->endInputState.col);
-		}
-
-		if (decl->returnType->typeKind != TYPE_KIND_VOID)
-		{
-			if (!returnValueAsArg)
-				LLVM_CALL(LLVMBuildRet, module->builder, LLVM_CALL(LLVMBuildLoad, module->builder, module->returnAlloc, ""));
-			else
-				LLVM_CALL(LLVMBuildRetVoid, module->builder);
-		}
+		if (module->functionValues.find(decl) != module->functionValues.end())
+			llvmValue = module->functionValues[decl];
 		else
 		{
-			LLVM_CALL(LLVMBuildRetVoid, module->builder);
+			//llvmValue = GenFunctionHeader(llb, module, decl);
+			SnekAssert(false);
 		}
 
-		LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, parentBlock);
-
-		if (module->hasDebugInfo)
+		if (decl->body)
 		{
-			DebugInfoEndFunction(llb, module, decl);
+			GenerateFunctionBody(llb, module, decl, llvmValue);
 		}
 	}
 
@@ -1530,15 +1427,15 @@ static LLVMValueRef GenClassMethodHeader(LLVMBackend* llb, SkModule* module, Ast
 
 	LLVMTypeRef returnType = GenType(llb, module, method->returnType);
 	int numParams = method->paramTypes.size + 1;
-	LLVMTypeRef* paramTypes = new LLVMTypeRef[numParams];
+	List<LLVMTypeRef> paramTypes = CreateList<LLVMTypeRef>(numParams);
 	paramTypes[0] = GenTypeID(llb, module, method->instanceType);
-	for (int i = 1; i < numParams; i++)
+	for (int i = 0; i < method->paramTypes.size; i++)
 	{
-		paramTypes[i] = GenType(llb, module, method->paramTypes[i - 1]);
+		paramTypes.add(GenType(llb, module, method->paramTypes[i]));
 	}
 
 	LLVMLinkage linkage = LLVMExternalLinkage;
-	LLVMValueRef llvmValue = CreateFunction(method->mangledName, returnType, numParams, paramTypes, method->varArgs, module->llvmModule, linkage);
+	LLVMValueRef llvmValue = CreateFunction(llb, module, method->mangledName, returnType, paramTypes, method->varArgs, false, linkage, module->llvmModule);
 
 	module->functionValues.emplace(method, llvmValue);
 
@@ -1556,15 +1453,15 @@ static LLVMValueRef GenClassConstructorHeader(LLVMBackend* llb, SkModule* module
 
 	LLVMTypeRef returnType = GenTypeID(llb, module, constructor->instanceType);
 	int numParams = constructor->paramTypes.size + 1;
-	LLVMTypeRef* paramTypes = new LLVMTypeRef[numParams];
+	List<LLVMTypeRef> paramTypes = CreateList<LLVMTypeRef>(numParams);
 	paramTypes[0] = GenTypeID(llb, module, constructor->instanceType);
-	for (int i = 1; i < numParams; i++)
+	for (int i = 0; i < constructor->paramTypes.size; i++)
 	{
-		paramTypes[i] = GenType(llb, module, constructor->paramTypes[i - 1]);
+		paramTypes.add(GenType(llb, module, constructor->paramTypes[i]));
 	}
 
 	LLVMLinkage linkage = LLVMExternalLinkage;
-	LLVMValueRef llvmValue = CreateFunction(constructor->mangledName, returnType, numParams, paramTypes, constructor->varArgs, module->llvmModule, linkage);
+	LLVMValueRef llvmValue = CreateFunction(llb, module, constructor->mangledName, returnType, paramTypes, constructor->varArgs, false, linkage, module->llvmModule);
 
 	module->functionValues.emplace(constructor, llvmValue);
 

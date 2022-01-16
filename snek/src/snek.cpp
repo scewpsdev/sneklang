@@ -1,6 +1,6 @@
 #include "snek.h"
 
-#include "parser.h"
+#include "Parser.h"
 #include "resolver.h"
 
 #include <string.h>

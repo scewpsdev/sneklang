@@ -1,9 +1,10 @@
 #pragma once
 
-#include "ast.h"
 #include "log.h"
-#include "list.h"
+#include "List.h"
 
+
+struct AST::File;
 
 struct SourceFile
 {
@@ -23,7 +24,7 @@ struct SkContext
 {
 	List<SourceFile> sourceFiles;
 	List<LinkerFile> linkerFiles;
-	List<AstFile*> asts;
+	List<AST::File*> asts;
 
 	MessageCallback_t msgCallback;
 };

@@ -1,4 +1,6 @@
-module stdc;
+module stdc.string;
+
+import stdc.stdlib;
 
 
 public extern void* memcpy(void* dest, void* src, size_t len);

@@ -19,34 +19,55 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ast\Declaration.cpp" />
+    <ClCompile Include="src\ast\Element.cpp" />
+    <ClCompile Include="src\ast\Expression.cpp" />
+    <ClCompile Include="src\ast\File.cpp" />
+    <ClCompile Include="src\ast\Statement.cpp" />
+    <ClCompile Include="src\ast\Type.cpp" />
+    <ClCompile Include="src\semantics\Enum.cpp" />
+    <ClCompile Include="src\semantics\Exprdef.cpp" />
+    <ClCompile Include="src\semantics\Function.cpp" />
+    <ClCompile Include="src\semantics\Struct.cpp" />
+    <ClCompile Include="src\semantics\Typedef.cpp" />
+    <ClCompile Include="src\semantics\Variable.cpp" />
     <ClCompile Include="src\log.cpp" />
-    <ClCompile Include="src\ast.cpp" />
     <ClCompile Include="src\mangle.cpp" />
-    <ClCompile Include="src\resolver.cpp" />
-    <ClCompile Include="src\input.cpp" />
-    <ClCompile Include="src\lexer.cpp" />
-    <ClCompile Include="src\parser.cpp" />
+    <ClCompile Include="src\parser\input.cpp" />
+    <ClCompile Include="src\parser\lexer.cpp" />
+    <ClCompile Include="src\parser\Parser.cpp" />
+    <ClCompile Include="src\semantics\Resolver.cpp" />
+    <ClCompile Include="src\semantics\Type.cpp" />
     <ClCompile Include="src\snek.cpp" />
     <ClCompile Include="src\stringbuffer.cpp" />
-    <ClCompile Include="src\type.cpp" />
     <ClCompile Include="src\utils.cpp" />
-    <ClCompile Include="src\variable.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\mangle.h" />
-    <ClInclude Include="src\resolver.h" />
-    <ClInclude Include="src\ast.h" />
-    <ClInclude Include="src\input.h" />
+    <ClInclude Include="src\ast\Declaration.h" />
+    <ClInclude Include="src\ast\Element.h" />
+    <ClInclude Include="src\ast\Expression.h" />
+    <ClInclude Include="src\ast\File.h" />
+    <ClInclude Include="src\ast\Module.h" />
+    <ClInclude Include="src\ast\Statement.h" />
+    <ClInclude Include="src\ast\Type.h" />
+    <ClInclude Include="src\semantics\Enum.h" />
+    <ClInclude Include="src\semantics\Exprdef.h" />
+    <ClInclude Include="src\semantics\Function.h" />
+    <ClInclude Include="src\semantics\Struct.h" />
+    <ClInclude Include="src\semantics\Typedef.h" />
+    <ClInclude Include="src\semantics\Variable.h" />
     <ClInclude Include="src\keywords.h" />
-    <ClInclude Include="src\lexer.h" />
-    <ClInclude Include="src\list.h" />
+    <ClInclude Include="src\List.h" />
     <ClInclude Include="src\log.h" />
-    <ClInclude Include="src\parser.h" />
+    <ClInclude Include="src\mangle.h" />
+    <ClInclude Include="src\parser\input.h" />
+    <ClInclude Include="src\parser\lexer.h" />
+    <ClInclude Include="src\parser\Parser.h" />
+    <ClInclude Include="src\semantics\Resolver.h" />
+    <ClInclude Include="src\semantics\Type.h" />
     <ClInclude Include="src\snek.h" />
     <ClInclude Include="src\stringbuffer.h" />
-    <ClInclude Include="src\type.h" />
     <ClInclude Include="src\utils.h" />
-    <ClInclude Include="src\variable.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -126,6 +147,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,6 +166,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,6 +181,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -176,6 +200,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

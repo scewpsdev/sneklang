@@ -1,6 +1,6 @@
 #pragma once
 
-#include "list.h"
+#include "List.h"
 #include "type.h"
 
 #include <llvm-c/Core.h>
@@ -8,6 +8,8 @@
 #include <llvm-c/TargetMachine.h>
 
 #include <map>
+#include <string>
+#include <stack>
 
 
 struct SkContext;
@@ -16,6 +18,8 @@ struct AstFunction;
 struct AstStruct;
 struct AstClass;
 struct AstGlobal;
+struct AstType;
+struct AstStatement;
 
 struct LLVMBackend
 {
@@ -28,6 +32,11 @@ struct LLVMBackend
 
 	std::map<AstStruct*, LLVMTypeRef> structTypes;
 	std::map<AstClass*, LLVMTypeRef> classTypes;
+};
+
+struct GenericData
+{
+	std::map<std::string, LLVMTypeRef> types;
 };
 
 struct SkModule
@@ -51,15 +60,20 @@ struct SkModule
 	std::map<AstFunction*, LLVMValueRef> functionValues;
 	std::map<AstGlobal*, LLVMValueRef> globalValues;
 
-	AstFunction* currentFunction = NULL;
+	AstFunction* currentFunction = nullptr;
+
+	std::stack<GenericData> genericData;
 };
 
 
-LLVMTypeRef CanPassByValue(LLVMBackend* llb, SkModule* module, LLVMTypeRef type);
-LLVMValueRef GetRValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, bool lvalue);
-
 LLVMBackend* CreateLLVMBackend(SkContext* context);
 void DestroyLLVMBackend(LLVMBackend* llb);
+
+LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AstType* type);
+LLVMValueRef GetRValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, bool lvalue);
+
+bool BlockHasBranched(LLVMBackend* llb, SkModule* module);
+void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement);
 
 bool LLVMBackendCompile(LLVMBackend* llb, AstFile** asts, int numModules, const char* filename, const char* buildFolder, bool genDebugInfo, bool emitLLVM, int optLevel);
 bool LLVMLink(LLVMBackend* llb, const char* arg0, const char* filename, bool genDebugInfo, int optLevel, List<const char*>& additionalLibPaths);

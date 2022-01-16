@@ -1,7 +1,7 @@
-#include "parser.h"
+#include "Parser.h"
 
+#include "ast/File.h"
 #include "snek.h"
-#include "ast.h"
 #include "lexer.h"
 #include "log.h"
 #include "stringbuffer.h"
@@ -491,11 +491,32 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 {
 	InputState inputState = GetInputState(parser);
 
-	if (NextTokenIs(parser, '(')) // Function call
+	if (NextTokenIs(parser, '(') || NextTokenIs(parser, TOKEN_TYPE_OP_LESS_THAN)) // Function call
 	{
 		NextToken(parser); // (
 
 		List<AstExpression*> arguments = CreateList<AstExpression*>();
+
+		bool isGenericCall = false;
+		List<AstType*> genericArgs = CreateList<AstType*>();
+
+		bool upcomingType = !NextTokenIs(parser, TOKEN_TYPE_OP_LESS_THAN);
+		while (HasNext(parser) && upcomingType)
+		{
+			isGenericCall = true;
+			if (AstType* genericArg = ParseType(parser))
+			{
+				genericArgs.add(genericArg);
+
+				upcomingType = NextTokenIs(parser, ',');
+				if (upcomingType)
+					SkipToken(parser, ',');
+			}
+			else
+			{
+				SnekAssert(false);
+			}
+		}
 
 		bool upcomingDeclarator = !NextTokenIs(parser, ')');
 		while (HasNext(parser) && upcomingDeclarator)
@@ -519,6 +540,8 @@ static AstExpression* ParseArgumentOperator(Parser* parser, AstExpression* expre
 		auto expr = CreateAstExpression<AstFuncCall>(parser->module, inputState, EXPR_KIND_FUNC_CALL);
 		expr->calleeExpr = expression;
 		expr->arguments = arguments;
+		expr->isGenericCall = isGenericCall;
+		expr->genericArgs = genericArgs;
 		return ParseArgumentOperator(parser, expr);
 	}
 	else if (NextTokenIs(parser, '[')) // Subscript operator
@@ -1242,6 +1265,8 @@ static AstStatement* ParseStatement(Parser* parser)
 			bool upcomingDeclarator = true;
 			while (HasNext(parser) && upcomingDeclarator)
 			{
+				InputState inputState = GetInputState(parser);
+
 				char* name = GetTokenString(NextToken(parser));
 				AstExpression* value = NULL;
 
@@ -1256,6 +1281,8 @@ static AstStatement* ParseStatement(Parser* parser)
 					SkipToken(parser, ',');
 
 				AstVarDeclarator declarator = {};
+				declarator.module = parser->module;
+				declarator.inputState = inputState;
 				declarator.name = name;
 				declarator.value = value;
 
@@ -1867,6 +1894,37 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
 		{
 			char* name = GetTokenString(NextToken(parser));
+			bool isGeneric = false;
+			List<char*> genericParams;
+
+			if (NextTokenIs(parser, TOKEN_TYPE_OP_LESS_THAN)) // Generic types
+			{
+				NextToken(parser); // <
+
+				isGeneric = true;
+				genericParams = CreateList<char*>();
+
+				bool hasNext = !NextTokenIs(parser, TOKEN_TYPE_OP_GREATER_THAN);
+				while (hasNext)
+				{
+					if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+					{
+						char* genericParamName = GetTokenString(NextToken(parser));
+						genericParams.add(genericParamName);
+
+						hasNext = NextTokenIs(parser, ',');
+						if (hasNext)
+							NextToken(parser); // ,
+					}
+					else
+					{
+						SnekAssert(false); // TODO ERROR
+					}
+				}
+
+				SkipToken(parser, TOKEN_TYPE_OP_GREATER_THAN);
+			}
+
 			if (NextTokenIs(parser, '(')) // Function declaration
 			{
 				NextToken(parser); // (
@@ -1934,6 +1992,7 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 				InputState endInputState = GetInputState(parser);
 
 				AstFunction* decl = CreateAstDeclaration<AstFunction>(parser->module, inputState, DECL_KIND_FUNC);
+
 				decl->flags = flags;
 				decl->name = name;
 				decl->returnType = type;
@@ -1942,6 +2001,9 @@ static AstDeclaration* ParseDeclaration(Parser* parser)
 				decl->varArgs = varArgs;
 				decl->body = body;
 				decl->endInputState = endInputState;
+
+				decl->isGeneric = isGeneric;
+				decl->genericParams = genericParams;
 
 				return decl;
 			}
