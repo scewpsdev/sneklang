@@ -1,11 +1,13 @@
-module std.win32;
-namespace Win32;
+module snek.platform.windows;
+//namespace Win32;
+
+import win32;
 
 extern int QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 extern int QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
 
 
-public int64 Timestamp()
+public int64 now()
 {
 	LARGE_INTEGER ticks;
 	LARGE_INTEGER freq;

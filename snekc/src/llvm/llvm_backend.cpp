@@ -1,16 +1,18 @@
 #include "llvm_backend.h"
 
 #include "snek.h"
-#include "ast.h"
 #include "log.h"
 #include "debug.h"
 #include "function.h"
-#include "type.h"
 #include "types.h"
 #include "values.h"
 #include "operators.h"
 #include "debug_info.h"
 #include "generics.h"
+
+#include "ast/File.h"
+#include "semantics/Type.h"
+#include "semantics/Variable.h"
 
 #include <string.h>
 #include <sstream>
@@ -40,7 +42,7 @@ void DestroyLLVMBackend(LLVMBackend* llb)
 	delete llb;
 }
 
-static SkModule* CreateModule(AstFile* ast, bool hasDebugInfo)
+static SkModule* CreateModule(AST::File* ast, bool hasDebugInfo)
 {
 	SkModule* module = new SkModule;
 	module->ast = ast;
@@ -51,12 +53,11 @@ static SkModule* CreateModule(AstFile* ast, bool hasDebugInfo)
 	return module;
 }
 
-static LLVMTypeRef GenTypeID(LLVMBackend* llb, SkModule* module, TypeID type, AstType* ast = NULL);
-static LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AstType* type);
-static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AstExpression* expression);
+static LLVMTypeRef GenTypeID(LLVMBackend* llb, SkModule* module, TypeID type, AST::Type* ast = NULL);
+static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AST::Expression* expression);
 
-static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AstStruct* decl);
-static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AstClass* decl);
+static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl);
+static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AST::Class* decl);
 
 static LLVMTypeRef GenVoidType(LLVMBackend* llb, SkModule* module)
 {
@@ -72,17 +73,17 @@ static LLVMTypeRef GenFPType(LLVMBackend* llb, SkModule* module, TypeID type)
 {
 	switch (type->fpType.precision)
 	{
-	case FP_PRECISION_HALF:
+	case FloatingPointPrecision::Half:
 		return LLVM_CALL(LLVMHalfTypeInContext, llb->llvmContext);
-	case FP_PRECISION_SINGLE:
+	case FloatingPointPrecision::Single:
 		return LLVM_CALL(LLVMFloatTypeInContext, llb->llvmContext);
-	case FP_PRECISION_DOUBLE:
+	case FloatingPointPrecision::Double:
 		return LLVM_CALL(LLVMDoubleTypeInContext, llb->llvmContext);
-	case FP_PRECISION_FP128:
+	case FloatingPointPrecision::Quad:
 		return LLVM_CALL(LLVMFP128TypeInContext, llb->llvmContext);
 	default:
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -91,7 +92,7 @@ static LLVMTypeRef GenBoolType(LLVMBackend* llb, SkModule* module)
 	return LLVM_CALL(LLVMInt1TypeInContext, llb->llvmContext);
 }
 
-static LLVMTypeRef GenStructType(LLVMBackend* llb, SkModule* module, TypeID type, AstNamedType* ast)
+static LLVMTypeRef GenStructType(LLVMBackend* llb, SkModule* module, TypeID type, AST::NamedType* ast)
 {
 	/*
 	int numFields = type->structType.numFields;
@@ -111,7 +112,7 @@ static LLVMTypeRef GenStructType(LLVMBackend* llb, SkModule* module, TypeID type
 	return structType;
 }
 
-static LLVMTypeRef GenClassType(LLVMBackend* llb, SkModule* module, TypeID type, AstNamedType* ast)
+static LLVMTypeRef GenClassType(LLVMBackend* llb, SkModule* module, TypeID type, AST::NamedType* ast)
 {
 	/*
 	int numFields = type->structType.numFields;
@@ -133,7 +134,7 @@ static LLVMTypeRef GenClassType(LLVMBackend* llb, SkModule* module, TypeID type,
 	return classType;
 }
 
-static LLVMTypeRef GenAliasType(LLVMBackend* llb, SkModule* module, TypeID type, AstNamedType* ast)
+static LLVMTypeRef GenAliasType(LLVMBackend* llb, SkModule* module, TypeID type, AST::NamedType* ast)
 {
 	if (ast)
 	{
@@ -153,7 +154,7 @@ static LLVMTypeRef GenAliasType(LLVMBackend* llb, SkModule* module, TypeID type,
 	}
 }
 
-static LLVMTypeRef GenPointerType(LLVMBackend* llb, SkModule* module, TypeID type, AstPointerType* ast)
+static LLVMTypeRef GenPointerType(LLVMBackend* llb, SkModule* module, TypeID type, AST::PointerType* ast)
 {
 	LLVMTypeRef elementType = GenTypeID(llb, module, type->pointerType.elementType, ast ? ast->elementType : NULL);
 	if (LLVMGetTypeKind(elementType) == LLVMVoidTypeKind)
@@ -162,7 +163,7 @@ static LLVMTypeRef GenPointerType(LLVMBackend* llb, SkModule* module, TypeID typ
 		return LLVM_CALL(LLVMPointerType, elementType, 0);
 }
 
-static LLVMTypeRef GenFunctionType(LLVMBackend* llb, SkModule* module, TypeID type, AstFunctionType* ast)
+static LLVMTypeRef GenFunctionType(LLVMBackend* llb, SkModule* module, TypeID type, AST::FunctionType* ast)
 {
 	// x64 calling convention
 
@@ -205,7 +206,7 @@ static LLVMTypeRef GenStringType(LLVMBackend* llb, SkModule* module, TypeID type
 	return GetStringType(llb);
 }
 
-static LLVMTypeRef GenArrayType(LLVMBackend* llb, SkModule* module, TypeID type, AstArrayType* ast)
+static LLVMTypeRef GenArrayType(LLVMBackend* llb, SkModule* module, TypeID type, AST::ArrayType* ast)
 {
 	LLVMTypeRef elementType = GenTypeID(llb, module, type->arrayType.elementType, ast ? ast->elementType : NULL);
 	/*
@@ -223,49 +224,49 @@ static LLVMTypeRef GenArrayType(LLVMBackend* llb, SkModule* module, TypeID type,
 	return GetArrayType(llb, elementType, type->arrayType.length);
 }
 
-static LLVMTypeRef GenTypeID(LLVMBackend* llb, SkModule* module, TypeID type, AstType* ast)
+static LLVMTypeRef GenTypeID(LLVMBackend* llb, SkModule* module, TypeID type, AST::Type* ast)
 {
 	switch (type->typeKind)
 	{
-	case TYPE_KIND_VOID:
+	case AST::TypeKind::Void:
 		return GenVoidType(llb, module);
-	case TYPE_KIND_INTEGER:
+	case AST::TypeKind::Integer:
 		return GenIntegerType(llb, module, type);
-	case TYPE_KIND_FP:
+	case AST::TypeKind::FloatingPoint:
 		return GenFPType(llb, module, type);
-	case TYPE_KIND_BOOL:
+	case AST::TypeKind::Boolean:
 		return GenBoolType(llb, module);
-	case TYPE_KIND_STRUCT:
-		return GenStructType(llb, module, type, (AstNamedType*)ast);
-	case TYPE_KIND_CLASS:
-		return GenClassType(llb, module, type, (AstNamedType*)ast);
-	case TYPE_KIND_ALIAS:
-		return GenAliasType(llb, module, type, (AstNamedType*)ast);
-	case TYPE_KIND_POINTER:
-		return GenPointerType(llb, module, type, (AstPointerType*)ast);
-	case TYPE_KIND_FUNCTION:
-		return GenFunctionType(llb, module, type, (AstFunctionType*)ast);
+	case AST::TypeKind::Struct:
+		return GenStructType(llb, module, type, (AST::NamedType*)ast);
+	case AST::TypeKind::Class:
+		return GenClassType(llb, module, type, (AST::NamedType*)ast);
+	case AST::TypeKind::Alias:
+		return GenAliasType(llb, module, type, (AST::NamedType*)ast);
+	case AST::TypeKind::Pointer:
+		return GenPointerType(llb, module, type, (AST::PointerType*)ast);
+	case AST::TypeKind::Function:
+		return GenFunctionType(llb, module, type, (AST::FunctionType*)ast);
 
-	case TYPE_KIND_ARRAY:
-		return GenArrayType(llb, module, type, (AstArrayType*)ast);
-	case TYPE_KIND_STRING:
+	case AST::TypeKind::Array:
+		return GenArrayType(llb, module, type, (AST::ArrayType*)ast);
+	case AST::TypeKind::String:
 		return GenStringType(llb, module, type);
 
 	default:
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
-LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AstType* type)
+LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AST::Type* type)
 {
 	return GenTypeID(llb, module, type->typeID, type);
 }
 
-static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AstExpression* expression);
-static LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AstFunction* decl);
-static LLVMValueRef GenGlobalHeader(LLVMBackend* llb, SkModule* module, AstGlobal* global);
-static LLVMValueRef GenClassMethodHeader(LLVMBackend* llb, SkModule* module, AstFunction* method, AstClass* classDecl);
+static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AST::Expression* expression);
+//static LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AST::Function* decl);
+static LLVMValueRef GenGlobalHeader(LLVMBackend* llb, SkModule* module, AST::GlobalVariable* global);
+static LLVMValueRef GenClassMethodHeader(LLVMBackend* llb, SkModule* module, AST::Function* method, AST::Class* classDecl);
 
 LLVMValueRef GetRValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, bool lvalue)
 {
@@ -286,44 +287,44 @@ LLVMValueRef GetRValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, b
 	}
 }
 
-static LLVMValueRef GenIntegerLiteral(LLVMBackend* llb, SkModule* module, AstIntegerLiteral* expression)
+static LLVMValueRef GenIntegerLiteral(LLVMBackend* llb, SkModule* module, AST::IntegerLiteral* expression)
 {
-	LLVMTypeRef type = GenTypeID(llb, module, expression->type);
+	LLVMTypeRef type = GenTypeID(llb, module, expression->valueType);
 	return LLVM_CALL(LLVMConstInt, type, expression->value, expression->value < 0);
 }
 
-static LLVMValueRef GenFPLiteral(LLVMBackend* llb, SkModule* module, AstFPLiteral* expression)
+static LLVMValueRef GenFPLiteral(LLVMBackend* llb, SkModule* module, AST::FloatingPointLiteral* expression)
 {
 	return LLVM_CALL(LLVMConstReal, LLVMFloatTypeInContext(llb->llvmContext), expression->value);
 }
 
-static LLVMValueRef GenBoolLiteral(LLVMBackend* llb, SkModule* module, AstBoolLiteral* expression)
+static LLVMValueRef GenBoolLiteral(LLVMBackend* llb, SkModule* module, AST::BooleanLiteral* expression)
 {
 	return LLVM_CALL(LLVMConstInt, LLVMInt1TypeInContext(llb->llvmContext), expression->value ? 1 : 0, false);
 }
 
-static LLVMValueRef GenCharacterLiteral(LLVMBackend* llb, SkModule* module, AstCharacterLiteral* expression)
+static LLVMValueRef GenCharacterLiteral(LLVMBackend* llb, SkModule* module, AST::CharacterLiteral* expression)
 {
 	return LLVM_CALL(LLVMConstInt, LLVMInt8TypeInContext(llb->llvmContext), expression->value, false);
 }
 
-static LLVMValueRef GenNullLiteral(LLVMBackend* llb, SkModule* module, AstNullLiteral* expression)
+static LLVMValueRef GenNullLiteral(LLVMBackend* llb, SkModule* module, AST::NullLiteral* expression)
 {
 	return LLVM_CALL(LLVMConstNull, LLVMPointerType(LLVMInt8TypeInContext(llb->llvmContext), 0));
 }
 
-static LLVMValueRef GenStringLiteral(LLVMBackend* llb, SkModule* module, AstStringLiteral* expression)
+static LLVMValueRef GenStringLiteral(LLVMBackend* llb, SkModule* module, AST::StringLiteral* expression)
 {
 	return CreateStringLiteral(llb, module, expression->value);
 }
 
-static LLVMValueRef GenStructLiteral(LLVMBackend* llb, SkModule* module, AstStructLiteral* expression)
+static LLVMValueRef GenStructLiteral(LLVMBackend* llb, SkModule* module, AST::StructLiteral* expression)
 {
 	LLVMTypeRef llvmType = GenType(llb, module, expression->structType);
 
-	if (IsConstant(expression))
+	if (expression->isConstant())
 	{
-		int numFields = expression->type->structType.numFields;
+		int numFields = expression->valueType->structType.numFields;
 		LLVMValueRef* values = new LLVMValueRef[numFields];
 
 		for (int i = 0; i < numFields; i++)
@@ -332,10 +333,10 @@ static LLVMValueRef GenStructLiteral(LLVMBackend* llb, SkModule* module, AstStru
 			if (i < expression->values.size)
 			{
 				LLVMValueRef field = GetRValue(llb, module, GenExpression(llb, module, expression->values[i]), expression->values[i]->lvalue);
-				if (IsConstant(expression->values[i]))
-					field = ConstCastValue(llb, module, field, fieldType, expression->values[i]->type, expression->structType->typeID->structType.fieldTypes[i]);
+				if (expression->values[i]->isConstant())
+					field = ConstCastValue(llb, module, field, fieldType, expression->values[i]->valueType, expression->structType->typeID->structType.fieldTypes[i]);
 				else
-					field = CastValue(llb, module, field, fieldType, expression->values[i]->type, expression->structType->typeID->structType.fieldTypes[i]);
+					field = CastValue(llb, module, field, fieldType, expression->values[i]->valueType, expression->structType->typeID->structType.fieldTypes[i]);
 				values[i] = field;
 				//LLVMValueRef fieldAlloc = LLVMBuildStructGEP(module->builder, alloc, i, "");
 				//LLVMBuildStore(module->builder, field, fieldAlloc);
@@ -360,7 +361,7 @@ static LLVMValueRef GenStructLiteral(LLVMBackend* llb, SkModule* module, AstStru
 		{
 			LLVMValueRef field = GetRValue(llb, module, GenExpression(llb, module, expression->values[i]), expression->values[i]->lvalue);
 			LLVMTypeRef fieldType = GenTypeID(llb, module, expression->structType->typeID->structType.fieldTypes[i]);
-			field = CastValue(llb, module, field, fieldType, expression->values[i]->type, expression->structType->typeID->structType.fieldTypes[i]);
+			field = CastValue(llb, module, field, fieldType, expression->values[i]->valueType, expression->structType->typeID->structType.fieldTypes[i]);
 			LLVMValueRef fieldAlloc = LLVMBuildStructGEP(module->builder, alloc, i, "");
 			LLVMBuildStore(module->builder, field, fieldAlloc);
 		}
@@ -377,7 +378,7 @@ static LLVMValueRef GenStructLiteral(LLVMBackend* llb, SkModule* module, AstStru
 	return LLVMConstStructInContext(llb->llvmContext, values, numValues, false);
 }
 
-static LLVMValueRef GenIdentifier(LLVMBackend* llb, SkModule* module, AstIdentifier* expression)
+static LLVMValueRef GenIdentifier(LLVMBackend* llb, SkModule* module, AST::Identifier* expression)
 {
 	if (expression->variable)
 	{
@@ -390,19 +391,19 @@ static LLVMValueRef GenIdentifier(LLVMBackend* llb, SkModule* module, AstIdentif
 		else
 		*/
 		//{
-		if (expression->module == expression->variable->module || expression->variable->isConstant)
+		if (expression->file == expression->variable->declaration->file || expression->variable->isConstant)
 		{
 			value = (LLVMValueRef)expression->variable->allocHandle;
 		}
 		else
 		{
 			// Import global
-			auto it = module->globalValues.find(expression->variable->globalDecl);
+			auto it = module->globalValues.find((AST::GlobalVariable*)expression->variable->declaration);
 			if (it != module->globalValues.end())
 				value = it->second;
 			else
 			{
-				value = GenGlobalHeader(llb, module, expression->variable->globalDecl);
+				value = GenGlobalHeader(llb, module, (AST::GlobalVariable*)expression->variable->declaration);
 			}
 		}
 		//}
@@ -410,7 +411,7 @@ static LLVMValueRef GenIdentifier(LLVMBackend* llb, SkModule* module, AstIdentif
 	}
 	else if (expression->function)
 	{
-		if (expression->function->module == expression->module)
+		if (expression->function->file == expression->file)
 			return module->functionValues[expression->function];
 		else
 			return GenFunctionHeader(llb, module, expression->function);
@@ -432,19 +433,20 @@ static LLVMValueRef GenIdentifier(LLVMBackend* llb, SkModule* module, AstIdentif
 	}
 }
 
-static LLVMValueRef GenCompoundExpression(LLVMBackend* llb, SkModule* module, AstCompoundExpression* expression)
+static LLVMValueRef GenCompoundExpression(LLVMBackend* llb, SkModule* module, AST::CompoundExpression* expression)
 {
 	return GenExpression(llb, module, expression->value);
 }
 
-static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncCall* expression)
+static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AST::FunctionCall* expression)
 {
 	LLVMValueRef callee = NULL;
 	TypeID functionType = NULL;
 
 	if (expression->function)
 	{
-		if (expression->function->isGeneric)
+		SnekAssert(!expression->function->isGeneric); // This should be a reference the call's own copy which has isGeneric = false and isGenericInstance = true
+		if (expression->function->isGenericInstance)
 		{
 			List<LLVMTypeRef> genericTypes = CreateList<LLVMTypeRef>();
 			for (int i = 0; i < expression->genericArgs.size; i++)
@@ -452,10 +454,15 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 				genericTypes.add(GenType(llb, module, expression->genericArgs[i]));
 			}
 			callee = GenGenericFunctionInstance(llb, module, expression->function, genericTypes, functionType);
+
+			if (module->hasDebugInfo)
+			{
+				DebugInfoEmitSourceLocation(llb, module, expression);
+			}
 		}
 		else
 		{
-			if (expression->function->module == expression->module)
+			if (expression->function->file == expression->file)
 			{
 				//callee = (LLVMValueRef)expression->function->valueHandle;
 				// TODO check this
@@ -476,15 +483,16 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 						callee = GenFunctionHeader(llb, module, expression->function);
 				}
 			}
-			functionType = expression->function->type;
 		}
+
+		functionType = expression->function->functionType;
 	}
-	else if (expression->calleeExpr)
+	else if (expression->callee)
 	{
-		callee = GenExpression(llb, module, expression->calleeExpr);
-		callee = GetRValue(llb, module, callee, expression->calleeExpr->lvalue);
-		functionType = expression->calleeExpr->type;
-		while (functionType->typeKind == TYPE_KIND_ALIAS)
+		callee = GenExpression(llb, module, expression->callee);
+		callee = GetRValue(llb, module, callee, expression->callee->lvalue);
+		functionType = expression->callee->valueType;
+		while (functionType->typeKind == AST::TypeKind::Alias)
 			functionType = functionType->aliasType.alias;
 	}
 	else
@@ -521,8 +529,8 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 	{
 		LLVMValueRef instance = GenExpression(llb, module, expression->methodInstance);
 		// TODO dont gen this twice
-		SnekAssert(expression->methodInstance->lvalue || expression->methodInstance->type->typeKind == TYPE_KIND_POINTER);
-		if (expression->methodInstance->type->typeKind == TYPE_KIND_POINTER && expression->methodInstance->lvalue)
+		SnekAssert(expression->methodInstance->lvalue || expression->methodInstance->valueType->typeKind == AST::TypeKind::Pointer);
+		if (expression->methodInstance->valueType->typeKind == AST::TypeKind::Pointer && expression->methodInstance->lvalue)
 			instance = LLVM_CALL(LLVMBuildLoad, module->builder, instance, "");
 		//arguments.add(LLVM_CALL(LLVMBuildLoad, module->builder, instance, ""));
 		arguments.add(instance);
@@ -537,7 +545,7 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 		if (i < paramCount)
 		{
 			LLVMTypeRef paramType = GenTypeID(llb, module, functionType->functionType.paramTypes[paramOffset + i]);
-			arg = ConvertArgumentValue(llb, module, arg, paramType, expression->arguments[i]->type, functionType->functionType.paramTypes[paramOffset + i], expression->arguments[i]->lvalue, IsConstant(expression->arguments[i]));
+			arg = ConvertArgumentValue(llb, module, arg, paramType, expression->arguments[i]->valueType, functionType->functionType.paramTypes[paramOffset + i], expression->arguments[i]->lvalue, expression->arguments[i]->isConstant());
 
 			if (LLVMTypeRef _paramType = CanPassByValue(llb, module, paramType))
 			{
@@ -557,8 +565,8 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 		else
 		{
 			arg = GetRValue(llb, module, arg, expression->arguments[i]->lvalue);
-			if (expression->arguments[i]->type->typeKind == TYPE_KIND_FP)
-				arg = CastValue(llb, module, arg, LLVMDoubleTypeInContext(llb->llvmContext), expression->arguments[i]->type, GetFPType(FP_PRECISION_DOUBLE));
+			if (expression->arguments[i]->valueType->typeKind == AST::TypeKind::FloatingPoint)
+				arg = CastValue(llb, module, arg, LLVMDoubleTypeInContext(llb->llvmContext), expression->arguments[i]->valueType, GetFloatingPointType(FloatingPointPrecision::Double));
 		}
 
 		arguments.add(arg);
@@ -586,18 +594,18 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AstFuncC
 	return result;
 }
 
-static LLVMValueRef GenSubscriptOperator(LLVMBackend* llb, SkModule* module, AstSubscriptOperator* expression)
+static LLVMValueRef GenSubscriptOperator(LLVMBackend* llb, SkModule* module, AST::SubscriptOperator* expression)
 {
 	LLVMValueRef operand = GenExpression(llb, module, expression->operand);
 
-	if (expression->operand->type->typeKind == TYPE_KIND_ARRAY ||
-		expression->operand->type->typeKind == TYPE_KIND_POINTER && expression->operand->type->pointerType.elementType->typeKind == TYPE_KIND_ARRAY)
+	if (expression->operand->valueType->typeKind == AST::TypeKind::Array ||
+		expression->operand->valueType->typeKind == AST::TypeKind::Pointer && expression->operand->valueType->pointerType.elementType->typeKind == AST::TypeKind::Array)
 	{
-		SnekAssert(expression->lvalue || expression->operand->type->typeKind == TYPE_KIND_POINTER);
+		SnekAssert(expression->lvalue || expression->operand->valueType->typeKind == AST::TypeKind::Pointer);
 		SnekAssert(LLVMGetTypeKind(LLVMTypeOf(operand)) == LLVMPointerTypeKind);
 		SnekAssert(expression->arguments.size == 1);
 
-		if (expression->lvalue && expression->operand->type->typeKind == TYPE_KIND_POINTER)
+		if (expression->lvalue && expression->operand->valueType->typeKind == AST::TypeKind::Pointer)
 			operand = LLVMBuildLoad(module->builder, operand, "");
 
 		LLVMValueRef index = GenExpression(llb, module, expression->arguments[0]);
@@ -606,7 +614,7 @@ static LLVMValueRef GenSubscriptOperator(LLVMBackend* llb, SkModule* module, Ast
 
 		return element;
 	}
-	else if (expression->operand->type->typeKind == TYPE_KIND_STRING)
+	else if (expression->operand->valueType->typeKind == AST::TypeKind::String)
 	{
 		operand = GetRValue(llb, module, operand, expression->operand->lvalue);
 
@@ -618,7 +626,7 @@ static LLVMValueRef GenSubscriptOperator(LLVMBackend* llb, SkModule* module, Ast
 
 		return element;
 	}
-	else if (expression->operand->type->typeKind == TYPE_KIND_POINTER)
+	else if (expression->operand->valueType->typeKind == AST::TypeKind::Pointer)
 	{
 		operand = GetRValue(llb, module, operand, expression->operand->lvalue);
 
@@ -634,7 +642,7 @@ static LLVMValueRef GenSubscriptOperator(LLVMBackend* llb, SkModule* module, Ast
 	return NULL;
 }
 
-static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AstDotOperator* expression)
+static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AST::DotOperator* expression)
 {
 	LLVMValueRef operand = GenExpression(llb, module, expression->operand);
 
@@ -642,8 +650,8 @@ static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AstDotOpe
 	//if (LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(operand))) == LLVMPointerTypeKind)
 	//	operand = LLVM_CALL(LLVMBuildLoad, module->builder, operand, "");
 
-	TypeID operandType = expression->operand->type;
-	if (operandType->typeKind == TYPE_KIND_POINTER)
+	TypeID operandType = expression->operand->valueType;
+	if (operandType->typeKind == AST::TypeKind::Pointer)
 	{
 		operandType = operandType->pointerType.elementType;
 		if (expression->operand->lvalue)
@@ -652,10 +660,10 @@ static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AstDotOpe
 		}
 	}
 
-	while (operandType->typeKind == TYPE_KIND_ALIAS)
+	while (operandType->typeKind == AST::TypeKind::Alias)
 		operandType = operandType->aliasType.alias;
 
-	if (operandType->typeKind == TYPE_KIND_STRUCT)
+	if (operandType->typeKind == AST::TypeKind::Struct)
 	{
 		if (expression->classMethod)
 		{
@@ -667,14 +675,14 @@ static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AstDotOpe
 			return GetStructMember(llb, module, operand, expression->structField->index, expression->structField->name);
 		}
 	}
-	else if (operandType->typeKind == TYPE_KIND_CLASS)
+	else if (operandType->typeKind == AST::TypeKind::Class)
 	{
 		return GetClassMember(llb, module, operand, expression->classField->index, expression->classField->name);
 	}
-	else if (operandType->typeKind == TYPE_KIND_ARRAY)
+	else if (operandType->typeKind == AST::TypeKind::Array)
 	{
 		//operand = GetRValue(llb, module, operand, expression->operand->lvalue);
-		SnekAssert(expression->operand->lvalue || expression->operand->type->typeKind == TYPE_KIND_POINTER);
+		SnekAssert(expression->operand->lvalue || expression->operand->valueType->typeKind == AST::TypeKind::Pointer);
 		if (expression->arrayField == 0)
 			return GetArrayLength(llb, module, operand);
 		else if (expression->arrayField == 1)
@@ -685,7 +693,7 @@ static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AstDotOpe
 			return NULL;
 		}
 	}
-	else if (operandType->typeKind == TYPE_KIND_STRING)
+	else if (operandType->typeKind == AST::TypeKind::String)
 	{
 		operand = GetRValue(llb, module, operand, expression->operand->lvalue);
 		if (expression->stringField == 0)
@@ -703,20 +711,20 @@ static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AstDotOpe
 	return NULL;
 }
 
-static LLVMValueRef GenCast(LLVMBackend* llb, SkModule* module, AstCast* expression)
+static LLVMValueRef GenCast(LLVMBackend* llb, SkModule* module, AST::Typecast* expression)
 {
 	LLVMValueRef value = GenExpression(llb, module, expression->value);
 	value = GetRValue(llb, module, value, expression->value->lvalue);
-	LLVMTypeRef type = GenType(llb, module, expression->castType);
-	return CastValue(llb, module, value, type, expression->value->type, expression->castType->typeID);
+	LLVMTypeRef type = GenType(llb, module, expression->dstType);
+	return CastValue(llb, module, value, type, expression->value->valueType, expression->dstType->typeID);
 }
 
-static LLVMValueRef GenClassConstructorHeader(LLVMBackend* llb, SkModule* module, AstFunction* constructor, AstClass* classDecl);
+static LLVMValueRef GenClassConstructorHeader(LLVMBackend* llb, SkModule* module, AST::Function* constructor, AST::Class* classDecl);
 
-static LLVMValueRef GenSizeof(LLVMBackend* llb, SkModule* module, AstSizeof* expression)
+static LLVMValueRef GenSizeof(LLVMBackend* llb, SkModule* module, AST::Sizeof* expression)
 {
-	LLVMTypeRef llvmType = GenType(llb, module, expression->sizedType);
-	if (expression->sizedType->typeKind == TYPE_KIND_CLASS)
+	LLVMTypeRef llvmType = GenType(llb, module, expression->dstType);
+	if (expression->dstType->typeKind == AST::TypeKind::Class)
 	{
 		llvmType = LLVM_CALL(LLVMGetElementType, llvmType);
 	}
@@ -724,10 +732,10 @@ static LLVMValueRef GenSizeof(LLVMBackend* llb, SkModule* module, AstSizeof* exp
 	return LLVM_CALL(LLVMSizeOf, llvmType);
 }
 
-static LLVMValueRef GenMalloc(LLVMBackend* llb, SkModule* module, AstMalloc* expression)
+static LLVMValueRef GenMalloc(LLVMBackend* llb, SkModule* module, AST::Malloc* expression)
 {
-	LLVMTypeRef llvmType = GenType(llb, module, expression->mallocType);
-	if (expression->mallocType->typeKind == TYPE_KIND_CLASS || expression->mallocType->typeKind == TYPE_KIND_STRING) // If reference type
+	LLVMTypeRef llvmType = GenType(llb, module, expression->dstType);
+	if (expression->dstType->typeKind == AST::TypeKind::Class || expression->dstType->typeKind == AST::TypeKind::String) // If reference type
 	{
 		llvmType = LLVMGetElementType(llvmType);
 	}
@@ -743,13 +751,13 @@ static LLVMValueRef GenMalloc(LLVMBackend* llb, SkModule* module, AstMalloc* exp
 		alloc = LLVM_CALL(LLVMBuildMalloc, module->builder, llvmType, "");
 	}
 
-	if (expression->mallocType->typeKind == TYPE_KIND_CLASS && expression->hasArguments)
+	if (expression->dstType->typeKind == AST::TypeKind::Class && expression->hasArguments)
 	{
-		AstClass* declaration = expression->mallocType->typeID->classType.declaration;
-		if (AstFunction* constructor = declaration->constructor)
+		AST::Class* declaration = expression->dstType->typeID->classType.declaration;
+		if (AST::Function* constructor = declaration->constructor)
 		{
-			LLVMValueRef callee = NULL;
-			if (constructor->module == expression->module)
+			LLVMValueRef callee = nullptr;
+			if (constructor->file == expression->file)
 			{
 				//callee = (LLVMValueRef)expression->function->valueHandle;
 				callee = (LLVMValueRef)constructor->valueHandle;
@@ -774,20 +782,20 @@ static LLVMValueRef GenMalloc(LLVMBackend* llb, SkModule* module, AstMalloc* exp
 			arguments[0] = alloc;
 			for (int i = 1; i < numArgs; i++)
 			{
-				AstExpression* argExpr = expression->arguments[i - 1];
+				AST::Expression* argExpr = expression->arguments[i - 1];
 				TypeID paramTypeID = constructor->paramTypes[i - 1]->typeID;
 
 				LLVMValueRef arg = GenExpression(llb, module, argExpr);
 				if (i < numParams)
 				{
 					LLVMTypeRef paramType = paramTypes[i];
-					arg = ConvertArgumentValue(llb, module, arg, paramType, argExpr->type, paramTypeID, argExpr->lvalue, LLVMIsConstant(arg));
+					arg = ConvertArgumentValue(llb, module, arg, paramType, argExpr->valueType, paramTypeID, argExpr->lvalue, LLVMIsConstant(arg));
 				}
 				else
 				{
 					arg = GetRValue(llb, module, arg, argExpr->lvalue);
-					if (argExpr->type->typeKind == TYPE_KIND_FP)
-						arg = CastValue(llb, module, arg, LLVMDoubleTypeInContext(llb->llvmContext), argExpr->type, GetFPType(FP_PRECISION_DOUBLE));
+					if (argExpr->valueType->typeKind == AST::TypeKind::FloatingPoint)
+						arg = CastValue(llb, module, arg, LLVMDoubleTypeInContext(llb->llvmContext), argExpr->valueType, GetFloatingPointType(FloatingPointPrecision::Double));
 				}
 				arguments[i] = arg;
 			}
@@ -803,64 +811,64 @@ static LLVMValueRef GenMalloc(LLVMBackend* llb, SkModule* module, AstMalloc* exp
 	return alloc;
 }
 
-static LLVMValueRef GenUnaryOperator(LLVMBackend* llb, SkModule* module, AstUnaryOperator* expression)
+static LLVMValueRef GenUnaryOperator(LLVMBackend* llb, SkModule* module, AST::UnaryOperator* expression)
 {
 	LLVMValueRef operand = GenExpression(llb, module, expression->operand);
 
 	switch (expression->operatorType)
 	{
-	case UNARY_OPERATOR_NOT: return OperatorNot(llb, module, operand, expression->operand->type, expression->operand->lvalue);
-	case UNARY_OPERATOR_NEGATE: return OperatorNegate(llb, module, operand, expression->operand->type, expression->operand->lvalue);
-	case UNARY_OPERATOR_REFERENCE: return OperatorReference(llb, module, operand, expression->operand->type, expression->operand->lvalue);
-	case UNARY_OPERATOR_DEREFERENCE: return OperatorDereference(llb, module, operand, expression->operand->type, expression->operand->lvalue);
+	case AST::UnaryOperatorType::Not: return OperatorNot(llb, module, operand, expression->operand->valueType, expression->operand->lvalue);
+	case AST::UnaryOperatorType::Negate: return OperatorNegate(llb, module, operand, expression->operand->valueType, expression->operand->lvalue);
+	case AST::UnaryOperatorType::Reference: return OperatorReference(llb, module, operand, expression->operand->valueType, expression->operand->lvalue);
+	case AST::UnaryOperatorType::Dereference: return OperatorDereference(llb, module, operand, expression->operand->valueType, expression->operand->lvalue);
 
-	case UNARY_OPERATOR_INCREMENT: return OperatorIncrement(llb, module, operand, expression->operand->type, expression->operand->lvalue, expression->position);
-	case UNARY_OPERATOR_DECREMENT: return OperatorDecrement(llb, module, operand, expression->operand->type, expression->operand->lvalue, expression->position);
+	case AST::UnaryOperatorType::Increment: return OperatorIncrement(llb, module, operand, expression->operand->valueType, expression->operand->lvalue, expression->position);
+	case AST::UnaryOperatorType::Decrement: return OperatorDecrement(llb, module, operand, expression->operand->valueType, expression->operand->lvalue, expression->position);
 
 	default:
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
-static LLVMValueRef GenBinaryOperator(LLVMBackend* llb, SkModule* module, AstBinaryOperator* expression)
+static LLVMValueRef GenBinaryOperator(LLVMBackend* llb, SkModule* module, AST::BinaryOperator* expression)
 {
 	LLVMValueRef left = GenExpression(llb, module, expression->left);
 	LLVMValueRef right = GenExpression(llb, module, expression->right);
 
 	switch (expression->operatorType)
 	{
-	case BINARY_OPERATOR_ADD: return OperatorAdd(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_SUB: return OperatorSub(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_MUL: return OperatorMul(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_DIV: return OperatorDiv(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_MOD: return OperatorMod(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Add: return OperatorAdd(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Subtract: return OperatorSub(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Multiply: return OperatorMul(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Divide: return OperatorDiv(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Modulo: return OperatorMod(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
 
-	case BINARY_OPERATOR_EQ: return OperatorEQ(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_NE: return OperatorNE(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_LT: return OperatorLT(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_GT: return OperatorGT(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_LE: return OperatorLE(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_GE: return OperatorGE(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_AND: return OperatorAnd(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_OR: return OperatorOr(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITWISE_AND: return OperatorBWAnd(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITWISE_OR: return OperatorBWOr(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITWISE_XOR: return OperatorBWXor(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITSHIFT_LEFT: return OperatorBSLeft(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITSHIFT_RIGHT: return OperatorBSRight(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Equals: return OperatorEQ(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::DoesNotEqual: return OperatorNE(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::LessThan: return OperatorLT(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::GreaterThan: return OperatorGT(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::LessThanEquals: return OperatorLE(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::GreaterThanEquals: return OperatorGE(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::LogicalAnd: return OperatorAnd(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::LogicalOr: return OperatorOr(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitwiseAnd: return OperatorBWAnd(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitwiseOr: return OperatorBWOr(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitwiseXor: return OperatorBWXor(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitshiftLeft: return OperatorBSLeft(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitshiftRight: return OperatorBSRight(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
 
-	case BINARY_OPERATOR_ASSIGN: return OperatorAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue, IsLiteral(expression->right));
-	case BINARY_OPERATOR_ADD_ASSIGN: return OperatorAddAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_SUB_ASSIGN: return OperatorSubAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_MUL_ASSIGN: return OperatorMulAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_DIV_ASSIGN: return OperatorDivAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_MOD_ASSIGN: return OperatorModAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITSHIFT_LEFT_ASSIGN: return OperatorBSLeftAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITSHIFT_RIGHT_ASSIGN: return OperatorBSRightAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITWISE_AND_ASSIGN: return OperatorBWAndAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITWISE_OR_ASSIGN: return OperatorBWOrAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
-	case BINARY_OPERATOR_BITWISE_XOR_ASSIGN: return OperatorBWXorAssign(llb, module, left, right, expression->left->type, expression->right->type, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::Assignment: return OperatorAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue, expression->right->isLiteral());
+	case AST::BinaryOperatorType::PlusEquals: return OperatorAddAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::MinusEquals: return OperatorSubAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::TimesEquals: return OperatorMulAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::DividedByEquals: return OperatorDivAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::ModuloEquals: return OperatorModAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitshiftLeftEquals: return OperatorBSLeftAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitshiftRightEquals: return OperatorBSRightAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitwiseAndEquals: return OperatorBWAndAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitwiseOrEquals: return OperatorBWOrAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
+	case AST::BinaryOperatorType::BitwiseXorEquals: return OperatorBWXorAssign(llb, module, left, right, expression->left->valueType, expression->right->valueType, expression->left->lvalue, expression->right->lvalue);
 
 	default:
 		SnekAssert(false);
@@ -870,67 +878,67 @@ static LLVMValueRef GenBinaryOperator(LLVMBackend* llb, SkModule* module, AstBin
 	return NULL;
 }
 
-static LLVMValueRef GenTernaryOperator(LLVMBackend* llb, SkModule* module, AstTernaryOperator* expression)
+static LLVMValueRef GenTernaryOperator(LLVMBackend* llb, SkModule* module, AST::TernaryOperator* expression)
 {
 	return OperatorTernary(llb, module,
 		GenExpression(llb, module, expression->condition),
 		GenExpression(llb, module, expression->thenValue),
 		GenExpression(llb, module, expression->elseValue),
-		expression->condition->type,
-		expression->thenValue->type,
-		expression->elseValue->type,
+		expression->condition->valueType,
+		expression->thenValue->valueType,
+		expression->elseValue->valueType,
 		expression->condition->lvalue,
 		expression->thenValue->lvalue,
 		expression->elseValue->lvalue
 	);
 }
 
-static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AstExpression* expression)
+static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AST::Expression* expression)
 {
-	switch (expression->exprKind)
+	switch (expression->type)
 	{
-	case EXPR_KIND_INTEGER_LITERAL:
-		return GenIntegerLiteral(llb, module, (AstIntegerLiteral*)expression);
-	case EXPR_KIND_FP_LITERAL:
-		return GenFPLiteral(llb, module, (AstFPLiteral*)expression);
-	case EXPR_KIND_BOOL_LITERAL:
-		return GenBoolLiteral(llb, module, (AstBoolLiteral*)expression);
-	case EXPR_KIND_CHARACTER_LITERAL:
-		return GenCharacterLiteral(llb, module, (AstCharacterLiteral*)expression);
-	case EXPR_KIND_NULL_LITERAL:
-		return GenNullLiteral(llb, module, (AstNullLiteral*)expression);
-	case EXPR_KIND_STRING_LITERAL:
-		return GenStringLiteral(llb, module, (AstStringLiteral*)expression);
-	case EXPR_KIND_STRUCT_LITERAL:
-		return GenStructLiteral(llb, module, (AstStructLiteral*)expression);
-	case EXPR_KIND_IDENTIFIER:
-		return GenIdentifier(llb, module, (AstIdentifier*)expression);
-	case EXPR_KIND_COMPOUND:
-		return GenCompoundExpression(llb, module, (AstCompoundExpression*)expression);
+	case AST::ExpressionType::IntegerLiteral:
+		return GenIntegerLiteral(llb, module, (AST::IntegerLiteral*)expression);
+	case AST::ExpressionType::FloatingPointLiteral:
+		return GenFPLiteral(llb, module, (AST::FloatingPointLiteral*)expression);
+	case AST::ExpressionType::BooleanLiteral:
+		return GenBoolLiteral(llb, module, (AST::BooleanLiteral*)expression);
+	case AST::ExpressionType::CharacterLiteral:
+		return GenCharacterLiteral(llb, module, (AST::CharacterLiteral*)expression);
+	case AST::ExpressionType::NullLiteral:
+		return GenNullLiteral(llb, module, (AST::NullLiteral*)expression);
+	case AST::ExpressionType::StringLiteral:
+		return GenStringLiteral(llb, module, (AST::StringLiteral*)expression);
+	case AST::ExpressionType::StructLiteral:
+		return GenStructLiteral(llb, module, (AST::StructLiteral*)expression);
+	case AST::ExpressionType::Identifier:
+		return GenIdentifier(llb, module, (AST::Identifier*)expression);
+	case AST::ExpressionType::Compound:
+		return GenCompoundExpression(llb, module, (AST::CompoundExpression*)expression);
 
-	case EXPR_KIND_FUNC_CALL:
-		return GenFunctionCall(llb, module, (AstFuncCall*)expression);
-	case EXPR_KIND_SUBSCRIPT_OPERATOR:
-		return GenSubscriptOperator(llb, module, (AstSubscriptOperator*)expression);
-	case EXPR_KIND_DOT_OPERATOR:
-		return GenDotOperator(llb, module, (AstDotOperator*)expression);
-	case EXPR_KIND_CAST:
-		return GenCast(llb, module, (AstCast*)expression);
-	case EXPR_KIND_SIZEOF:
-		return GenSizeof(llb, module, (AstSizeof*)expression);
-	case EXPR_KIND_MALLOC:
-		return GenMalloc(llb, module, (AstMalloc*)expression);
+	case AST::ExpressionType::FunctionCall:
+		return GenFunctionCall(llb, module, (AST::FunctionCall*)expression);
+	case AST::ExpressionType::SubscriptOperator:
+		return GenSubscriptOperator(llb, module, (AST::SubscriptOperator*)expression);
+	case AST::ExpressionType::DotOperator:
+		return GenDotOperator(llb, module, (AST::DotOperator*)expression);
+	case AST::ExpressionType::Typecast:
+		return GenCast(llb, module, (AST::Typecast*)expression);
+	case AST::ExpressionType::Sizeof:
+		return GenSizeof(llb, module, (AST::Sizeof*)expression);
+	case AST::ExpressionType::Malloc:
+		return GenMalloc(llb, module, (AST::Malloc*)expression);
 
-	case EXPR_KIND_UNARY_OPERATOR:
-		return GenUnaryOperator(llb, module, (AstUnaryOperator*)expression);
-	case EXPR_KIND_BINARY_OPERATOR:
-		return GenBinaryOperator(llb, module, (AstBinaryOperator*)expression);
-	case EXPR_KIND_TERNARY_OPERATOR:
-		return GenTernaryOperator(llb, module, (AstTernaryOperator*)expression);
+	case AST::ExpressionType::UnaryOperator:
+		return GenUnaryOperator(llb, module, (AST::UnaryOperator*)expression);
+	case AST::ExpressionType::BinaryOperator:
+		return GenBinaryOperator(llb, module, (AST::BinaryOperator*)expression);
+	case AST::ExpressionType::TernaryOperator:
+		return GenTernaryOperator(llb, module, (AST::TernaryOperator*)expression);
 
 	default:
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -944,7 +952,7 @@ bool BlockHasBranched(LLVMBackend* llb, SkModule* module)
 	return false;
 }
 
-static void GenCompoundStatement(LLVMBackend* llb, SkModule* module, AstCompoundStatement* statement)
+static void GenCompoundStatement(LLVMBackend* llb, SkModule* module, AST::CompoundStatement* statement)
 {
 	for (int i = 0; i < statement->statements.size; i++)
 	{
@@ -952,12 +960,12 @@ static void GenCompoundStatement(LLVMBackend* llb, SkModule* module, AstCompound
 	}
 }
 
-static void GenVarDeclStatement(LLVMBackend* llb, SkModule* module, AstVarDeclStatement* statement)
+static void GenVarDeclStatement(LLVMBackend* llb, SkModule* module, AST::VariableDeclaration* statement)
 {
-	LLVMTypeRef type = GenType(llb, module, statement->type);
+	LLVMTypeRef type = GenType(llb, module, statement->varType);
 	for (int i = 0; i < statement->declarators.size; i++)
 	{
-		AstVarDeclarator* declarator = &statement->declarators[i];
+		AST::VariableDeclarator* declarator = statement->declarators[i];
 
 		const char* name = declarator->name;
 		LLVMValueRef alloc = AllocateLocalVariable(llb, module, type, name);
@@ -966,25 +974,25 @@ static void GenVarDeclStatement(LLVMBackend* llb, SkModule* module, AstVarDeclSt
 		if (declarator->value)
 		{
 			LLVMValueRef value = GenExpression(llb, module, declarator->value);
-			value = ConvertAssignValue(llb, module, value, type, declarator->value->type, statement->type->typeID, declarator->value->lvalue, LLVMIsConstant(value));
+			value = ConvertAssignValue(llb, module, value, type, declarator->value->valueType, statement->varType->typeID, declarator->value->lvalue, LLVMIsConstant(value));
 			LLVM_CALL(LLVMBuildStore, module->builder, value, alloc);
 		}
 
 		if (module->hasDebugInfo)
 		{
-			DebugInfoDeclareVariable(llb, module, alloc, statement->type->typeID, name, statement->inputState.line, statement->inputState.col);
+			DebugInfoDeclareVariable(llb, module, alloc, statement->varType->typeID, name, statement->location);
 		}
 
 		declarator->variable->allocHandle = alloc;
 	}
 }
 
-static void GenExprStatement(LLVMBackend* llb, SkModule* module, AstExprStatement* statement)
+static void GenExprStatement(LLVMBackend* llb, SkModule* module, AST::ExpressionStatement* statement)
 {
-	LLVMValueRef value = GenExpression(llb, module, statement->expr);
+	LLVMValueRef value = GenExpression(llb, module, statement->expression);
 }
 
-static void GenIfStatement(LLVMBackend* llb, SkModule* module, AstIfStatement* statement)
+static void GenIfStatement(LLVMBackend* llb, SkModule* module, AST::IfStatement* statement)
 {
 	LLVMValueRef condition = GenExpression(llb, module, statement->condition);
 	condition = GetRValue(llb, module, condition, statement->condition->lvalue);
@@ -1030,7 +1038,7 @@ static void GenIfStatement(LLVMBackend* llb, SkModule* module, AstIfStatement* s
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, mergeBlock);
 }
 
-static void GenWhileLoop(LLVMBackend* llb, SkModule* module, AstWhileLoop* statement)
+static void GenWhileLoop(LLVMBackend* llb, SkModule* module, AST::WhileLoop* statement)
 {
 	LLVMValueRef llvmFunction = module->functionValues[module->currentFunction];
 	LLVMBasicBlockRef beforeBlock = LLVMGetInsertBlock(module->builder);
@@ -1059,7 +1067,7 @@ static void GenWhileLoop(LLVMBackend* llb, SkModule* module, AstWhileLoop* state
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, mergeBlock);
 }
 
-static void GenForLoop(LLVMBackend* llb, SkModule* module, AstForLoop* statement)
+static void GenForLoop(LLVMBackend* llb, SkModule* module, AST::ForLoop* statement)
 {
 	LLVMValueRef llvmFunction = module->functionValues[module->currentFunction];
 	LLVMBasicBlockRef beforeBlock = LLVMGetInsertBlock(module->builder);
@@ -1071,19 +1079,19 @@ static void GenForLoop(LLVMBackend* llb, SkModule* module, AstForLoop* statement
 	statement->breakHandle = mergeBlock;
 	statement->continueHandle = headerBlock;
 
-	LLVMValueRef start = NULL;
-	LLVMValueRef end = NULL;
-	LLVMValueRef delta = NULL;
+	LLVMValueRef start = nullptr;
+	LLVMValueRef end = nullptr;
+	LLVMValueRef delta = nullptr;
 
 	start = GenExpression(llb, module, statement->startValue);
 	start = GetRValue(llb, module, start, statement->startValue->lvalue);
 	SnekAssert(LLVMGetTypeKind(LLVMTypeOf(start)) == LLVMIntegerTypeKind);
-	start = CastInt(llb, module, start, LLVMInt32TypeInContext(llb->llvmContext), statement->startValue->type);
+	start = CastInt(llb, module, start, LLVMInt32TypeInContext(llb->llvmContext), statement->startValue->valueType);
 
 	LLVMValueRef it = AllocateLocalVariable(llb, module, LLVMInt32TypeInContext(llb->llvmContext), statement->iteratorName);
 	if (module->hasDebugInfo)
 	{
-		DebugInfoDeclareVariable(llb, module, it, GetIntegerType(32, true), statement->iteratorName, statement->inputState.line, statement->inputState.col);
+		DebugInfoDeclareVariable(llb, module, it, GetIntegerType(32, true), statement->iteratorName, statement->location);
 	}
 	LLVM_CALL(LLVMBuildStore, module->builder, start, it);
 	statement->iterator->allocHandle = it;
@@ -1094,7 +1102,7 @@ static void GenForLoop(LLVMBackend* llb, SkModule* module, AstForLoop* statement
 	end = GenExpression(llb, module, statement->endValue);
 	end = GetRValue(llb, module, end, statement->endValue->lvalue);
 	SnekAssert(LLVMGetTypeKind(LLVMTypeOf(end)) == LLVMIntegerTypeKind);
-	end = CastValue(llb, module, end, LLVMInt32TypeInContext(llb->llvmContext), statement->endValue->type, GetIntegerType(32, false));
+	end = CastValue(llb, module, end, LLVMInt32TypeInContext(llb->llvmContext), statement->endValue->valueType, GetIntegerType(32, false));
 
 	if (statement->deltaValue) {
 		delta = GenExpression(llb, module, statement->endValue);
@@ -1107,7 +1115,7 @@ static void GenForLoop(LLVMBackend* llb, SkModule* module, AstForLoop* statement
 	}
 
 	LLVMValueRef itValue = LLVM_CALL(LLVMBuildLoad, module->builder, it, "");
-	SnekAssert(statement->direction != 0);
+	SnekAssert(statement->delta != 0);
 	//LLVMIntPredicate comparisonType = statement->direction > 0 ? LLVMIntSLE : LLVMIntSGE;
 	LLVMValueRef condition = LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntNE, itValue, end, "");
 	LLVM_CALL(LLVMBuildCondBr, module->builder, condition, loopBlock, mergeBlock);
@@ -1130,17 +1138,17 @@ static void GenForLoop(LLVMBackend* llb, SkModule* module, AstForLoop* statement
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, mergeBlock);
 }
 
-static void GenBreak(LLVMBackend* llb, SkModule* module, AstBreak* statement)
+static void GenBreak(LLVMBackend* llb, SkModule* module, AST::Break* statement)
 {
-	if (statement->branchDst->statementKind == STATEMENT_KIND_WHILE)
+	if (statement->branchDst->type == AST::StatementType::While)
 	{
-		AstWhileLoop* whileLoop = (AstWhileLoop*)statement->branchDst;
+		AST::WhileLoop* whileLoop = (AST::WhileLoop*)statement->branchDst;
 		LLVMBasicBlockRef mergeBlock = (LLVMBasicBlockRef)whileLoop->breakHandle;
 		LLVM_CALL(LLVMBuildBr, module->builder, mergeBlock);
 	}
-	else if (statement->branchDst->statementKind == STATEMENT_KIND_FOR)
+	else if (statement->branchDst->type == AST::StatementType::For)
 	{
-		AstForLoop* forLoop = (AstForLoop*)statement->branchDst;
+		AST::ForLoop* forLoop = (AST::ForLoop*)statement->branchDst;
 		LLVMBasicBlockRef mergeBlock = (LLVMBasicBlockRef)forLoop->breakHandle;
 		LLVM_CALL(LLVMBuildBr, module->builder, mergeBlock);
 	}
@@ -1150,17 +1158,17 @@ static void GenBreak(LLVMBackend* llb, SkModule* module, AstBreak* statement)
 	}
 }
 
-static void GenContinue(LLVMBackend* llb, SkModule* module, AstContinue* statement)
+static void GenContinue(LLVMBackend* llb, SkModule* module, AST::Continue* statement)
 {
-	if (statement->branchDst->statementKind == STATEMENT_KIND_WHILE)
+	if (statement->branchDst->type == AST::StatementType::While)
 	{
-		AstWhileLoop* whileLoop = (AstWhileLoop*)statement->branchDst;
+		AST::WhileLoop* whileLoop = (AST::WhileLoop*)statement->branchDst;
 		LLVMBasicBlockRef headerBlock = (LLVMBasicBlockRef)whileLoop->continueHandle;
 		LLVM_CALL(LLVMBuildBr, module->builder, headerBlock);
 	}
-	else if (statement->branchDst->statementKind == STATEMENT_KIND_FOR)
+	else if (statement->branchDst->type == AST::StatementType::For)
 	{
-		AstForLoop* forLoop = (AstForLoop*)statement->branchDst;
+		AST::ForLoop* forLoop = (AST::ForLoop*)statement->branchDst;
 		LLVMBasicBlockRef headerBlock = (LLVMBasicBlockRef)forLoop->continueHandle;
 		LLVM_CALL(LLVMBuildBr, module->builder, headerBlock);
 	}
@@ -1170,17 +1178,17 @@ static void GenContinue(LLVMBackend* llb, SkModule* module, AstContinue* stateme
 	}
 }
 
-static void GenReturn(LLVMBackend* llb, SkModule* module, AstReturn* statement)
+static void GenReturn(LLVMBackend* llb, SkModule* module, AST::Return* statement)
 {
 	if (statement->value)
 	{
-		AstFunction* function = module->currentFunction;
+		AST::Function* function = module->currentFunction;
 		LLVMTypeRef returnType = LLVMGetReturnType(LLVMGetElementType(LLVMTypeOf((LLVMValueRef)function->valueHandle)));
 
 		LLVMValueRef value = GenExpression(llb, module, statement->value);
 		value = GetRValue(llb, module, value, statement->value->lvalue);
 
-		value = CastValue(llb, module, value, returnType, statement->value->type, function->returnType->typeID);
+		value = CastValue(llb, module, value, returnType, statement->value->valueType, function->returnType->typeID);
 
 		LLVM_CALL(LLVMBuildStore, module->builder, value, module->returnAlloc);
 	}
@@ -1188,18 +1196,18 @@ static void GenReturn(LLVMBackend* llb, SkModule* module, AstReturn* statement)
 	LLVM_CALL(LLVMBuildBr, module->builder, module->returnBlock);
 }
 
-static void GenFree(LLVMBackend* llb, SkModule* module, AstFree* statement)
+static void GenFree(LLVMBackend* llb, SkModule* module, AST::Free* statement)
 {
 	for (int i = 0; i < statement->values.size; i++)
 	{
 		LLVMValueRef value = GenExpression(llb, module, statement->values[i]);
 		value = GetRValue(llb, module, value, statement->values[i]->lvalue);
 
-		if (statement->values[i]->type->typeKind == TYPE_KIND_POINTER)
+		if (statement->values[i]->valueType->typeKind == AST::TypeKind::Pointer)
 		{
 			LLVMBuildFree(module->builder, value);
 		}
-		else if (statement->values[i]->type->typeKind == TYPE_KIND_CLASS)
+		else if (statement->values[i]->valueType->typeKind == AST::TypeKind::Class)
 		{
 			// TODO call destructor
 			LLVMBuildFree(module->builder, value);
@@ -1207,46 +1215,46 @@ static void GenFree(LLVMBackend* llb, SkModule* module, AstFree* statement)
 	}
 }
 
-void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement)
+void GenStatement(LLVMBackend* llb, SkModule* module, AST::Statement* statement)
 {
 	if (module->hasDebugInfo)
 	{
 		DebugInfoEmitSourceLocation(llb, module, statement);
 	}
 
-	switch (statement->statementKind)
+	switch (statement->type)
 	{
-	case STATEMENT_KIND_NO_OP:
+	case AST::StatementType::NoOp:
 		break;
-	case STATEMENT_KIND_COMPOUND:
-		GenCompoundStatement(llb, module, (AstCompoundStatement*)statement);
+	case AST::StatementType::Compound:
+		GenCompoundStatement(llb, module, (AST::CompoundStatement*)statement);
 		break;
-	case STATEMENT_KIND_VAR_DECL:
-		GenVarDeclStatement(llb, module, (AstVarDeclStatement*)statement);
+	case AST::StatementType::VariableDeclaration:
+		GenVarDeclStatement(llb, module, (AST::VariableDeclaration*)statement);
 		break;
-	case STATEMENT_KIND_EXPR:
-		GenExprStatement(llb, module, (AstExprStatement*)statement);
+	case AST::StatementType::Expression:
+		GenExprStatement(llb, module, (AST::ExpressionStatement*)statement);
 		break;
-	case STATEMENT_KIND_IF:
-		GenIfStatement(llb, module, (AstIfStatement*)statement);
+	case AST::StatementType::If:
+		GenIfStatement(llb, module, (AST::IfStatement*)statement);
 		break;
-	case STATEMENT_KIND_WHILE:
-		GenWhileLoop(llb, module, (AstWhileLoop*)statement);
+	case AST::StatementType::While:
+		GenWhileLoop(llb, module, (AST::WhileLoop*)statement);
 		break;
-	case STATEMENT_KIND_FOR:
-		GenForLoop(llb, module, (AstForLoop*)statement);
+	case AST::StatementType::For:
+		GenForLoop(llb, module, (AST::ForLoop*)statement);
 		break;
-	case STATEMENT_KIND_BREAK:
-		GenBreak(llb, module, (AstBreak*)statement);
+	case AST::StatementType::Break:
+		GenBreak(llb, module, (AST::Break*)statement);
 		break;
-	case STATEMENT_KIND_CONTINUE:
-		GenContinue(llb, module, (AstContinue*)statement);
+	case AST::StatementType::Continue:
+		GenContinue(llb, module, (AST::Continue*)statement);
 		break;
-	case STATEMENT_KIND_RETURN:
-		GenReturn(llb, module, (AstReturn*)statement);
+	case AST::StatementType::Return:
+		GenReturn(llb, module, (AST::Return*)statement);
 		break;
-	case STATEMENT_KIND_FREE:
-		GenFree(llb, module, (AstFree*)statement);
+	case AST::StatementType::Free:
+		GenFree(llb, module, (AST::Free*)statement);
 		break;
 
 	default:
@@ -1255,9 +1263,9 @@ void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement)
 	}
 }
 
-static LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AstFunction* decl)
+LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AST::Function* decl)
 {
-	AstFunction* lastFunction = module->currentFunction;
+	AST::Function* lastFunction = module->currentFunction;
 	module->currentFunction = decl;
 
 	LLVMValueRef llvmValue = nullptr;
@@ -1268,15 +1276,17 @@ static LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AstFun
 	else
 	{
 		LLVMLinkage linkage = LLVMInternalLinkage;
-		if (decl->flags & DECL_FLAG_EXTERN || !decl->body)
-			linkage = LLVMExternalLinkage;
-		else if (decl->flags & DECL_FLAG_LINKAGE_DLLEXPORT)
-			linkage = LLVMDLLExportLinkage;
-		else if (decl->flags & DECL_FLAG_LINKAGE_DLLIMPORT)
-			linkage = LLVMDLLImportLinkage;
-		else if (decl->visibility == VISIBILITY_PRIVATE)
+		if (decl->isGenericInstance)
 			linkage = LLVMPrivateLinkage;
-		else if (decl->visibility == VISIBILITY_PUBLIC)
+		else if (HasFlag(decl->flags, AST::DeclarationFlags::Extern) || !decl->body)
+			linkage = LLVMExternalLinkage;
+		else if (HasFlag(decl->flags, AST::DeclarationFlags::DllExport))
+			linkage = LLVMDLLExportLinkage;
+		else if (HasFlag(decl->flags, AST::DeclarationFlags::DllImport))
+			linkage = LLVMDLLImportLinkage;
+		else if (decl->visibility == AST::Visibility::Private)
+			linkage = LLVMPrivateLinkage;
+		else if (decl->visibility == AST::Visibility::Public)
 			linkage = LLVMExternalLinkage;
 
 		LLVMTypeRef returnType = GenType(llb, module, decl->returnType);
@@ -1301,9 +1311,9 @@ static LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AstFun
 	return llvmValue;
 }
 
-static LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AstFunction* decl)
+LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AST::Function* decl)
 {
-	AstFunction* lastFunction = module->currentFunction;
+	AST::Function* lastFunction = module->currentFunction;
 	module->currentFunction = decl;
 
 	LLVMValueRef llvmValue = nullptr;
@@ -1332,21 +1342,21 @@ static LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AstFunction*
 	return llvmValue;
 }
 
-static LLVMTypeRef GenEnumHeader(LLVMBackend* llb, SkModule* module, AstEnum* decl)
+static LLVMTypeRef GenEnumHeader(LLVMBackend* llb, SkModule* module, AST::Enum* decl)
 {
 	return LLVMInt32TypeInContext(llb->llvmContext);
 }
 
-static LLVMTypeRef GenEnum(LLVMBackend* llb, SkModule* module, AstEnum* decl)
+static LLVMTypeRef GenEnum(LLVMBackend* llb, SkModule* module, AST::Enum* decl)
 {
 	LLVMValueRef lastValue = NULL;
 	for (int i = 0; i < decl->values.size; i++)
 	{
 		LLVMValueRef entryValue = NULL;
-		if (decl->values[i].value)
+		if (decl->values[i]->value)
 		{
-			entryValue = GenExpression(llb, module, decl->values[i].value);
-			entryValue = CastInt(llb, module, entryValue, LLVMInt32TypeInContext(llb->llvmContext), decl->values[i].value->type);
+			entryValue = GenExpression(llb, module, decl->values[i]->value);
+			entryValue = CastInt(llb, module, entryValue, LLVMInt32TypeInContext(llb->llvmContext), decl->values[i]->value->valueType);
 			lastValue = entryValue;
 		}
 		else
@@ -1357,13 +1367,13 @@ static LLVMTypeRef GenEnum(LLVMBackend* llb, SkModule* module, AstEnum* decl)
 				entryValue = LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 0, false);
 			lastValue = entryValue;
 		}
-		decl->values[i].valueHandle = entryValue;
+		decl->values[i]->valueHandle = entryValue;
 	}
 
 	return LLVMInt32TypeInContext(llb->llvmContext);
 }
 
-static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AstStruct* decl)
+static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl)
 {
 	LLVMTypeRef llvmType = LLVM_CALL(LLVMStructCreateNamed, llb->llvmContext, decl->mangledName);
 	decl->typeHandle = llvmType;
@@ -1373,7 +1383,7 @@ static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AstStruct
 	return llvmType;
 }
 
-static LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AstStruct* decl)
+static LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AST::Struct* decl)
 {
 	LLVMTypeRef llvmType = NULL;
 	if (llb->structTypes.find(decl) != llb->structTypes.end())
@@ -1394,10 +1404,10 @@ static LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AstStruct* decl
 			int numFields = decl->fields.size;
 			for (int i = 0; i < numFields; i++)
 			{
-				fieldTypes[i] = GenType(llb, module, decl->fields[i].type);
+				fieldTypes[i] = GenType(llb, module, decl->fields[i]->type);
 			}
 
-			bool isPacked = decl->flags & DECL_FLAG_PACKED;
+			bool isPacked = HasFlag(decl->flags, AST::DeclarationFlags::Packed);
 
 			LLVM_CALL(LLVMStructSetBody, llvmType, fieldTypes, numFields, isPacked);
 		}
@@ -1410,7 +1420,7 @@ static LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AstStruct* decl
 	return llvmType;
 }
 
-static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AstClass* decl)
+static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AST::Class* decl)
 {
 	LLVMTypeRef llvmType = LLVM_CALL(LLVMStructCreateNamed, llb->llvmContext, decl->mangledName);
 	decl->typeHandle = llvmType;
@@ -1420,15 +1430,15 @@ static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AstClass* 
 	return llvmType;
 }
 
-static LLVMValueRef GenClassMethodHeader(LLVMBackend* llb, SkModule* module, AstFunction* method, AstClass* classDecl)
+static LLVMValueRef GenClassMethodHeader(LLVMBackend* llb, SkModule* module, AST::Function* method, AST::Class* classDecl)
 {
-	AstFunction* lastFunction = module->currentFunction;
+	AST::Function* lastFunction = module->currentFunction;
 	module->currentFunction = method;
 
 	LLVMTypeRef returnType = GenType(llb, module, method->returnType);
 	int numParams = method->paramTypes.size + 1;
 	List<LLVMTypeRef> paramTypes = CreateList<LLVMTypeRef>(numParams);
-	paramTypes[0] = GenTypeID(llb, module, method->instanceType);
+	paramTypes[0] = GenTypeID(llb, module, method->instanceVariable->type);
 	for (int i = 0; i < method->paramTypes.size; i++)
 	{
 		paramTypes.add(GenType(llb, module, method->paramTypes[i]));
@@ -1446,15 +1456,15 @@ static LLVMValueRef GenClassMethodHeader(LLVMBackend* llb, SkModule* module, Ast
 	return llvmValue;
 }
 
-static LLVMValueRef GenClassConstructorHeader(LLVMBackend* llb, SkModule* module, AstFunction* constructor, AstClass* classDecl)
+static LLVMValueRef GenClassConstructorHeader(LLVMBackend* llb, SkModule* module, AST::Function* constructor, AST::Class* classDecl)
 {
-	AstFunction* lastFunction = module->currentFunction;
+	AST::Function* lastFunction = module->currentFunction;
 	module->currentFunction = constructor;
 
-	LLVMTypeRef returnType = GenTypeID(llb, module, constructor->instanceType);
+	LLVMTypeRef returnType = GenTypeID(llb, module, constructor->instanceVariable->type);
 	int numParams = constructor->paramTypes.size + 1;
 	List<LLVMTypeRef> paramTypes = CreateList<LLVMTypeRef>(numParams);
-	paramTypes[0] = GenTypeID(llb, module, constructor->instanceType);
+	paramTypes[0] = GenTypeID(llb, module, constructor->instanceVariable->type);
 	for (int i = 0; i < constructor->paramTypes.size; i++)
 	{
 		paramTypes.add(GenType(llb, module, constructor->paramTypes[i]));
@@ -1472,7 +1482,7 @@ static LLVMValueRef GenClassConstructorHeader(LLVMBackend* llb, SkModule* module
 	return llvmValue;
 }
 
-static void GenClassProcedureHeaders(LLVMBackend* llb, SkModule* module, AstClass* decl)
+static void GenClassProcedureHeaders(LLVMBackend* llb, SkModule* module, AST::Class* decl)
 {
 	for (int i = 0; i < decl->methods.size; i++)
 	{
@@ -1482,7 +1492,7 @@ static void GenClassProcedureHeaders(LLVMBackend* llb, SkModule* module, AstClas
 		GenClassConstructorHeader(llb, module, decl->constructor, decl);
 }
 
-static LLVMTypeRef GenClass(LLVMBackend* llb, SkModule* module, AstClass* decl)
+static LLVMTypeRef GenClass(LLVMBackend* llb, SkModule* module, AST::Class* decl)
 {
 	LLVMTypeRef llvmType = NULL;
 	if (llb->classTypes.find(decl) != llb->classTypes.end())
@@ -1499,7 +1509,7 @@ static LLVMTypeRef GenClass(LLVMBackend* llb, SkModule* module, AstClass* decl)
 		LLVMTypeRef* fieldTypes = new LLVMTypeRef[numFields];
 		for (int i = 0; i < numFields; i++)
 		{
-			fieldTypes[i] = GenType(llb, module, decl->fields[i].type);
+			fieldTypes[i] = GenType(llb, module, decl->fields[i]->type);
 		}
 
 		LLVM_CALL(LLVMStructSetBody, llvmType, fieldTypes, numFields, false);
@@ -1508,9 +1518,9 @@ static LLVMTypeRef GenClass(LLVMBackend* llb, SkModule* module, AstClass* decl)
 	return llvmType;
 }
 
-static LLVMValueRef GenClassMethod(LLVMBackend* llb, SkModule* module, AstFunction* method, AstClass* classDecl)
+static LLVMValueRef GenClassMethod(LLVMBackend* llb, SkModule* module, AST::Function* method, AST::Class* classDecl)
 {
-	AstFunction* lastFunction = module->currentFunction;
+	AST::Function* lastFunction = module->currentFunction;
 	module->currentFunction = method;
 
 	LLVMValueRef llvmValue = NULL;
@@ -1526,7 +1536,7 @@ static LLVMValueRef GenClassMethod(LLVMBackend* llb, SkModule* module, AstFuncti
 
 	if (module->hasDebugInfo)
 	{
-		DebugInfoBeginFunction(llb, module, method, llvmValue, method->instanceType);
+		DebugInfoBeginFunction(llb, module, method, llvmValue, method->instanceVariable->type);
 		DebugInfoEmitNullLocation(llb, module, module->builder);
 	}
 
@@ -1538,7 +1548,7 @@ static LLVMValueRef GenClassMethod(LLVMBackend* llb, SkModule* module, AstFuncti
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, entryBlock);
 
 	LLVMValueRef instance = LLVM_CALL(LLVMGetParam, llvmValue, 0);
-	LLVMValueRef instanceAlloc = AllocateLocalVariable(llb, module, GenTypeID(llb, module, method->instanceType), "this");
+	LLVMValueRef instanceAlloc = AllocateLocalVariable(llb, module, GenTypeID(llb, module, method->instanceVariable->type), "this");
 	LLVM_CALL(LLVMBuildStore, module->builder, instance, instanceAlloc);
 	method->instanceVariable->allocHandle = instanceAlloc;
 
@@ -1552,7 +1562,7 @@ static LLVMValueRef GenClassMethod(LLVMBackend* llb, SkModule* module, AstFuncti
 	}
 
 	module->returnBlock = returnBlock;
-	module->returnAlloc = method->returnType->typeKind != TYPE_KIND_VOID ? AllocateLocalVariable(llb, module, returnType, "__return") : NULL;
+	module->returnAlloc = method->returnType->typeKind != AST::TypeKind::Void ? AllocateLocalVariable(llb, module, returnType, "__return") : NULL;
 
 	GenStatement(llb, module, method->body);
 
@@ -1583,9 +1593,9 @@ static LLVMValueRef GenClassMethod(LLVMBackend* llb, SkModule* module, AstFuncti
 	return llvmValue;
 }
 
-static LLVMValueRef GenClassConstructor(LLVMBackend* llb, SkModule* module, AstFunction* constructor, AstClass* classDecl)
+static LLVMValueRef GenClassConstructor(LLVMBackend* llb, SkModule* module, AST::Function* constructor, AST::Class* classDecl)
 {
-	AstFunction* lastFunction = module->currentFunction;
+	AST::Function* lastFunction = module->currentFunction;
 	module->currentFunction = constructor;
 
 	LLVMValueRef llvmValue = NULL;
@@ -1601,7 +1611,7 @@ static LLVMValueRef GenClassConstructor(LLVMBackend* llb, SkModule* module, AstF
 
 	if (module->hasDebugInfo)
 	{
-		DebugInfoBeginFunction(llb, module, constructor, llvmValue, constructor->instanceType);
+		DebugInfoBeginFunction(llb, module, constructor, llvmValue, constructor->instanceVariable->type);
 		DebugInfoEmitNullLocation(llb, module, module->builder);
 	}
 
@@ -1613,7 +1623,7 @@ static LLVMValueRef GenClassConstructor(LLVMBackend* llb, SkModule* module, AstF
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, entryBlock);
 
 	LLVMValueRef instance = LLVM_CALL(LLVMGetParam, llvmValue, 0);
-	LLVMValueRef instanceAlloc = AllocateLocalVariable(llb, module, GenTypeID(llb, module, constructor->instanceType), "this");
+	LLVMValueRef instanceAlloc = AllocateLocalVariable(llb, module, GenTypeID(llb, module, constructor->instanceVariable->type), "this");
 	LLVM_CALL(LLVMBuildStore, module->builder, instance, instanceAlloc);
 	constructor->instanceVariable->allocHandle = instanceAlloc;
 
@@ -1651,7 +1661,7 @@ static LLVMValueRef GenClassConstructor(LLVMBackend* llb, SkModule* module, AstF
 	return llvmValue;
 }
 
-static void GenClassProcedures(LLVMBackend* llb, SkModule* module, AstClass* decl)
+static void GenClassProcedures(LLVMBackend* llb, SkModule* module, AST::Class* decl)
 {
 	for (int i = 0; i < decl->methods.size; i++)
 	{
@@ -1661,12 +1671,16 @@ static void GenClassProcedures(LLVMBackend* llb, SkModule* module, AstClass* dec
 		GenClassConstructor(llb, module, decl->constructor, decl);
 }
 
-static LLVMValueRef GenGlobalHeader(LLVMBackend* llb, SkModule* module, AstGlobal* decl)
+static LLVMValueRef GenGlobalHeader(LLVMBackend* llb, SkModule* module, AST::GlobalVariable* decl)
 {
-	LLVMTypeRef llvmType = GenType(llb, module, decl->type);
-	LLVMValueRef alloc = LLVMAddGlobal(module->llvmModule, llvmType, decl->name);
+	SnekAssert(decl->declarators.size == 1);
 
-	bool isConstant = decl->flags & DECL_FLAG_CONSTANT;
+	LLVMTypeRef llvmType = GenType(llb, module, decl->type);
+
+	AST::VariableDeclarator* declarator = decl->declarators[0];
+	LLVMValueRef alloc = LLVMAddGlobal(module->llvmModule, llvmType, declarator->name);
+
+	bool isConstant = HasFlag(decl->flags, AST::DeclarationFlags::Constant);
 	if (isConstant)
 	{
 		LLVM_CALL(LLVMSetGlobalConstant, alloc, true);
@@ -1675,28 +1689,30 @@ static LLVMValueRef GenGlobalHeader(LLVMBackend* llb, SkModule* module, AstGloba
 	else
 	{
 		LLVMLinkage linkage = LLVMInternalLinkage;
-		if (decl->flags & DECL_FLAG_EXTERN)
+		if (HasFlag(decl->flags, AST::DeclarationFlags::Extern))
 			linkage = LLVMExternalLinkage;
-		else if (decl->flags & DECL_FLAG_LINKAGE_DLLEXPORT)
+		else if (HasFlag(decl->flags, AST::DeclarationFlags::DllExport))
 			linkage = LLVMDLLExportLinkage;
-		else if (decl->flags & DECL_FLAG_LINKAGE_DLLIMPORT)
+		else if (HasFlag(decl->flags, AST::DeclarationFlags::DllImport))
 			linkage = LLVMDLLImportLinkage;
-		else if (decl->variable->visibility == VISIBILITY_PRIVATE)
+		else if (declarator->variable->visibility == AST::Visibility::Private)
 			linkage = LLVMPrivateLinkage;
-		else if (decl->variable->visibility == VISIBILITY_PUBLIC)
+		else if (declarator->variable->visibility == AST::Visibility::Public)
 			linkage = LLVMExternalLinkage;
 
 		LLVM_CALL(LLVMSetLinkage, alloc, linkage);
 	}
 
-	decl->variable->allocHandle = alloc;
+	declarator->variable->allocHandle = alloc;
 	module->globalValues.emplace(decl, alloc);
 
 	return alloc;
 }
 
-static void GenGlobal(LLVMBackend* llb, SkModule* module, AstGlobal* global)
+static void GenGlobal(LLVMBackend* llb, SkModule* module, AST::GlobalVariable* global)
 {
+	SnekAssert(global->declarators.size == 1);
+
 	LLVMValueRef alloc = NULL;
 	if (module->globalValues.find(global) != module->globalValues.end())
 		alloc = module->globalValues[global];
@@ -1710,16 +1726,17 @@ static void GenGlobal(LLVMBackend* llb, SkModule* module, AstGlobal* global)
 
 	LLVMTypeRef llvmType = LLVMGetElementType(LLVMTypeOf(alloc));
 
-	bool isExtern = global->flags & DECL_FLAG_EXTERN;
+	bool isExtern = HasFlag(global->flags, AST::DeclarationFlags::Extern);
 
-	if (global->value)
+	AST::VariableDeclarator* declarator = global->declarators[0];
+	if (declarator->value)
 	{
-		LLVMValueRef value = GenExpression(llb, module, global->value);
-		value = GetRValue(llb, module, value, global->value->lvalue);
-		value = ConstCastValue(llb, module, value, llvmType, global->value->type, global->type->typeID);
+		LLVMValueRef value = GenExpression(llb, module, declarator->value);
+		value = GetRValue(llb, module, value, declarator->value->lvalue);
+		value = ConstCastValue(llb, module, value, llvmType, declarator->value->valueType, global->type->typeID);
 
 		/*
-		if (global->value->exprKind == EXPR_KIND_STRING_LITERAL)
+		if (global->value->exprKind == AST::ExpressionType::STRING_LITERAL)
 		{
 			LLVMTypeRef stringType = GetStringType(llb);
 			value = LLVM_CALL(LLVMConstBitCast, value, stringType);
@@ -1735,11 +1752,11 @@ static void GenGlobal(LLVMBackend* llb, SkModule* module, AstGlobal* global)
 
 	if (module->hasDebugInfo)
 	{
-		DebugInfoDeclareGlobal(llb, module, alloc, global->name, global->name, global->type->typeID, global->inputState.line);
+		DebugInfoDeclareGlobal(llb, module, alloc, declarator->name, declarator->name, global->type->typeID, declarator->location);
 	}
 }
 
-static void GenImport(LLVMBackend* llb, SkModule* module, AstImport* decl)
+static void GenImport(LLVMBackend* llb, SkModule* module, AST::Import* decl)
 {
 }
 
@@ -1747,13 +1764,13 @@ static void GenBuiltInDecls(LLVMBackend* llb, SkModule* module)
 {
 }
 
-static SkModule** GenModules(LLVMBackend* llb, int numModules, AstFile** asts, bool genDebugInfo)
+static SkModule** GenModules(LLVMBackend* llb, int numModules, AST::File** asts, bool genDebugInfo)
 {
 	SkModule** modules = new SkModule * [numModules];
 
 	for (int i = 0; i < numModules; i++)
 	{
-		AstFile* ast = asts[i];
+		AST::File* ast = asts[i];
 		SkModule* module = CreateModule(ast, genDebugInfo);
 		modules[i] = module;
 
@@ -1881,7 +1898,7 @@ static SkModule** GenModules(LLVMBackend* llb, int numModules, AstFile** asts, b
 	return modules;
 }
 
-static void RetrieveModuleString(AstModule* module, AstFile* file, std::stringstream& stream)
+static void RetrieveModuleString(AST::Module* module, AST::File* file, std::stringstream& stream)
 {
 	if (module->parent)
 	{
@@ -1891,14 +1908,14 @@ static void RetrieveModuleString(AstModule* module, AstFile* file, std::stringst
 	}
 }
 
-static void OutputModule(LLVMBackend* llb, AstFile* ast, LLVMModuleRef llvmModule, const char* buildFolder, bool emitLLVM, List<LinkerFile>& outFiles)
+static void OutputModule(LLVMBackend* llb, AST::File* file, LLVMModuleRef llvmModule, const char* buildFolder, bool emitLLVM, List<LinkerFile>& outFiles)
 {
 	if (emitLLVM)
 	{
 		std::stringstream filename;
 		filename << buildFolder << '/';
-		RetrieveModuleString(ast->module, ast, filename);
-		filename << ast->name << ".ll";
+		RetrieveModuleString(file->module, file, filename);
+		filename << file->name << ".ll";
 
 		std::string filenameStr = filename.str();
 
@@ -1927,8 +1944,8 @@ static void OutputModule(LLVMBackend* llb, AstFile* ast, LLVMModuleRef llvmModul
 	{
 		std::stringstream filename;
 		filename << buildFolder << '/';
-		RetrieveModuleString(ast->module, ast, filename);
-		filename << ast->name << ".obj";
+		RetrieveModuleString(file->module, file, filename);
+		filename << file->name << ".obj";
 
 		std::string filenameStr = filename.str();
 
@@ -1961,7 +1978,7 @@ static void OutputModule(LLVMBackend* llb, AstFile* ast, LLVMModuleRef llvmModul
 	}
 }
 
-bool LLVMBackendCompile(LLVMBackend* llb, AstFile** asts, int numModules, const char* filename, const char* buildFolder, bool genDebugInfo, bool emitLLVM, int optLevel)
+bool LLVMBackendCompile(LLVMBackend* llb, AST::File** asts, int numModules, const char* filename, const char* buildFolder, bool genDebugInfo, bool emitLLVM, int optLevel)
 {
 	LLVMInitializeX86TargetInfo();
 	LLVMInitializeX86Target();
@@ -2033,6 +2050,9 @@ bool LLVMBackendCompile(LLVMBackend* llb, AstFile** asts, int numModules, const 
 		for (int i = 0; i < numModules; i++)
 		{
 			LLVMModuleRef llvmModule = modules[i]->llvmModule;
+
+			printf("\n\n\n\n%s\n\n\n\n", LLVMPrintModuleToString(llvmModule));
+
 			LLVMRunPassManager(debugPasses, llvmModule);
 		}
 	}

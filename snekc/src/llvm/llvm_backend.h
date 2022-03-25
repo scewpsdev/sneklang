@@ -1,7 +1,7 @@
 #pragma once
 
 #include "List.h"
-#include "type.h"
+#include "semantics/Type.h"
 
 #include <llvm-c/Core.h>
 #include <llvm-c/DebugInfo.h>
@@ -13,13 +13,17 @@
 
 
 struct SkContext;
-struct AstFile;
-struct AstFunction;
-struct AstStruct;
-struct AstClass;
-struct AstGlobal;
-struct AstType;
-struct AstStatement;
+
+namespace AST
+{
+	struct File;
+	struct Function;
+	struct Struct;
+	struct Class;
+	struct GlobalVariable;
+	struct Type;
+	struct Statement;
+}
 
 struct LLVMBackend
 {
@@ -30,8 +34,8 @@ struct LLVMBackend
 	LLVMTargetDataRef targetData;
 	char* targetTriple;
 
-	std::map<AstStruct*, LLVMTypeRef> structTypes;
-	std::map<AstClass*, LLVMTypeRef> classTypes;
+	std::map<AST::Struct*, LLVMTypeRef> structTypes;
+	std::map<AST::Class*, LLVMTypeRef> classTypes;
 };
 
 struct GenericData
@@ -41,7 +45,7 @@ struct GenericData
 
 struct SkModule
 {
-	AstFile* ast;
+	AST::File* ast;
 
 	bool hasDebugInfo;
 
@@ -57,10 +61,10 @@ struct SkModule
 	LLVMBasicBlockRef returnBlock;
 	LLVMValueRef returnAlloc;
 
-	std::map<AstFunction*, LLVMValueRef> functionValues;
-	std::map<AstGlobal*, LLVMValueRef> globalValues;
+	std::map<AST::Function*, LLVMValueRef> functionValues;
+	std::map<AST::GlobalVariable*, LLVMValueRef> globalValues;
 
-	AstFunction* currentFunction = nullptr;
+	AST::Function* currentFunction = nullptr;
 
 	std::stack<GenericData> genericData;
 };
@@ -69,11 +73,14 @@ struct SkModule
 LLVMBackend* CreateLLVMBackend(SkContext* context);
 void DestroyLLVMBackend(LLVMBackend* llb);
 
-LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AstType* type);
+LLVMTypeRef GenType(LLVMBackend* llb, SkModule* module, AST::Type* type);
 LLVMValueRef GetRValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, bool lvalue);
 
 bool BlockHasBranched(LLVMBackend* llb, SkModule* module);
-void GenStatement(LLVMBackend* llb, SkModule* module, AstStatement* statement);
+void GenStatement(LLVMBackend* llb, SkModule* module, AST::Statement* statement);
 
-bool LLVMBackendCompile(LLVMBackend* llb, AstFile** asts, int numModules, const char* filename, const char* buildFolder, bool genDebugInfo, bool emitLLVM, int optLevel);
+LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AST::Function* decl);
+LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AST::Function* decl);
+
+bool LLVMBackendCompile(LLVMBackend* llb, AST::File** asts, int numModules, const char* filename, const char* buildFolder, bool genDebugInfo, bool emitLLVM, int optLevel);
 bool LLVMLink(LLVMBackend* llb, const char* arg0, const char* filename, bool genDebugInfo, int optLevel, List<const char*>& additionalLibPaths);

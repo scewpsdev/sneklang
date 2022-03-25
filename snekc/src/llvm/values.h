@@ -1,12 +1,12 @@
 #pragma once
 
-#include "type.h"
-
 #include <llvm-c/Core.h>
 
 
 struct LLVMBackend;
 struct SkModule;
+
+typedef struct TypeData* TypeID;
 
 
 LLVMValueRef CastInt(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type, TypeID valueType);

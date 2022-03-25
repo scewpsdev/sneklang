@@ -1,37 +1,55 @@
 #include "mangle.h"
 
+#include "semantics/Resolver.h"
+#include "ast/Declaration.h"
+#include "ast/File.h"
+#include "ast/Module.h"
+
+#include "stringbuffer.h"
+
 #include <string.h>
 
 
-#define ENTRY_POINT "Main"
-
-
-char* MangleFunctionName(AstFunction* function)
+static void AppendModuleName(Resolver* resolver, AST::Module* module, StringBuffer& buffer)
 {
-	bool isExtern = function->flags & DECL_FLAG_EXTERN;
+	if (module->parent != resolver->globalNamespace)
+	{
+		AppendModuleName(resolver, module->parent, buffer);
+		StringBufferAppend(buffer, "_");
+	}
+	StringBufferAppend(buffer, module->name);
+}
 
-	if (strcmp(function->name, ENTRY_POINT) == 0)
+char* MangleFunctionName(Resolver* resolver, AST::Function* function)
+{
+	bool isExtern = HasFlag(function->flags, AST::DeclarationFlags::Extern);
+
+	if (strcmp(function->name, ENTRY_POINT_NAME) == 0)
 	{
 		return _strdup("main");
 	}
-	else if (function->module->moduleDecl && !isExtern)
+	else if (isExtern)
 	{
-		size_t resultLen = strlen(function->name);
-		for (int i = 0; i < function->module->moduleDecl->namespaces.size; i++)
-			resultLen += strlen("__") + strlen(function->module->moduleDecl->namespaces[i]);
-
-		char* result = new char[resultLen + 1];
-		memset(result, 0, resultLen + 1);
-		for (int i = 0; i < function->module->moduleDecl->namespaces.size; i++)
-		{
-			strcpy(result + strlen(result), function->module->moduleDecl->namespaces[i]);
-			strcpy(result + strlen(result), "__");
-		}
-		strcpy(result + strlen(result), function->name);
-		return result;
+		return _strdup(function->name);
 	}
 	else
 	{
-		return _strdup(function->name);
+		StringBuffer result = CreateStringBuffer(4);
+		AST::Module* module = function->file->module;
+		AppendModuleName(resolver, module, result);
+		StringBufferAppend(result, '_');
+		StringBufferAppend(result, function->name);
+
+		if (function->isGenericInstance)
+		{
+			for (int i = 0; i < function->genericTypeArguments.size; i++)
+			{
+				const char* typeString = GetTypeString(function->genericTypeArguments[i]);
+				StringBufferAppend(result, '_');
+				StringBufferAppend(result, typeString);
+			}
+		}
+
+		return result.buffer;
 	}
 }

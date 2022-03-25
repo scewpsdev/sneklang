@@ -9,21 +9,31 @@
 
 
 struct Resolver;
-struct AstExpression;
+
+namespace AST
+{
+	struct Struct;
+	struct Class;
+	struct Function;
+	struct Declaration;
+	struct Expression;
+
+	enum class TypeKind : uint8_t;
+}
 
 typedef struct TypeData* TypeID;
 
-enum FPTypePrecision
+enum class FloatingPointPrecision
 {
-	FP_PRECISION_HALF,
-	FP_PRECISION_SINGLE,
-	FP_PRECISION_DOUBLE,
-	FP_PRECISION_FP128,
+	Half,
+	Single,
+	Double,
+	Quad,
 };
 
 struct TypeData
 {
-	uint8_t typeKind;
+	AST::TypeKind typeKind;
 	union
 	{
 		struct {
@@ -31,7 +41,7 @@ struct TypeData
 			bool isSigned;
 		} integerType;
 		struct {
-			FPTypePrecision precision;
+			FloatingPointPrecision precision;
 		} fpType;
 		struct {
 			const char* name;
@@ -40,7 +50,7 @@ struct TypeData
 			TypeID* fieldTypes;
 			const char** fieldNames;
 
-			struct AstStruct* declaration;
+			AST::Struct* declaration;
 		} structType;
 		struct {
 			const char* name;
@@ -48,13 +58,13 @@ struct TypeData
 			TypeID* fieldTypes;
 			const char** fieldNames;
 
-			struct AstClass* declaration;
+			AST::Class* declaration;
 		} classType;
 		struct {
 			const char* name;
 			TypeID alias;
 
-			struct AstDeclaration* declaration;
+			AST::Declaration* declaration;
 		} aliasType;
 		struct {
 			TypeID elementType;
@@ -66,7 +76,7 @@ struct TypeData
 			bool varArgs;
 			bool isMethod;
 
-			struct AstFunction* declaration;
+			AST::Function* declaration;
 		} functionType;
 		struct {
 			TypeID elementType;
@@ -81,16 +91,16 @@ void InitTypeData();
 
 TypeID GetVoidType();
 TypeID GetIntegerType(int bitWidth, bool isSigned);
-TypeID GetFPType(FPTypePrecision precision);
+TypeID GetFloatingPointType(FloatingPointPrecision precision);
 TypeID GetBoolType();
 TypeID GetStringType();
-TypeID GetStructType(const char* structName, struct AstStruct* declaration);
+TypeID GetStructType(const char* structName, AST::Struct* declaration);
 TypeID GetStructType(int numValues, TypeID* valueTypes);
-TypeID GetClassType(const char* className, struct AstClass* declaration);
-TypeID GetAliasType(const char* name, AstDeclaration* declaration);
+TypeID GetClassType(const char* className, AST::Class* declaration);
+TypeID GetAliasType(const char* name, AST::Declaration* declaration);
 
 TypeID GetPointerType(TypeID elementType);
-TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, struct AstFunction* declaration);
+TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, AST::Function* declaration);
 TypeID GetArrayType(TypeID elementType, int length);
 
 TypeID UnwrapType(TypeID type);

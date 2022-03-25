@@ -3,13 +3,23 @@
 
 namespace AST
 {
+	DeclarationFlags operator|(DeclarationFlags flag0, DeclarationFlags flag1)
+	{
+		return (DeclarationFlags)((uint16_t)flag0 | (uint16_t)flag1);
+	}
+
+	DeclarationFlags operator&(DeclarationFlags flag0, DeclarationFlags flag1)
+	{
+		return (DeclarationFlags)((uint16_t)flag0 & (uint16_t)flag1);
+	}
+
 	Declaration::Declaration(File* file, const SourceLocation& location, DeclarationType type, DeclarationFlags flags)
 		: Element(file, location), type(type), flags(flags)
 	{
 	}
 
-	Function::Function(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams)
-		: Declaration(file, location, DeclarationType::Function, flags), name(name), returnType(returnType), paramTypes(paramTypes), paramNames(paramNames), varArgs(varArgs), body(body), isGeneric(isGeneric), genericParams(genericParams)
+	Function::Function(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams)
+		: Declaration(file, location, DeclarationType::Function, flags), endLocation(endLocation), name(name), returnType(returnType), paramTypes(paramTypes), paramNames(paramNames), varArgs(varArgs), body(body), isGeneric(isGeneric), genericParams(genericParams)
 	{
 	}
 
@@ -34,7 +44,7 @@ namespace AST
 		if (body)
 			delete body;
 
-		if (isGeneric)
+		if (isGeneric || isGenericInstance)
 		{
 			for (int i = 0; i < genericParams.size; i++)
 			{
@@ -56,6 +66,50 @@ namespace AST
 			paramNamesCopy.add(_strdup(paramNames[i]));
 
 		List<char*> genericParamsCopy = {};
+		if (isGeneric || isGenericInstance)
+		{
+			genericParamsCopy = CreateList<char*>(genericParams.size);
+			for (int i = 0; i < genericParams.size; i++)
+				genericParamsCopy.add(_strdup(genericParams[i]));
+		}
+
+		return new Function(file, location, flags, endLocation, _strdup(name), (Type*)returnType->copy(), paramTypesCopy, paramNamesCopy, varArgs, (Statement*)body->copy(), isGeneric, genericParamsCopy);
+	}
+
+	TypeID Function::getGenericTypeArgument(const char* name)
+	{
+		if (isGenericInstance)
+		{
+			for (int i = 0; i < genericParams.size; i++)
+			{
+				if (strcmp(genericParams[i], name) == 0)
+					return genericTypeArguments[i];
+			}
+		}
+		return nullptr;
+	}
+
+	Method::Method(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams)
+		: Function(file, location, flags, endLocation, name, returnType, paramTypes, paramNames, varArgs, body, isGeneric, genericParams)
+	{
+		type = DeclarationType::ClassMethod;
+	}
+
+	Method::~Method()
+	{
+	}
+
+	Element* Method::copy()
+	{
+		List<Type*> paramTypesCopy = CreateList<Type*>(paramTypes.size);
+		for (int i = 0; i < paramTypes.size; i++)
+			paramTypesCopy.add((Type*)paramTypes[i]->copy());
+
+		List<char*> paramNamesCopy = CreateList<char*>(paramNames.size);
+		for (int i = 0; i < paramNames.size; i++)
+			paramNamesCopy.add(_strdup(paramNames[i]));
+
+		List<char*> genericParamsCopy = {};
 		if (isGeneric)
 		{
 			genericParamsCopy = CreateList<char*>(genericParams.size);
@@ -63,7 +117,38 @@ namespace AST
 				genericParamsCopy.add(_strdup(genericParams[i]));
 		}
 
-		return new Function(file, location, flags, _strdup(name), (Type*)returnType->copy(), paramTypesCopy, paramNamesCopy, varArgs, (Statement*)body->copy(), isGeneric, genericParamsCopy);
+		return new Method(file, location, flags, endLocation, _strdup(name), (Type*)returnType->copy(), paramTypesCopy, paramNamesCopy, varArgs, (Statement*)body->copy(), isGeneric, genericParamsCopy);
+	}
+
+	Constructor::Constructor(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams)
+		: Method(file, location, flags, endLocation, name, returnType, paramTypes, paramNames, varArgs, body, isGeneric, genericParams)
+	{
+		type = DeclarationType::ClassConstructor;
+	}
+
+	Constructor::~Constructor()
+	{
+	}
+
+	Element* Constructor::copy()
+	{
+		List<Type*> paramTypesCopy = CreateList<Type*>(paramTypes.size);
+		for (int i = 0; i < paramTypes.size; i++)
+			paramTypesCopy.add((Type*)paramTypes[i]->copy());
+
+		List<char*> paramNamesCopy = CreateList<char*>(paramNames.size);
+		for (int i = 0; i < paramNames.size; i++)
+			paramNamesCopy.add(_strdup(paramNames[i]));
+
+		List<char*> genericParamsCopy = {};
+		if (isGeneric)
+		{
+			genericParamsCopy = CreateList<char*>(genericParams.size);
+			for (int i = 0; i < genericParams.size; i++)
+				genericParamsCopy.add(_strdup(genericParams[i]));
+		}
+
+		return new Constructor(file, location, flags, endLocation, _strdup(name), (Type*)returnType->copy(), paramTypesCopy, paramNamesCopy, varArgs, (Statement*)body->copy(), isGeneric, genericParamsCopy);
 	}
 
 	StructField::StructField(File* file, const SourceLocation& location, Type* type, char* name, int index)
@@ -111,7 +196,7 @@ namespace AST
 	}
 
 	ClassField::ClassField(File* file, const SourceLocation& location, Type* type, char* name, int index)
-		: ClassField(file, location, type, name, index)
+		: Element(file, location), type(type), name(name), index(index)
 	{
 	}
 
@@ -128,7 +213,7 @@ namespace AST
 		return new ClassField(file, location, (Type*)type->copy(), _strdup(name), index);
 	}
 
-	Class::Class(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, const List<ClassField*>& fields, const List<Function*>& methods, Function* constructor)
+	Class::Class(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, const List<ClassField*>& fields, const List<Method*>& methods, Constructor* constructor)
 		: Declaration(file, location, DeclarationType::Class, flags), name(name), fields(fields), methods(methods), constructor(constructor)
 	{
 	}
@@ -159,11 +244,11 @@ namespace AST
 		for (int i = 0; i < fields.size; i++)
 			fieldsCopy.add((ClassField*)fields[i]->copy());
 
-		List<Function*> methodsCopy = CreateList<Function*>(methods.size);
+		List<Method*> methodsCopy = CreateList<Method*>(methods.size);
 		for (int i = 0; i < methods.size; i++)
-			methodsCopy.add((Function*)methods[i]->copy());
+			methodsCopy.add((Method*)methods[i]->copy());
 
-		return new Class(file, location, flags, _strdup(name), fieldsCopy, methodsCopy, constructor ? (Function*)constructor->copy() : nullptr);
+		return new Class(file, location, flags, _strdup(name), fieldsCopy, methodsCopy, constructor ? (Constructor*)constructor->copy() : nullptr);
 	}
 
 	Typedef::Typedef(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, Type* alias)
@@ -203,8 +288,10 @@ namespace AST
 	}
 
 	Enum::Enum(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, Type* alias, const List<EnumValue*>& values)
-		: Declaration(file, location, DeclarationType::Enum, flags), name(name), alias(alias), values(values)
+		: Declaration(file, location, DeclarationType::Enumeration, flags), name(name), alias(alias), values(values)
 	{
+		for (int i = 0; i < values.size; i++)
+			values[i]->declaration = this;
 	}
 
 	Enum::~Enum()
@@ -249,7 +336,7 @@ namespace AST
 	}
 
 	GlobalVariable::GlobalVariable(File* file, const SourceLocation& location, DeclarationFlags flags, Type* type, List<VariableDeclarator*>& declarators)
-		: Declaration(file, location, DeclarationType::Variable, flags), type(type), declarators(declarators)
+		: Declaration(file, location, DeclarationType::GlobalVariable, flags), type(type), declarators(declarators)
 	{
 	}
 

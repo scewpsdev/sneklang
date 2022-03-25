@@ -430,6 +430,11 @@ bool LexerHasNext(Lexer* lexer)
 	return LexerPeek(lexer).type != TOKEN_TYPE_NULL;
 }
 
+bool LexerNextIsWhitespace(Lexer* lexer)
+{
+	return nextIsWhitespace(lexer);
+}
+
 char* GetTokenString(Token token)
 {
 	char* str = new char[token.len + 1];

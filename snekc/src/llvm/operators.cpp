@@ -1,11 +1,12 @@
 #include "operators.h"
 
-#include "ast.h"
 #include "log.h"
-#include "type.h"
 #include "debug.h"
 #include "values.h"
 #include "llvm_backend.h"
+
+#include "ast/File.h"
+#include "semantics/Type.h"
 
 
 LLVMValueRef OperatorAdd(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue);
@@ -15,18 +16,18 @@ LLVMValueRef OperatorNot(LLVMBackend* llb, SkModule* module, LLVMValueRef operan
 {
 	operand = GetRValue(llb, module, operand, operandLValue);
 
-	if (operandType->typeKind == TYPE_KIND_BOOL)
+	if (operandType->typeKind == AST::TypeKind::Boolean)
 	{
 		return LLVM_CALL(LLVMBuildNot, module->builder, operand, "");
 	}
-	else if (operandType->typeKind == TYPE_KIND_INTEGER || operandType->typeKind == TYPE_KIND_POINTER)
+	else if (operandType->typeKind == AST::TypeKind::Integer || operandType->typeKind == AST::TypeKind::Pointer)
 	{
 		return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntEQ, operand, LLVMConstNull(LLVMTypeOf(operand)), "");
 	}
 	else
 	{
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -34,18 +35,18 @@ LLVMValueRef OperatorNegate(LLVMBackend* llb, SkModule* module, LLVMValueRef ope
 {
 	operand = GetRValue(llb, module, operand, operandLValue);
 
-	if (operandType->typeKind == TYPE_KIND_INTEGER)
+	if (operandType->typeKind == AST::TypeKind::Integer)
 	{
 		return LLVM_CALL(LLVMBuildNeg, module->builder, operand, "");
 	}
-	else if (operandType->typeKind == TYPE_KIND_FP)
+	else if (operandType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFNeg, module->builder, operand, "");
 	}
 	else
 	{
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -58,13 +59,13 @@ LLVMValueRef OperatorReference(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 	else
 	{
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
 LLVMValueRef OperatorDereference(LLVMBackend* llb, SkModule* module, LLVMValueRef operand, TypeID operandType, bool operandLValue)
 {
-	if (operandType->typeKind == TYPE_KIND_POINTER && operandLValue)
+	if (operandType->typeKind == AST::TypeKind::Pointer && operandLValue)
 	{
 		operand = GetRValue(llb, module, operand, operandLValue);
 		return operand;
@@ -72,7 +73,7 @@ LLVMValueRef OperatorDereference(LLVMBackend* llb, SkModule* module, LLVMValueRe
 	}
 
 	SnekAssert(false);
-	return NULL;
+	return nullptr;
 }
 
 LLVMValueRef OperatorIncrement(LLVMBackend* llb, SkModule* module, LLVMValueRef operand, TypeID operandType, bool operandLValue, bool position)
@@ -80,7 +81,7 @@ LLVMValueRef OperatorIncrement(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 	SnekAssert(operandLValue);
 	LLVMValueRef initialValue = LLVM_CALL(LLVMBuildLoad, module->builder, operand, "");
 
-	if (operandType->typeKind == TYPE_KIND_INTEGER)
+	if (operandType->typeKind == AST::TypeKind::Integer)
 	{
 		LLVMValueRef result = OperatorAdd(llb, module, initialValue, LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 1, false), operandType, GetIntegerType(32, false), false, false);
 		LLVM_CALL(LLVMBuildStore, module->builder, result, operand);
@@ -90,9 +91,9 @@ LLVMValueRef OperatorIncrement(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 		else
 			return operand;
 	}
-	else if (operandType->typeKind == TYPE_KIND_FP)
+	else if (operandType->typeKind == AST::TypeKind::FloatingPoint)
 	{
-		LLVMValueRef result = OperatorAdd(llb, module, initialValue, LLVMConstReal(LLVMFloatTypeInContext(llb->llvmContext), 1.0), operandType, GetFPType(FP_PRECISION_SINGLE), false, false);
+		LLVMValueRef result = OperatorAdd(llb, module, initialValue, LLVMConstReal(LLVMFloatTypeInContext(llb->llvmContext), 1.0), operandType, GetFloatingPointType(FloatingPointPrecision::Single), false, false);
 		LLVM_CALL(LLVMBuildStore, module->builder, result, operand);
 
 		if (position)
@@ -100,7 +101,7 @@ LLVMValueRef OperatorIncrement(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 		else
 			return operand;
 	}
-	else if (operandType->typeKind == TYPE_KIND_POINTER)
+	else if (operandType->typeKind == AST::TypeKind::Pointer)
 	{
 		LLVMTypeRef elementType = LLVMGetElementType(LLVMTypeOf(operand));
 		LLVMValueRef index = LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 1, false);
@@ -122,7 +123,7 @@ LLVMValueRef OperatorDecrement(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 	SnekAssert(operandLValue);
 	LLVMValueRef initialValue = LLVM_CALL(LLVMBuildLoad, module->builder, operand, "");
 
-	if (operandType->typeKind == TYPE_KIND_INTEGER)
+	if (operandType->typeKind == AST::TypeKind::Integer)
 	{
 		LLVMValueRef result = OperatorSub(llb, module, initialValue, LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 1, false), operandType, GetIntegerType(32, false), false, false);
 		LLVM_CALL(LLVMBuildStore, module->builder, result, operand);
@@ -132,9 +133,9 @@ LLVMValueRef OperatorDecrement(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 		else
 			return operand;
 	}
-	else if (operandType->typeKind == TYPE_KIND_FP)
+	else if (operandType->typeKind == AST::TypeKind::FloatingPoint)
 	{
-		LLVMValueRef result = OperatorSub(llb, module, initialValue, LLVMConstReal(LLVMFloatTypeInContext(llb->llvmContext), 1.0), operandType, GetFPType(FP_PRECISION_SINGLE), false, false);
+		LLVMValueRef result = OperatorSub(llb, module, initialValue, LLVMConstReal(LLVMFloatTypeInContext(llb->llvmContext), 1.0), operandType, GetFloatingPointType(FloatingPointPrecision::Single), false, false);
 		LLVM_CALL(LLVMBuildStore, module->builder, result, operand);
 
 		if (position)
@@ -142,7 +143,7 @@ LLVMValueRef OperatorDecrement(LLVMBackend* llb, SkModule* module, LLVMValueRef 
 		else
 			return operand;
 	}
-	else if (operandType->typeKind == TYPE_KIND_POINTER)
+	else if (operandType->typeKind == AST::TypeKind::Pointer)
 	{
 		LLVMTypeRef elementType = LLVMGetElementType(LLVMTypeOf(operand));
 		LLVMValueRef index = LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), -1, false);
@@ -169,12 +170,12 @@ static void BinaryOperatorTypesMeet(LLVMBackend* llb, SkModule* module, LLVMValu
 	LLVMTypeKind ltk = LLVMGetTypeKind(lt);
 	LLVMTypeKind rtk = LLVMGetTypeKind(rt);
 
-	while (leftType->typeKind == TYPE_KIND_ALIAS)
+	while (leftType->typeKind == AST::TypeKind::Alias)
 		leftType = leftType->aliasType.alias;
-	while (rightType->typeKind == TYPE_KIND_ALIAS)
+	while (rightType->typeKind == AST::TypeKind::Alias)
 		rightType = rightType->aliasType.alias;
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_INTEGER)
+	if (leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Integer)
 	{
 		if (leftType->integerType.bitWidth > rightType->integerType.bitWidth)
 		{
@@ -193,20 +194,20 @@ static void BinaryOperatorTypesMeet(LLVMBackend* llb, SkModule* module, LLVMValu
 			leftType = rightType;
 		}
 	}
-	else if (leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_BOOL)
+	else if (leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Boolean)
 	{
 		right = LLVM_CALL(LLVMBuildZExt, module->builder, right, lt, "");
 		rightType = leftType;
 	}
-	else if (leftType->typeKind == TYPE_KIND_BOOL && rightType->typeKind == TYPE_KIND_INTEGER)
+	else if (leftType->typeKind == AST::TypeKind::Boolean && rightType->typeKind == AST::TypeKind::Integer)
 	{
 		left = LLVM_CALL(LLVMBuildZExt, module->builder, left, rt, "");
 		leftType = rightType;
 	}
-	else if (leftType->typeKind == TYPE_KIND_BOOL && rightType->typeKind == TYPE_KIND_BOOL)
+	else if (leftType->typeKind == AST::TypeKind::Boolean && rightType->typeKind == AST::TypeKind::Boolean)
 	{
 	}
-	else if (leftType->typeKind == TYPE_KIND_FP && rightType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint && rightType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		if (leftType->fpType.precision > rightType->fpType.precision)
 		{
@@ -219,7 +220,7 @@ static void BinaryOperatorTypesMeet(LLVMBackend* llb, SkModule* module, LLVMValu
 			leftType = rightType;
 		}
 	}
-	else if (leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		if (leftType->integerType.isSigned)
 			left = LLVMBuildSIToFP(module->builder, left, rt, "");
@@ -227,7 +228,7 @@ static void BinaryOperatorTypesMeet(LLVMBackend* llb, SkModule* module, LLVMValu
 			left = LLVMBuildUIToFP(module->builder, left, rt, "");
 		leftType = rightType;
 	}
-	else if (leftType->typeKind == TYPE_KIND_FP && rightType->typeKind == TYPE_KIND_INTEGER)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint && rightType->typeKind == AST::TypeKind::Integer)
 	{
 		if (rightType->integerType.isSigned)
 			right = LLVMBuildSIToFP(module->builder, right, lt, "");
@@ -235,19 +236,19 @@ static void BinaryOperatorTypesMeet(LLVMBackend* llb, SkModule* module, LLVMValu
 			right = LLVMBuildUIToFP(module->builder, right, lt, "");
 		rightType = leftType;
 	}
-	else if (leftType->typeKind == TYPE_KIND_POINTER && rightType->typeKind == TYPE_KIND_POINTER)
+	else if (leftType->typeKind == AST::TypeKind::Pointer && rightType->typeKind == AST::TypeKind::Pointer)
 	{
 		right = LLVM_CALL(LLVMBuildBitCast, module->builder, right, LLVMTypeOf(left), "");
 		//left = LLVM_CALL(LLVMBuildPtrToInt, module->builder, left, LLVMInt64TypeInContext(llb->llvmContext), "");
 		//right = LLVM_CALL(LLVMBuildPtrToInt, module->builder, right, LLVMInt64TypeInContext(llb->llvmContext), "");
 		rightType = leftType;
 	}
-	else if (leftType->typeKind == TYPE_KIND_POINTER && rightType->typeKind == TYPE_KIND_INTEGER)
+	else if (leftType->typeKind == AST::TypeKind::Pointer && rightType->typeKind == AST::TypeKind::Integer)
 	{
 		rightType = leftType;
 	}
-	else if (leftType->typeKind == TYPE_KIND_POINTER && rightType->typeKind == TYPE_KIND_CLASS ||
-		leftType->typeKind == TYPE_KIND_CLASS && rightType->typeKind == TYPE_KIND_POINTER)
+	else if (leftType->typeKind == AST::TypeKind::Pointer && rightType->typeKind == AST::TypeKind::Class ||
+		leftType->typeKind == AST::TypeKind::Class && rightType->typeKind == AST::TypeKind::Pointer)
 	{
 		right = LLVM_CALL(LLVMBuildBitCast, module->builder, right, LLVMTypeOf(left), "");
 		rightType = leftType;
@@ -263,14 +264,14 @@ LLVMValueRef OperatorAdd(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
 	bool isInteger = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMIntegerTypeKind;
-	bool isFP = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
+	bool isFloatingPoint = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
 	bool isPointer = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMPointerTypeKind;
 
 	if (isInteger)
 		return LLVM_CALL(LLVMBuildAdd, module->builder, left, right, "");
-	else if (isFP)
+	else if (isFloatingPoint)
 		return LLVM_CALL(LLVMBuildFAdd, module->builder, left, right, "");
-	else if (isPointer && rightType->typeKind == TYPE_KIND_INTEGER)
+	else if (isPointer && rightType->typeKind == AST::TypeKind::Integer)
 		return LLVM_CALL(LLVMBuildGEP, module->builder, left, (LLVMValueRef*)&right, 1, "");
 	else
 	{
@@ -284,12 +285,12 @@ LLVMValueRef OperatorSub(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
 	bool isInteger = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMIntegerTypeKind;
-	bool isFP = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
+	bool isFloatingPoint = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
 	bool isPointer = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMPointerTypeKind;
 
 	if (isInteger)
 		return LLVM_CALL(LLVMBuildSub, module->builder, left, right, "");
-	else if (isFP)
+	else if (isFloatingPoint)
 		return LLVM_CALL(LLVMBuildFSub, module->builder, left, right, "");
 	else
 	{
@@ -303,11 +304,11 @@ LLVMValueRef OperatorMul(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
 	bool isInteger = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMIntegerTypeKind;
-	bool isFP = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
+	bool isFloatingPoint = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
 
 	if (isInteger)
 		return LLVM_CALL(LLVMBuildMul, module->builder, left, right, "");
-	else if (isFP)
+	else if (isFloatingPoint)
 		return LLVM_CALL(LLVMBuildFMul, module->builder, left, right, "");
 	else
 	{
@@ -321,7 +322,7 @@ LLVMValueRef OperatorDiv(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
 	bool isInteger = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMIntegerTypeKind;
-	bool isFP = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
+	bool isFloatingPoint = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(right)) <= LLVMFP128TypeKind;
 
 	if (isInteger)
 	{
@@ -331,7 +332,7 @@ LLVMValueRef OperatorDiv(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 		else
 			return LLVM_CALL(LLVMBuildUDiv, module->builder, left, right, "");
 	}
-	else if (isFP)
+	else if (isFloatingPoint)
 		return LLVM_CALL(LLVMBuildFDiv, module->builder, left, right, "");
 	else
 	{
@@ -345,7 +346,7 @@ LLVMValueRef OperatorMod(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
 	bool isInteger = LLVMGetTypeKind(LLVMTypeOf(left)) == LLVMIntegerTypeKind;
-	bool isFP = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(left)) <= LLVMFP128TypeKind;
+	bool isFloatingPoint = LLVMGetTypeKind(LLVMTypeOf(left)) >= LLVMHalfTypeKind && LLVMGetTypeKind(LLVMTypeOf(left)) <= LLVMFP128TypeKind;
 
 	if (isInteger)
 	{
@@ -355,7 +356,7 @@ LLVMValueRef OperatorMod(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 		else
 			return LLVM_CALL(LLVMBuildURem, module->builder, left, right, "");
 	}
-	else if (isFP)
+	else if (isFloatingPoint)
 		return LLVM_CALL(LLVMBuildFRem, module->builder, left, right, "");
 	else
 	{
@@ -368,9 +369,9 @@ LLVMValueRef OperatorEQ(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER || leftType->typeKind == TYPE_KIND_POINTER)
+	if (leftType->typeKind == AST::TypeKind::Integer || leftType->typeKind == AST::TypeKind::Pointer)
 		return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntEQ, left, right, "");
-	else if (leftType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFCmp, module->builder, LLVMRealOEQ, left, right, "");
 	}
@@ -385,9 +386,9 @@ LLVMValueRef OperatorNE(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER || leftType->typeKind == TYPE_KIND_POINTER)
+	if (leftType->typeKind == AST::TypeKind::Integer || leftType->typeKind == AST::TypeKind::Pointer)
 		return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntNE, left, right, "");
-	else if (leftType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFCmp, module->builder, LLVMRealONE, left, right, "");
 	}
@@ -402,14 +403,14 @@ LLVMValueRef OperatorLT(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER || leftType->typeKind == TYPE_KIND_POINTER)
+	if (leftType->typeKind == AST::TypeKind::Integer || leftType->typeKind == AST::TypeKind::Pointer)
 	{
 		if (leftType->integerType.isSigned || rightType->integerType.isSigned)
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntSLT, left, right, "");
 		else
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntULT, left, right, "");
 	}
-	else if (leftType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFCmp, module->builder, LLVMRealOLT, left, right, "");
 	}
@@ -424,14 +425,14 @@ LLVMValueRef OperatorGT(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER || leftType->typeKind == TYPE_KIND_POINTER)
+	if (leftType->typeKind == AST::TypeKind::Integer || leftType->typeKind == AST::TypeKind::Pointer)
 	{
 		if (leftType->integerType.isSigned || rightType->integerType.isSigned)
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntSGT, left, right, "");
 		else
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntUGT, left, right, "");
 	}
-	else if (leftType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFCmp, module->builder, LLVMRealOGT, left, right, "");
 	}
@@ -448,14 +449,14 @@ LLVMValueRef OperatorLE(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER || leftType->typeKind == TYPE_KIND_POINTER)
+	if (leftType->typeKind == AST::TypeKind::Integer || leftType->typeKind == AST::TypeKind::Pointer)
 	{
 		if (leftType->integerType.isSigned || rightType->integerType.isSigned)
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntSLE, left, right, "");
 		else
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntULE, left, right, "");
 	}
-	else if (leftType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFCmp, module->builder, LLVMRealOLE, left, right, "");
 	}
@@ -470,14 +471,14 @@ LLVMValueRef OperatorGE(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
 
-	if (leftType->typeKind == TYPE_KIND_INTEGER || leftType->typeKind == TYPE_KIND_POINTER)
+	if (leftType->typeKind == AST::TypeKind::Integer || leftType->typeKind == AST::TypeKind::Pointer)
 	{
 		if (leftType->integerType.isSigned || rightType->integerType.isSigned)
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntSGE, left, right, "");
 		else
 			return LLVM_CALL(LLVMBuildICmp, module->builder, LLVMIntUGE, left, right, "");
 	}
-	else if (leftType->typeKind == TYPE_KIND_FP)
+	else if (leftType->typeKind == AST::TypeKind::FloatingPoint)
 	{
 		return LLVM_CALL(LLVMBuildFCmp, module->builder, LLVMRealOGE, left, right, "");
 	}
@@ -491,7 +492,7 @@ LLVMValueRef OperatorGE(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 LLVMValueRef OperatorAnd(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert((leftType->typeKind == TYPE_KIND_BOOL || leftType->typeKind == TYPE_KIND_INTEGER) && (rightType->typeKind == TYPE_KIND_BOOL || rightType->typeKind == TYPE_KIND_INTEGER));
+	SnekAssert((leftType->typeKind == AST::TypeKind::Boolean || leftType->typeKind == AST::TypeKind::Integer) && (rightType->typeKind == AST::TypeKind::Boolean || rightType->typeKind == AST::TypeKind::Integer));
 
 	return LLVM_CALL(LLVMBuildAnd, module->builder, left, right, "");
 }
@@ -499,7 +500,7 @@ LLVMValueRef OperatorAnd(LLVMBackend* llb, SkModule* module, LLVMValueRef left, 
 LLVMValueRef OperatorOr(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert((leftType->typeKind == TYPE_KIND_BOOL || leftType->typeKind == TYPE_KIND_INTEGER) && (rightType->typeKind == TYPE_KIND_BOOL || rightType->typeKind == TYPE_KIND_INTEGER));
+	SnekAssert((leftType->typeKind == AST::TypeKind::Boolean || leftType->typeKind == AST::TypeKind::Integer) && (rightType->typeKind == AST::TypeKind::Boolean || rightType->typeKind == AST::TypeKind::Integer));
 
 	return LLVM_CALL(LLVMBuildOr, module->builder, left, right, "");
 }
@@ -507,7 +508,7 @@ LLVMValueRef OperatorOr(LLVMBackend* llb, SkModule* module, LLVMValueRef left, L
 LLVMValueRef OperatorBWAnd(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert(leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_INTEGER);
+	SnekAssert(leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Integer);
 
 	return LLVM_CALL(LLVMBuildAnd, module->builder, left, right, "");
 }
@@ -515,7 +516,7 @@ LLVMValueRef OperatorBWAnd(LLVMBackend* llb, SkModule* module, LLVMValueRef left
 LLVMValueRef OperatorBWOr(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert(leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_INTEGER);
+	SnekAssert(leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Integer);
 
 	return LLVM_CALL(LLVMBuildOr, module->builder, left, right, "");
 }
@@ -523,7 +524,7 @@ LLVMValueRef OperatorBWOr(LLVMBackend* llb, SkModule* module, LLVMValueRef left,
 LLVMValueRef OperatorBWXor(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert(leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_INTEGER);
+	SnekAssert(leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Integer);
 
 	return LLVM_CALL(LLVMBuildXor, module->builder, left, right, "");
 }
@@ -531,7 +532,7 @@ LLVMValueRef OperatorBWXor(LLVMBackend* llb, SkModule* module, LLVMValueRef left
 LLVMValueRef OperatorBSLeft(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert(leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_INTEGER);
+	SnekAssert(leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Integer);
 
 	return LLVM_CALL(LLVMBuildShl, module->builder, left, right, "");
 }
@@ -539,7 +540,7 @@ LLVMValueRef OperatorBSLeft(LLVMBackend* llb, SkModule* module, LLVMValueRef lef
 LLVMValueRef OperatorBSRight(LLVMBackend* llb, SkModule* module, LLVMValueRef left, LLVMValueRef right, TypeID leftType, TypeID rightType, bool leftLValue, bool rightLValue)
 {
 	BinaryOperatorTypesMeet(llb, module, left, right, leftType, rightType, leftLValue, rightLValue);
-	SnekAssert(leftType->typeKind == TYPE_KIND_INTEGER && rightType->typeKind == TYPE_KIND_INTEGER);
+	SnekAssert(leftType->typeKind == AST::TypeKind::Integer && rightType->typeKind == AST::TypeKind::Integer);
 
 	return LLVM_CALL(LLVMBuildAShr, module->builder, left, right, "");
 }
@@ -658,7 +659,7 @@ LLVMValueRef OperatorBWXorAssign(LLVMBackend* llb, SkModule* module, LLVMValueRe
 
 LLVMValueRef OperatorTernary(LLVMBackend* llb, SkModule* module, LLVMValueRef condition, LLVMValueRef thenValue, LLVMValueRef elseValue, TypeID conditionType, TypeID thenType, TypeID elseType, bool conditionLValue, bool thenLValue, bool elseLValue)
 {
-	SnekAssert(conditionType->typeKind == TYPE_KIND_BOOL);
+	SnekAssert(conditionType->typeKind == AST::TypeKind::Boolean);
 	BinaryOperatorTypesMeet(llb, module, thenValue, elseValue, thenType, elseType, thenLValue, elseLValue);
 
 

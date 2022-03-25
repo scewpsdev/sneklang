@@ -1,6 +1,14 @@
 #pragma once
 
-#include "ast.h"
+
+#define ENTRY_POINT_NAME "main"
 
 
-char* MangleFunctionName(AstFunction* function);
+struct Resolver;
+
+namespace AST
+{
+	struct Function;
+}
+
+char* MangleFunctionName(Resolver* resolver, AST::Function* function);

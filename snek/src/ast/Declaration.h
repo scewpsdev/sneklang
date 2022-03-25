@@ -1,16 +1,18 @@
 #pragma once
 
+#include "Common.h"
 #include "List.h"
 #include "Element.h"
 #include "Type.h"
 #include "Statement.h"
 #include "Expression.h"
-#include "Variable.h"
 
 #include "semantics/Type.h"
 
 #include <stdint.h>
 
+
+struct Variable;
 
 namespace AST
 {
@@ -24,9 +26,9 @@ namespace AST
 		ClassMethod,
 		ClassConstructor,
 		Typedef,
-		Enum,
+		Enumeration,
 		Exprdef,
-		Variable,
+		GlobalVariable,
 		Module,
 		Namespace,
 		Import,
@@ -43,8 +45,10 @@ namespace AST
 		Private = 1 << 5,
 		Internal = 1 << 6,
 		Packed = 1 << 7,
-		Constant = 1 << 8,
 	};
+
+	DeclarationFlags operator|(DeclarationFlags flag0, DeclarationFlags flag1);
+	DeclarationFlags operator&(DeclarationFlags flag0, DeclarationFlags flag1);
 
 	struct Declaration : Element
 	{
@@ -68,14 +72,16 @@ namespace AST
 		bool varArgs;
 		Statement* body;
 
-		bool isGeneric;
+		bool isGeneric = false;
+		bool isGenericInstance = false;
 		List<char*> genericParams;
+		List<TypeID> genericTypeArguments;
+
+		SourceLocation endLocation;
 
 		bool isEntryPoint = false;
 		char* mangledName = nullptr;
-		TypeID type = nullptr;
-
-		TypeID instanceType = nullptr; // For class methods/constructors
+		TypeID functionType = nullptr;
 
 		List<Variable*> paramVariables = {};
 		Variable* instanceVariable = nullptr;
@@ -83,8 +89,29 @@ namespace AST
 		ValueHandle valueHandle = nullptr;
 
 
-		Function(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams);
+		Function(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams);
 		virtual ~Function();
+
+		virtual Element* copy() override;
+
+		TypeID getGenericTypeArgument(const char* name);
+	};
+
+	struct Method : Function
+	{
+		TypeID instanceType = nullptr; // For class methods/constructors
+
+
+		Method(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams);
+		virtual ~Method();
+
+		virtual Element* copy() override;
+	};
+
+	struct Constructor : Method
+	{
+		Constructor(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams);
+		virtual ~Constructor();
 
 		virtual Element* copy() override;
 	};
@@ -137,8 +164,8 @@ namespace AST
 	{
 		char* name;
 		List<ClassField*> fields;
-		List<Function*> methods;
-		Function* constructor;
+		List<Method*> methods;
+		Constructor* constructor;
 
 		char* mangledName = nullptr;
 		TypeID type = nullptr;
@@ -146,7 +173,7 @@ namespace AST
 		TypeHandle typeHandle = nullptr;
 
 
-		Class(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, const List<ClassField*>& fields, const List<Function*>& methods, Function* constructor);
+		Class(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, const List<ClassField*>& fields, const List<Method*>& methods, Constructor* constructor);
 		virtual ~Class();
 
 		virtual Element* copy() override;
@@ -166,10 +193,14 @@ namespace AST
 		virtual Element* copy() override;
 	};
 
+	struct Enum;
+
 	struct EnumValue : Element
 	{
 		char* name;
 		Expression* value;
+
+		Enum* declaration = nullptr;
 
 		ValueHandle valueHandle = nullptr;
 
@@ -228,7 +259,7 @@ namespace AST
 	{
 		ModuleIdentifier identifier;
 
-		struct Module* ns = nullptr;
+		struct Module* module = nullptr;
 
 
 		ModuleDeclaration(File* file, const SourceLocation& location, DeclarationFlags flags, ModuleIdentifier identifier);

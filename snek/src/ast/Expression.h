@@ -2,10 +2,11 @@
 
 #include "Element.h"
 #include "Type.h"
-#include "Variable.h"
 
 #include "semantics/Type.h"
 
+
+struct Variable;
 
 namespace AST
 {
@@ -227,7 +228,7 @@ namespace AST
 
 	struct FunctionCall : Expression
 	{
-		Expression* calleeExpr;
+		Expression* callee;
 		List<Expression*> arguments;
 
 		bool isGenericCall;
@@ -261,7 +262,7 @@ namespace AST
 		Expression* operand;
 		char* name;
 
-		Module* ns = nullptr;
+		Module* module = nullptr;
 		Function* namespacedFunction = nullptr;
 		Variable* namespacedVariable = nullptr;
 
@@ -314,11 +315,11 @@ namespace AST
 		Type* dstType;
 		Expression* count;
 
-		//bool hasArguments;
-		//List<Expression*> arguments;
+		bool hasArguments;
+		List<Expression*> arguments;
 
 
-		Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count);
+		Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count, bool hasArguments, const List<Expression*>& arguments);
 		virtual ~Malloc();
 
 		virtual Element* copy() override;

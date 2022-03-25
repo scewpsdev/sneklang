@@ -1,5 +1,11 @@
 #pragma warning( disable : 4302 4311 4312 )
 
+#ifdef _DEBUG
+#	define DBG_LOG(x, ...) fprintf(stderr, x, ##__VA_ARGS__)
+#else
+#	define DBG_LOG(x, ...)
+#endif
+
 
 #include "snek.h"
 
@@ -20,15 +26,16 @@
 #define CMD_LINE_ARG_BUILD_FOLDER_2 "-obj"
 #define CMD_LINE_ARG_OUTPUT_FILE "-out"
 #define CMD_LINE_ARG_OUTPUT_FILE_2 "-o"
-#define CMD_LINE_ARG_GEN_DEBUG_INFO "-debug"
-#define CMD_LINE_ARG_GEN_DEBUG_INFO_2 "-g"
+#define CMD_LINE_ARG_GEN_DEBUG_INFO "--g"
+#define CMD_LINE_ARG_DEBUG "--debug"
+#define CMD_LINE_ARG_RELEASE "--release"
 #define CMD_LINE_ARG_LIBARY_DIR "-libpath"
 #define CMD_LINE_ARG_LIBARY_DIR_2 "-L"
-#define CMD_LINE_ARG_STD_LIB "-stdlib"
-#define CMD_LINE_ARG_EMIT_LLVM "-emit-llvm"
-#define CMD_LINE_ARG_OPT_LEVEL_1 "-o1"
-#define CMD_LINE_ARG_OPT_LEVEL_2 "-o2"
-#define CMD_LINE_ARG_OPT_LEVEL_3 "-o3"
+#define CMD_LINE_ARG_STD_LIB "--stdlib"
+#define CMD_LINE_ARG_EMIT_LLVM "--emit-llvm"
+#define CMD_LINE_ARG_OPT_LEVEL_1 "--o1"
+#define CMD_LINE_ARG_OPT_LEVEL_2 "--o2"
+#define CMD_LINE_ARG_OPT_LEVEL_3 "--o3"
 
 
 char* compilerDirectory;
@@ -204,7 +211,7 @@ int main(int argc, char* argv[])
 
 	const char* buildFolder = ".";
 	const char* filename = "a.exe";
-	bool genDebugInfo = false;
+	bool genDebugInfo = true;
 	bool emitLLVM = false;
 	int optLevel = 0;
 
@@ -266,9 +273,19 @@ int main(int argc, char* argv[])
 					result = false;
 				}
 			}
-			else if (strcmp(arg, CMD_LINE_ARG_GEN_DEBUG_INFO) == 0 || strcmp(arg, CMD_LINE_ARG_GEN_DEBUG_INFO_2) == 0)
+			else if (strcmp(arg, CMD_LINE_ARG_GEN_DEBUG_INFO) == 0)
 			{
 				genDebugInfo = true;
+			}
+			else if (strcmp(arg, CMD_LINE_ARG_DEBUG) == 0)
+			{
+				genDebugInfo = true;
+				optLevel = 0;
+			}
+			else if (strcmp(arg, CMD_LINE_ARG_RELEASE) == 0)
+			{
+				genDebugInfo = false;
+				optLevel = 3;
 			}
 			else if (strcmp(arg, CMD_LINE_ARG_STD_LIB) == 0)
 			{
@@ -340,21 +357,21 @@ int main(int argc, char* argv[])
 
 		parser_before = getNanos();
 
-		fprintf(stderr, "Parsing... ");
+		DBG_LOG("Parsing... ");
 		if (SnekRunParser(context))
 		{
 			parser_after = getNanos();
 			parser_duration = (parser_after - parser_before) / 1e9f;
 			resolver_before = parser_after;
 
-			fprintf(stderr, "Done. %fs\nSemantic analysis... ", parser_duration);
+			DBG_LOG("Done. %fs\nSemantic analysis... ", parser_duration);
 			if (SnekRunResolver(context))
 			{
 				resolver_after = getNanos();
 				resolver_duration = (resolver_after - resolver_before) / 1e9f;
 				codegen_before = resolver_after;
 
-				fprintf(stderr, "Done. %fs\nGenerating code... ", resolver_duration);
+				DBG_LOG("Done. %fs\nGenerating code... ", resolver_duration);
 				LLVMBackend* cb = CreateLLVMBackend(context);
 				if (LLVMBackendCompile(cb, context->asts.buffer, context->asts.size, filename, buildFolder, genDebugInfo, emitLLVM, optLevel))
 				{
@@ -362,23 +379,23 @@ int main(int argc, char* argv[])
 					codegen_duration = (codegen_after - codegen_before) / 1e9f;
 					link_before = codegen_after;
 
-					fprintf(stderr, "Done. %fs\nLinking... ", codegen_duration);
+					DBG_LOG("Done. %fs\nLinking... ", codegen_duration);
 					if (LLVMLink(cb, argv[0], filename, genDebugInfo, optLevel, additionalLibPaths))
 					{
 						link_after = getNanos();
 						link_duration = (link_after - link_before) / 1e9f;
 
-						fprintf(stderr, "Done. %fs\nBuild complete in %fs\n", link_duration, parser_duration + resolver_duration + codegen_duration + link_duration);
+						DBG_LOG("Done. %fs\nBuild complete in %fs\n", link_duration, parser_duration + resolver_duration + codegen_duration + link_duration);
 					}
 					else
 					{
-						printf("Failed!\n");
+						DBG_LOG("Failed!\n");
 						result = false;
 					}
 				}
 				else
 				{
-					printf("Failed!\n");
+					DBG_LOG("Failed!\n");
 					result = false;
 				}
 
@@ -386,13 +403,13 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				printf("Failed!\n");
+				DBG_LOG("Failed!\n");
 				result = false;
 			}
 		}
 		else
 		{
-			printf("Failed!\n");
+			DBG_LOG("Failed!\n");
 			result = false;
 		}
 	}

@@ -3,4 +3,4 @@
 #include "llvm_backend.h"
 
 
-LLVMValueRef GenGenericFunctionInstance(LLVMBackend* llb, SkModule* module, AstFunction* function, List<LLVMTypeRef>& genericArgs, TypeID& functionType);
+LLVMValueRef GenGenericFunctionInstance(LLVMBackend* llb, SkModule* module, AST::Function* function, List<LLVMTypeRef>& genericArgs, TypeID& functionType);

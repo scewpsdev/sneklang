@@ -1,5 +1,5 @@
-module stdc.stdio;
-namespace stdio;
+module stdc;
+//namespace stdio;
 
 
 public typedef fpos_t : int64;

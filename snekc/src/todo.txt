@@ -6,6 +6,7 @@ Next up:
 [X] Change default visibility to private
 [X] Change error message format
 [X] Calling functions with method syntax
+[ ] Rename "flags" enums to "flag"
 [ ] Template functions and structs
 [ ] Switch statement
 [ ] Function overloading, Operator overloading, C++ compatible name mangling

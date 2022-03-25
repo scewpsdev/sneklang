@@ -1,7 +1,7 @@
 #include "snek.h"
 
-#include "Parser.h"
-#include "resolver.h"
+#include "parser/Parser.h"
+#include "semantics/Resolver.h"
 
 #include <string.h>
 
@@ -46,7 +46,7 @@ void SnekAddLinkerFile(SkContext* context, const char* path)
 
 bool SnekRunParser(SkContext* context)
 {
-	context->asts = CreateList<AstFile*>(context->sourceFiles.size);
+	context->asts = CreateList<AST::File*>(context->sourceFiles.size);
 	context->asts.resize(context->sourceFiles.size);
 
 	Parser* parser = CreateParser(context);
@@ -58,9 +58,8 @@ bool SnekRunParser(SkContext* context)
 
 bool SnekRunResolver(SkContext* context)
 {
-	Resolver* resolver = CreateResolver(context);
-	bool result = ResolverRun(resolver);
-	DestroyResolver(resolver);
-
+	Resolver* resolver = new Resolver(context);
+	bool result = resolver->run();
+	//delete resolver;
 	return result;
 }

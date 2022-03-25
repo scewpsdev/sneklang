@@ -4,6 +4,8 @@
 #include "Type.h"
 #include "ast/Declaration.h"
 
+#include <map>
+
 
 struct SkContext;
 struct Variable;
@@ -32,26 +34,27 @@ struct Resolver
 {
 	SkContext* context;
 
-	AST::Module* globalNamespace;
+	AST::Module* globalNamespace = nullptr;
 
-	AST::File* currentFile;
-	AST::Function* currentFunction;
-	AST::Element* currentElement;
+	AST::File* currentFile = nullptr;
+	AST::Function* currentFunction = nullptr;
+	AST::Element* currentElement = nullptr;
 	//AstStatement* currentStatement;
 	//AstExpression* currentExpression;
 
-	Scope* scope = NULL;
-
+	Scope* scope = nullptr;
 
 	Resolver(SkContext* context);
 	~Resolver();
 
-	void run();
+	bool run();
 
-	void pushScope(const char* name);
+	Scope* pushScope(const char* name);
 	void popScope();
 
-	void registerLocalVariable(Variable* variable);
+	AST::File* findFileByName(const char* name);
+
+	void registerLocalVariable(Variable* variable, AST::Element* declaration);
 	void registerGlobalVariable(Variable* variable, AST::GlobalVariable* global);
 
 	Variable* findLocalVariableInScope(const char* name, Scope* scope, bool recursive);
@@ -83,12 +86,3 @@ struct Resolver
 	AST::Exprdef* findExprdefInModule(const char* name, AST::Module* module);
 	AST::Exprdef* findExprdef(const char* name);
 };
-
-
-Resolver* CreateResolver(SkContext* context);
-void DestroyResolver(Resolver* resolver);
-
-bool ResolverRun(Resolver* resolver);
-
-Scope* ResolverPushScope(Resolver* resolver, const char* name);
-void ResolverPopScope(Resolver* resolver);

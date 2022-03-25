@@ -16,7 +16,7 @@ struct Variable
 	AST::Visibility visibility;
 	AST::Expression* value;
 
-	AST::GlobalVariable* globalDecl = nullptr;
+	AST::Element* declaration = nullptr;
 
 	char* mangledName = nullptr;
 	TypeID type = nullptr;
@@ -25,18 +25,12 @@ struct Variable
 
 
 	Variable(AST::File* file, char* name, TypeID type, AST::Expression* value, bool isConstant, AST::Visibility visibility);
+	~Variable();
 };
 
 
-void RegisterLocalVariable(Resolver* resolver, TypeID type, AST::Expression* value, const char* name, bool isConstant, AST::File* file, const AST::SourceLocation& location);
-void RegisterGlobalVariable(Resolver* resolver, TypeID type, AST::Expression* value, const char* name, bool isConstant, AST::Visibility visibility, AST::File* module, AST::GlobalVariable* declaration);
-
-Variable* FindGlobalVariableInFile(Resolver* resolver, AST::File* file, const char* name);
-Variable* FindGlobalVariableInNamespace(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentModule);
-Variable* FindVariable(Resolver* resolver, const char* name);
-
 AST::Function* FindFunctionInFile(Resolver* resolver, AST::File* file, const char* name);
-AST::Function* FindFunctionInNamespace(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentModule);
+AST::Function* FindFunctionInModule(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentModule);
 AST::Function* FindFunction(Resolver* resolver, const char* name);
 
 AST::EnumValue* FindEnumValue(Resolver* resolver, const char* name);

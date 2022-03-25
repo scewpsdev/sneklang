@@ -2,7 +2,7 @@
 
 #include "debug.h"
 #include "log.h"
-#include "ast.h"
+#include "ast/File.h"
 #include "llvm_backend.h"
 
 #include <llvm-c/DebugInfo.h>
@@ -26,13 +26,15 @@ void InitDebugInfo(LLVMBackend* llb, SkModule* module, const char* filename, con
 
 void CompleteDebugInfo(LLVMBackend* llb, SkModule* module)
 {
+	module->debugScopes.removeAt(module->debugScopes.size - 1);
+
 	LLVMDIBuilderFinalize(module->diBuilder);
 }
 
-void DebugInfoEmitSourceLocation(LLVMBackend* llb, SkModule* module, LLVMBuilderRef builder, int line, int col)
+void DebugInfoEmitSourceLocation(LLVMBackend* llb, SkModule* module, LLVMBuilderRef builder, const AST::SourceLocation& location)
 {
 	LLVMMetadataRef diScope = module->debugScopes[module->debugScopes.size - 1];
-	LLVMMetadataRef debugLocation = LLVMDIBuilderCreateDebugLocation(llb->llvmContext, line, col, diScope, NULL);
+	LLVMMetadataRef debugLocation = LLVMDIBuilderCreateDebugLocation(llb->llvmContext, location.line, location.col, diScope, NULL);
 	LLVMSetCurrentDebugLocation2(builder, debugLocation);
 }
 
@@ -41,9 +43,9 @@ void DebugInfoEmitNullLocation(LLVMBackend* llb, SkModule* module, LLVMBuilderRe
 	LLVMSetCurrentDebugLocation2(builder, NULL);
 }
 
-void DebugInfoEmitSourceLocation(LLVMBackend* llb, SkModule* module, AstElement* element)
+void DebugInfoEmitSourceLocation(LLVMBackend* llb, SkModule* module, AST::Element* element)
 {
-	DebugInfoEmitSourceLocation(llb, module, module->builder, element->inputState.line, element->inputState.col);
+	DebugInfoEmitSourceLocation(llb, module, module->builder, element->location);
 }
 
 void DebugInfoPushScope(LLVMBackend* llb, SkModule* module, LLVMMetadataRef scope)
@@ -65,9 +67,9 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 {
 	switch (type->typeKind)
 	{
-	case TYPE_KIND_VOID:
+	case AST::TypeKind::Void:
 		return NULL;
-	case TYPE_KIND_INTEGER:
+	case AST::TypeKind::Integer:
 		switch (type->integerType.bitWidth)
 		{
 		case 8: return LLVMDIBuilderCreateBasicType(module->diBuilder, "char", strlen("char"), 8, 8U, LLVMDIFlagZero);
@@ -79,20 +81,20 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 			SnekAssert(false);
 			return NULL;
 		}
-	case TYPE_KIND_FP:
+	case AST::TypeKind::FloatingPoint:
 		switch (type->fpType.precision)
 		{
-		case FP_PRECISION_HALF: return LLVMDIBuilderCreateBasicType(module->diBuilder, "half", strlen("half"), 16, 4U, LLVMDIFlagZero);
-		case FP_PRECISION_SINGLE: return LLVMDIBuilderCreateBasicType(module->diBuilder, "float", strlen("float"), 32, 4U, LLVMDIFlagZero);
-		case FP_PRECISION_DOUBLE: return LLVMDIBuilderCreateBasicType(module->diBuilder, "double", strlen("double"), 64, 4U, LLVMDIFlagZero);
-		case FP_PRECISION_FP128: return LLVMDIBuilderCreateBasicType(module->diBuilder, "float128", strlen("float128"), 128, 4U, LLVMDIFlagZero);
+		case FloatingPointPrecision::Half: return LLVMDIBuilderCreateBasicType(module->diBuilder, "half", strlen("half"), 16, 4U, LLVMDIFlagZero);
+		case FloatingPointPrecision::Single: return LLVMDIBuilderCreateBasicType(module->diBuilder, "float", strlen("float"), 32, 4U, LLVMDIFlagZero);
+		case FloatingPointPrecision::Double: return LLVMDIBuilderCreateBasicType(module->diBuilder, "double", strlen("double"), 64, 4U, LLVMDIFlagZero);
+		case FloatingPointPrecision::Quad: return LLVMDIBuilderCreateBasicType(module->diBuilder, "float128", strlen("float128"), 128, 4U, LLVMDIFlagZero);
 		default:
 			SnekAssert(false);
 			return NULL;
 		}
-	case TYPE_KIND_BOOL:
+	case AST::TypeKind::Boolean:
 		return LLVMDIBuilderCreateBasicType(module->diBuilder, "bool", strlen("bool"), 8, 2U, LLVMDIFlagZero);
-	case TYPE_KIND_STRUCT:
+	case AST::TypeKind::Struct:
 	{
 		LLVMTypeRef llvmType = (LLVMTypeRef)type->structType.declaration->typeHandle;
 
@@ -101,7 +103,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 		for (int i = 0; i < numFields; i++)
 		{
 			LLVMMetadataRef memberTypeInfo = NULL;
-			if (type->structType.fieldTypes[i]->typeKind == TYPE_KIND_POINTER || type->structType.fieldTypes[i]->typeKind == TYPE_KIND_FUNCTION)
+			if (type->structType.fieldTypes[i]->typeKind == AST::TypeKind::Pointer || type->structType.fieldTypes[i]->typeKind == AST::TypeKind::Function)
 			{
 				memberTypeInfo = DebugInfoGetType(llb, module, GetPointerType(GetVoidType()));
 			}
@@ -116,7 +118,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 				module->diBuilder, NULL,
 				type->structType.fieldNames[i], strlen(type->structType.fieldNames[i]),
 				LLVMDIScopeGetFile(module->diCompileUnit),
-				type->structType.declaration->fields[i].inputState.line,
+				type->structType.declaration->fields[i]->location.line,
 				size,
 				0,
 				offset,
@@ -137,7 +139,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 			module->diBuilder, module->diCompileUnit,
 			type->structType.name, strlen(type->structType.name),
 			LLVMDIScopeGetFile(module->diCompileUnit),
-			type->structType.declaration->inputState.line,
+			type->structType.declaration->location.line,
 			size,
 			0,
 			LLVMDIFlagZero,
@@ -153,7 +155,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 
 		return structType;
 	}
-	case TYPE_KIND_CLASS:
+	case AST::TypeKind::Class:
 	{
 		LLVMTypeRef llvmType = (LLVMTypeRef)type->classType.declaration->typeHandle;
 
@@ -169,7 +171,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 				module->diBuilder, NULL,
 				type->classType.fieldNames[i], strlen(type->classType.fieldNames[i]),
 				LLVMDIScopeGetFile(module->diCompileUnit),
-				type->classType.declaration->fields[i].inputState.line,
+				type->classType.declaration->fields[i]->location.line,
 				size,
 				0,
 				offset,
@@ -189,7 +191,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 			module->diBuilder, module->diCompileUnit,
 			type->classType.name, strlen(type->classType.name),
 			LLVMDIScopeGetFile(module->diCompileUnit),
-			type->classType.declaration->inputState.line,
+			type->classType.declaration->location.line,
 			size,
 			0,
 			LLVMDIFlagZero,
@@ -207,29 +209,29 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 
 		return classType;
 	}
-	case TYPE_KIND_ALIAS:
+	case AST::TypeKind::Alias:
 	{
 		LLVMMetadataRef alias = DebugInfoGetType(llb, module, type->aliasType.alias);
-		return LLVMDIBuilderCreateTypedef(module->diBuilder, alias, type->aliasType.name, strlen(type->aliasType.name), LLVMDIScopeGetFile(module->diCompileUnit), type->aliasType.declaration->inputState.line, module->diCompileUnit, 0);
+		return LLVMDIBuilderCreateTypedef(module->diBuilder, alias, type->aliasType.name, strlen(type->aliasType.name), LLVMDIScopeGetFile(module->diCompileUnit), type->aliasType.declaration->location.line, module->diCompileUnit, 0);
 	}
-	case TYPE_KIND_POINTER:
+	case AST::TypeKind::Pointer:
 	{
 		LLVMMetadataRef elementType = DebugInfoGetType(llb, module, type->pointerType.elementType);
 		int size = 64;
 		return LLVMDIBuilderCreatePointerType(module->diBuilder, elementType, size, 0, 0, NULL, 0);
 	}
-	case TYPE_KIND_FUNCTION:
+	case AST::TypeKind::Function:
 	{
 		LLVMMetadataRef elementType = NULL;
 		int size = 64;
 		return LLVMDIBuilderCreatePointerType(module->diBuilder, elementType, 64, 0, 0, NULL, 0);
 	}
-	case TYPE_KIND_ARRAY:
+	case AST::TypeKind::Array:
 	{
 		LLVMMetadataRef elementType = DebugInfoGetType(llb, module, type->arrayType.elementType);
 		return LLVMDIBuilderCreateArrayType(module->diBuilder, type->arrayType.length, 0, elementType, NULL, 0);
 	}
-	case TYPE_KIND_STRING:
+	case AST::TypeKind::String:
 	{
 		LLVMMetadataRef elementType = LLVMDIBuilderCreateBasicType(module->diBuilder, "char", strlen("char"), 8, 8U, LLVMDIFlagZero);
 		int size = 64;
@@ -237,7 +239,7 @@ static LLVMMetadataRef DebugInfoCreateType(LLVMBackend* llb, SkModule* module, T
 	}
 	default:
 		SnekAssert(false);
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -273,7 +275,7 @@ static LLVMMetadataRef DebugInfoCreateSubprogram(LLVMBackend* llb, SkModule* mod
 	return subProgram;
 }
 
-LLVMMetadataRef DebugInfoBeginFunction(LLVMBackend* llb, SkModule* module, AstFunction* function, LLVMValueRef value, TypeID instanceType)
+LLVMMetadataRef DebugInfoBeginFunction(LLVMBackend* llb, SkModule* module, AST::Function* function, LLVMValueRef value, TypeID instanceType)
 {
 	List<LLVMMetadataRef> debugParams = CreateList<LLVMMetadataRef>();
 	//if (function->returnType->typeKind != TYPE_KIND_VOID)
@@ -285,7 +287,7 @@ LLVMMetadataRef DebugInfoBeginFunction(LLVMBackend* llb, SkModule* module, AstFu
 		debugParams.add(DebugInfoGetType(llb, module, function->paramTypes[i]->typeID));
 	}
 
-	LLVMMetadataRef subProgram = DebugInfoCreateSubprogram(llb, module, function->name, function->mangledName, function->inputState.line, function->body->inputState.line, debugParams.size, debugParams.buffer);
+	LLVMMetadataRef subProgram = DebugInfoCreateSubprogram(llb, module, function->name, function->mangledName, function->location.line, function->body->location.line, debugParams.size, debugParams.buffer);
 
 	LLVMSetSubprogram(value, subProgram);
 
@@ -296,7 +298,7 @@ LLVMMetadataRef DebugInfoBeginFunction(LLVMBackend* llb, SkModule* module, AstFu
 	return subProgram;
 }
 
-void DebugInfoEndFunction(LLVMBackend* llb, SkModule* module, AstFunction* function)
+void DebugInfoEndFunction(LLVMBackend* llb, SkModule* module, AST::Function* function)
 {
 	/*
 	if (function->body->statementKind == STATEMENT_KIND_COMPOUND)
@@ -307,38 +309,38 @@ void DebugInfoEndFunction(LLVMBackend* llb, SkModule* module, AstFunction* funct
 	LLVMMetadataRef subProgram = DebugInfoPopScope(llb, module);
 }
 
-void DebugInfoDeclareVariable(LLVMBackend* llb, SkModule* module, LLVMValueRef alloc, TypeID type, const char* name, int line, int col)
+void DebugInfoDeclareVariable(LLVMBackend* llb, SkModule* module, LLVMValueRef alloc, TypeID type, const char* name, const AST::SourceLocation& location)
 {
-	LLVMMetadataRef scope = module->debugScopes.last();
+	LLVMMetadataRef scope = module->debugScopes.back();
 	LLVMMetadataRef file = LLVMDIVariableGetScope(scope);
 	LLVMMetadataRef debugType = DebugInfoGetType(llb, module, type);
-	LLVMMetadataRef varInfo = LLVMDIBuilderCreateAutoVariable(module->diBuilder, scope, name, strlen(name), file, line, debugType, true, LLVMDIFlagZero, 0);
+	LLVMMetadataRef varInfo = LLVMDIBuilderCreateAutoVariable(module->diBuilder, scope, name, strlen(name), file, location.line, debugType, true, LLVMDIFlagZero, 0);
 
-	LLVMMetadataRef location = LLVMDIBuilderCreateDebugLocation(llb->llvmContext, line, col, scope, NULL);
+	LLVMMetadataRef locationMD = LLVMDIBuilderCreateDebugLocation(llb->llvmContext, location.line, location.col, scope, NULL);
 	LLVMMetadataRef expression = LLVMDIBuilderCreateExpression(module->diBuilder, NULL, 0);
 	LLVMValueRef function = (LLVMValueRef)module->currentFunction->valueHandle;
 	LLVMBasicBlockRef block = LLVMGetInsertBlock(module->builder);
 
-	LLVMDIBuilderInsertDeclareAtEnd(module->diBuilder, alloc, varInfo, expression, location, block);
+	LLVMDIBuilderInsertDeclareAtEnd(module->diBuilder, alloc, varInfo, expression, locationMD, block);
 }
 
-void DebugInfoDeclareParameter(LLVMBackend* llb, SkModule* module, LLVMValueRef alloc, int argIndex, TypeID type, const char* name, int line, int col)
+void DebugInfoDeclareParameter(LLVMBackend* llb, SkModule* module, LLVMValueRef alloc, int argIndex, TypeID type, const char* name, const AST::SourceLocation& location)
 {
-	LLVMMetadataRef scope = module->debugScopes.last();
+	LLVMMetadataRef scope = module->debugScopes.back();
 	SnekAssert(LLVMGetMetadataKind(scope) == LLVMDISubprogramMetadataKind);
 	LLVMMetadataRef file = LLVMDIVariableGetScope(scope);
 	LLVMMetadataRef debugType = DebugInfoGetType(llb, module, type);
-	LLVMMetadataRef varInfo = LLVMDIBuilderCreateParameterVariable(module->diBuilder, scope, name, strlen(name), argIndex + 1, file, line, debugType, true, LLVMDIFlagZero);
+	LLVMMetadataRef varInfo = LLVMDIBuilderCreateParameterVariable(module->diBuilder, scope, name, strlen(name), argIndex + 1, file, location.line, debugType, true, LLVMDIFlagZero);
 
-	LLVMMetadataRef location = LLVMDIBuilderCreateDebugLocation(llb->llvmContext, line, col, scope, NULL);
-	LLVMMetadataRef expression = LLVMDIBuilderCreateExpression(module->diBuilder, NULL, 0);
+	LLVMMetadataRef locationMD = LLVMDIBuilderCreateDebugLocation(llb->llvmContext, location.line, location.col, scope, nullptr);
+	LLVMMetadataRef expression = LLVMDIBuilderCreateExpression(module->diBuilder, nullptr, 0);
 	LLVMValueRef function = (LLVMValueRef)module->currentFunction->valueHandle;
 	LLVMBasicBlockRef block = LLVMGetInsertBlock(module->builder);
 
-	LLVMDIBuilderInsertDeclareAtEnd(module->diBuilder, alloc, varInfo, expression, location, block);
+	LLVMDIBuilderInsertDeclareAtEnd(module->diBuilder, alloc, varInfo, expression, locationMD, block);
 }
 
-void DebugInfoDeclareGlobal(LLVMBackend* llb, SkModule* module, LLVMValueRef alloc, const char* name, const char* mangledName, TypeID type, int line)
+void DebugInfoDeclareGlobal(LLVMBackend* llb, SkModule* module, LLVMValueRef alloc, const char* name, const char* mangledName, TypeID type, const AST::SourceLocation& location)
 {
 	LLVMMetadataRef expression = LLVMDIBuilderCreateExpression(module->diBuilder, NULL, 0);
 	LLVMMetadataRef global = LLVMDIBuilderCreateGlobalVariableExpression(
@@ -346,7 +348,7 @@ void DebugInfoDeclareGlobal(LLVMBackend* llb, SkModule* module, LLVMValueRef all
 		name, strlen(name),
 		mangledName, strlen(mangledName),
 		LLVMDIScopeGetFile(module->diCompileUnit),
-		line,
+		location.line,
 		DebugInfoGetType(llb, module, type),
 		false,
 		expression,

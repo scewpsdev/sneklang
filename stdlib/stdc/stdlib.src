@@ -1,4 +1,4 @@
-module stdc.stdlib;
+module stdc;
 
 
 public typedef size_t : uint64;

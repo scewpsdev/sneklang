@@ -4,7 +4,10 @@
 #include "List.h"
 
 
-struct AST::File;
+namespace AST
+{
+	struct File;
+}
 
 struct SourceFile
 {

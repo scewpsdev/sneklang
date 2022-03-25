@@ -3,10 +3,11 @@
 #include "List.h"
 #include "Element.h"
 #include "Type.h"
-#include "Variable.h"
 
 #include <stdint.h>
 
+
+struct Variable;
 
 namespace AST
 {
@@ -86,7 +87,7 @@ namespace AST
 
 	struct VariableDeclaration : Statement
 	{
-		Type* type;
+		Type* varType;
 		bool isConstant;
 		List<VariableDeclarator*> declarators;
 

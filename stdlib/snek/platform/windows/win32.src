@@ -1,5 +1,5 @@
-module std.win32;
-namespace Win32;
+module snek.platform.windows;
+//namespace Win32;
 
 
 typedef HANDLE : void*;

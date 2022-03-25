@@ -11,6 +11,9 @@ namespace AST
 		char* name;
 		Module* parent;
 		List<Module*> children;
-		List<File*> files;
+		File* file = nullptr;
+
+		Module(const char* name, Module* parent);
+		~Module();
 	};
 }

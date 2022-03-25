@@ -2,5 +2,12 @@
 .vs/
 bin/
 snek/obj/
+snek/snek.vcxproj
+snek/snek.vcxproj.filters
+snek/snek.vcxproj.user
 snekc/obj/
 snekc/vendor/
+snekc/snekc.vcxproj
+snekc/snekc.vcxproj.filters
+snekc/snekc.vcxproj.user
+sneklang6.sln

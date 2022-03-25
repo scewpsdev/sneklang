@@ -44,7 +44,7 @@ static void FindMSVCLibraryPaths(std::vector<const char*>& args) {
 		}
 	}
 
-	std::filesystem::path vc = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC";
+	std::filesystem::path vc = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC";
 	std::filesystem::path toolsDir;
 	for (auto& folder : std::filesystem::directory_iterator(vc)) {
 		toolsDir = folder;

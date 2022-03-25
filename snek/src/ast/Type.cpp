@@ -20,24 +20,24 @@ namespace AST
 		return new VoidType(file, location);
 	}
 
-	AST::IntegerType::IntegerType(File* file, const SourceLocation& location)
-		: Type(file, location, TypeKind::Integer)
+	AST::IntegerType::IntegerType(File* file, const SourceLocation& location, int bitWidth, bool isSigned)
+		: Type(file, location, TypeKind::Integer), bitWidth(bitWidth), isSigned(isSigned)
 	{
 	}
 
 	Element* AST::IntegerType::copy()
 	{
-		return new IntegerType(file, location);
+		return new IntegerType(file, location, bitWidth, isSigned);
 	}
 
-	AST::FloatingPointType::FloatingPointType(File* file, const SourceLocation& location)
-		: Type(file, location, TypeKind::FloatingPoint)
+	AST::FloatingPointType::FloatingPointType(File* file, const SourceLocation& location, int bitWidth)
+		: Type(file, location, TypeKind::FloatingPoint), bitWidth(bitWidth)
 	{
 	}
 
 	Element* FloatingPointType::copy()
 	{
-		return new FloatingPointType(file, location);
+		return new FloatingPointType(file, location, bitWidth);
 	}
 
 	AST::BooleanType::BooleanType(File* file, const SourceLocation& location)
@@ -129,3 +129,4 @@ namespace AST
 	{
 		return new StringType(file, location);
 	}
+}

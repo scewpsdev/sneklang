@@ -6,14 +6,19 @@
 
 
 struct SkContext;
-struct AstFile;
+
+namespace AST
+{
+	struct File;
+}
 
 struct Parser
 {
 	SkContext* context;
 	Lexer* lexer;
 
-	AstFile* module;
+	// TODO rename to "file"
+	AST::File* module;
 
 	bool failed;
 };

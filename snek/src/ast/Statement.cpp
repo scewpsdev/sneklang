@@ -79,13 +79,13 @@ namespace AST
 	}
 
 	VariableDeclaration::VariableDeclaration(File* file, const SourceLocation& location, Type* type, bool isConstant, List<VariableDeclarator*>& declarators)
-		: Statement(file, location, StatementType::VariableDeclaration), type(type), isConstant(isConstant), declarators(declarators)
+		: Statement(file, location, StatementType::VariableDeclaration), varType(type), isConstant(isConstant), declarators(declarators)
 	{
 	}
 
 	VariableDeclaration::~VariableDeclaration()
 	{
-		delete type;
+		delete varType;
 		for (int i = 0; i < declarators.size; i++)
 		{
 			if (declarators[i])
@@ -100,7 +100,7 @@ namespace AST
 		for (int i = 0; i < declarators.size; i++)
 			declaratorsCopy.add((VariableDeclarator*)declarators[i]->copy());
 
-		return new VariableDeclaration(file, location, (Type*)type->copy(), isConstant, declaratorsCopy);
+		return new VariableDeclaration(file, location, (Type*)varType->copy(), isConstant, declaratorsCopy);
 	}
 
 	IfStatement::IfStatement(File* file, const SourceLocation& location, Expression* condition, Statement* thenStatement, Statement* elseStatement)

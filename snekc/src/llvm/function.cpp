@@ -1,11 +1,13 @@
 #include "function.h"
 
-#include "ast.h"
 #include "llvm_backend.h"
 #include "debug.h"
 #include "List.h"
 #include "debug_info.h"
 #include "values.h"
+
+#include "ast/File.h"
+#include "semantics/Variable.h"
 
 
 LLVMTypeRef CanPassByValue(LLVMBackend* llb, SkModule* module, LLVMTypeRef type)
@@ -60,14 +62,16 @@ LLVMValueRef CreateFunction(LLVMBackend* llb, SkModule* module, const char* mang
 		}
 	}
 
-	LLVMTypeRef functionType = LLVM_CALL(LLVMFunctionType, returnType, paramTypes.buffer, paramTypes.size, varArgs);
+	LLVMTypeRef functionType = LLVM_CALL(LLVMFunctionType, functionReturnType, functionParamTypes.buffer, functionParamTypes.size, varArgs);
 	LLVMValueRef function = LLVM_CALL(LLVMAddFunction, dstModule, mangledName, functionType);
-
 	LLVM_CALL(LLVMSetLinkage, function, linkage);
+
+	DestroyList(functionParamTypes);
+
 	return function;
 }
 
-void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AstFunction* function, LLVMValueRef llvmValue)
+void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AST::Function* function, LLVMValueRef llvmValue)
 {
 	LLVMTypeRef returnType = GenType(llb, module, function->returnType);
 	bool returnValueAsArg = !CanPassByValue(llb, module, returnType);
@@ -86,7 +90,7 @@ void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AstFunction* funct
 
 	module->returnBlock = returnBlock;
 	module->returnAlloc = NULL;
-	if (function->returnType->typeKind != TYPE_KIND_VOID)
+	if (function->returnType->typeKind != AST::TypeKind::Void)
 	{
 		if (!returnValueAsArg)
 		{
@@ -129,7 +133,7 @@ void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AstFunction* funct
 
 		if (module->hasDebugInfo)
 		{
-			DebugInfoDeclareParameter(llb, module, argAlloc, i, function->paramTypes[i]->typeID, function->paramNames[i], function->paramTypes[i]->inputState.line, function->paramTypes[i]->inputState.col);
+			DebugInfoDeclareParameter(llb, module, argAlloc, i, function->paramTypes[i]->typeID, function->paramNames[i], function->paramTypes[i]->location);
 		}
 
 		function->paramVariables[i]->allocHandle = argAlloc;
@@ -147,10 +151,10 @@ void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AstFunction* funct
 	// Emit return location
 	if (module->hasDebugInfo)
 	{
-		DebugInfoEmitSourceLocation(llb, module, module->builder, function->endInputState.line, function->endInputState.col);
+		DebugInfoEmitSourceLocation(llb, module, module->builder, function->endLocation);
 	}
 
-	if (function->returnType->typeKind != TYPE_KIND_VOID)
+	if (function->returnType->typeKind != AST::TypeKind::Void)
 	{
 		if (!returnValueAsArg)
 			LLVM_CALL(LLVMBuildRet, module->builder, LLVM_CALL(LLVMBuildLoad, module->builder, module->returnAlloc, ""));

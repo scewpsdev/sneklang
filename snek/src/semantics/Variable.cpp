@@ -11,14 +11,25 @@ Variable::Variable(AST::File* file, char* name, TypeID type, AST::Expression* va
 	mangledName = _strdup(name); // TODO Mangle
 }
 
-void Resolver::registerLocalVariable(Variable* variable)
+Variable::~Variable()
 {
+	if (name)
+		delete name;
+	if (mangledName)
+		delete mangledName;
+	if (value)
+		delete value;
+}
+
+void Resolver::registerLocalVariable(Variable* variable, AST::Element* declaration)
+{
+	variable->declaration = declaration;
 	scope->localVariables.add(variable);
 }
 
 void Resolver::registerGlobalVariable(Variable* variable, AST::GlobalVariable* global)
 {
-	variable->globalDecl = global;
+	variable->declaration = global;
 }
 
 Variable* Resolver::findLocalVariableInScope(const char* name, Scope* scope, bool recursive)
@@ -59,9 +70,8 @@ Variable* Resolver::findGlobalVariableInFile(const char* name, AST::File* file)
 
 Variable* Resolver::findGlobalVariableInModule(const char* name, AST::Module* module, AST::Module* current)
 {
-	for (int i = 0; i < module->files.size; i++)
+	if (AST::File* file = module->file)
 	{
-		AST::File* file = module->files[i];
 		if (Variable* variable = findGlobalVariableInFile(name, file))
 		{
 			if (variable->visibility >= AST::Visibility::Public || current == module)
@@ -84,10 +94,9 @@ Variable* Resolver::findVariable(const char* name)
 	if (Variable* variable = findGlobalVariableInFile(name, currentFile))
 		return variable;
 
-	AST::Module* module = currentFile->moduleDecl ? currentFile->moduleDecl->ns : globalNamespace;
-	for (int i = 0; i < module->files.size; i++)
+	AST::Module* module = currentFile->moduleDecl ? currentFile->moduleDecl->module : globalNamespace;
+	if (AST::File* file = module->file)
 	{
-		AST::File* file = module->files[i];
 		if (file != currentFile)
 		{
 			if (Variable* variable = findGlobalVariableInFile(name, currentFile))
@@ -105,9 +114,8 @@ Variable* Resolver::findVariable(const char* name)
 	for (int i = 0; i < currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = currentFile->dependencies[i];
-		for (int j = 0; j < dependency->files.size; j++)
+		if (AST::File* file = dependency->file)
 		{
-			AST::File* file = dependency->files[j];
 			if (Variable* variable = findGlobalVariableInFile(name, file))
 			{
 				if (variable->visibility >= AST::Visibility::Public)
@@ -123,11 +131,11 @@ Variable* Resolver::findVariable(const char* name)
 	return nullptr;
 }
 
-AstFunction* FindFunctionInFile(Resolver* resolver, AstFile* file, const char* name)
+AST::Function* FindFunctionInFile(Resolver* resolver, AST::File* file, const char* name)
 {
 	for (int i = 0; i < file->functions.size; i++)
 	{
-		AstFunction* function = file->functions[i];
+		AST::Function* function = file->functions[i];
 		if (strcmp(function->name, name) == 0)
 		{
 			return function;
@@ -136,99 +144,98 @@ AstFunction* FindFunctionInFile(Resolver* resolver, AstFile* file, const char* n
 	return NULL;
 }
 
-AstFunction* FindFunctionInNamespace(Resolver* resolver, AstModule* ns, const char* name, AstModule* currentNamespace)
+AST::Function* FindFunctionInModule(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentModule)
 {
-	for (int i = 0; i < ns->files.size; i++)
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstFunction* function = FindFunctionInFile(resolver, module, name))
+		if (AST::Function* function = FindFunctionInFile(resolver, file, name))
 		{
-			if (function->visibility >= VISIBILITY_PUBLIC || currentNamespace == ns)
+			if (function->visibility >= AST::Visibility::Public || currentModule == module)
 				return function;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Function '%s' is not visible", function->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Function '%s' is not visible", function->name);
+				return nullptr;
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstFunction* FindFunction(Resolver* resolver, const char* name)
+// TODO make member function of resolver
+AST::Function* FindFunction(Resolver* resolver, const char* name)
 {
-	if (AstFunction* function = FindFunctionInFile(resolver, resolver->file, name))
+	if (AST::Function* function = FindFunctionInFile(resolver, resolver->currentFile, name))
 	{
 		return function;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	if (AstFunction* function = FindFunctionInNamespace(resolver, ns, name, ns))
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::Function* function = FindFunctionInModule(resolver, module, name, module))
 	{
 		return function;
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		if (AstFunction* function = FindFunctionInNamespace(resolver, dependency, name, ns))
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::Function* function = FindFunctionInModule(resolver, dependency, name, module))
 		{
 			return function;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstEnumValue* FindEnumValueInFile(Resolver* resolver, AstFile* file, const char* name)
+AST::EnumValue* FindEnumValueInFile(Resolver* resolver, AST::File* file, const char* name)
 {
 	for (int i = 0; i < file->enums.size; i++)
 	{
-		AstEnum* enumDecl = file->enums[i];
+		AST::Enum* enumDecl = file->enums[i];
 		for (int j = 0; j < enumDecl->values.size; j++)
 		{
-			if (strcmp(enumDecl->values[j].name, name) == 0)
+			if (strcmp(enumDecl->values[j]->name, name) == 0)
 			{
-				return &enumDecl->values[j];
+				return enumDecl->values[j];
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstEnumValue* FindEnumValueInNamespace(Resolver* resolver, AstModule* ns, const char* name, AstModule* currentNamespace)
+AST::EnumValue* FindEnumValueInNamespace(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentNamespace)
 {
-	for (int i = 0; i < ns->files.size; i++)
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstEnumValue* enumValue = FindEnumValueInFile(resolver, module, name))
+		if (AST::EnumValue* enumValue = FindEnumValueInFile(resolver, file, name))
 		{
-			if (enumValue->enumDecl->visibility >= VISIBILITY_PUBLIC || currentNamespace == ns)
+			if (enumValue->declaration->visibility >= AST::Visibility::Public || currentNamespace == module)
 				return enumValue;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Enum '%s' containing value '%s' is not visible", enumValue->enumDecl->name, enumValue->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Enum '%s' containing value '%s' is not visible", enumValue->declaration->name, enumValue->name);
+				return nullptr;
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstEnumValue* FindEnumValue(Resolver* resolver, const char* name)
+AST::EnumValue* FindEnumValue(Resolver* resolver, const char* name)
 {
-	if (AstEnumValue* enumValue = FindEnumValueInFile(resolver, resolver->file, name))
+	if (AST::EnumValue* enumValue = FindEnumValueInFile(resolver, resolver->currentFile, name))
 	{
 		return enumValue;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	if (AstEnumValue* enumValue = FindEnumValueInNamespace(resolver, ns, name, ns))
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::EnumValue* enumValue = FindEnumValueInNamespace(resolver, module, name, module))
 	{
 		return enumValue;
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		if (AstEnumValue* enumValue = FindEnumValueInNamespace(resolver, dependency, name, ns))
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::EnumValue* enumValue = FindEnumValueInNamespace(resolver, dependency, name, module))
 		{
 			return enumValue;
 		}
@@ -236,282 +243,272 @@ AstEnumValue* FindEnumValue(Resolver* resolver, const char* name)
 	return NULL;
 }
 
-static AstStruct* FindStructInModule(Resolver* resolver, AstFile* module, const char* name)
+static AST::Struct* FindStructInFile(Resolver* resolver, AST::File* module, const char* name)
 {
 	for (int i = 0; i < module->structs.size; i++)
 	{
-		AstStruct* str = module->structs[i];
+		AST::Struct* str = module->structs[i];
 		if (strcmp(str->name, name) == 0)
 		{
 			return str;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstStruct* FindStruct(Resolver* resolver, const char* name)
+AST::Struct* FindStruct(Resolver* resolver, const char* name)
 {
-	if (AstStruct* str = FindStructInModule(resolver, resolver->file, name))
+	if (AST::Struct* str = FindStructInFile(resolver, resolver->currentFile, name))
 	{
 		return str;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	for (int i = 0; i < ns->files.size; i++)
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstStruct* str = FindStructInModule(resolver, module, name))
+		if (AST::Struct* str = FindStructInFile(resolver, file, name))
 		{
-			if (str->visibility >= VISIBILITY_PUBLIC)
+			if (str->visibility >= AST::Visibility::Public)
 				return str;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Struct '%s' is not visible", str->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Struct '%s' is not visible", str->name);
+				return nullptr;
 			}
 		}
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		for (int j = 0; j < dependency->files.size; j++)
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::File* file = dependency->file)
 		{
-			AstFile* module = dependency->files[j];
-			if (AstStruct* str = FindStructInModule(resolver, module, name))
+			if (AST::Struct* str = FindStructInFile(resolver, file, name))
 			{
-				if (str->visibility >= VISIBILITY_PUBLIC)
+				if (str->visibility >= AST::Visibility::Public)
 					return str;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Struct '%s' is not visible", str->name);
-					return NULL;
+					SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Struct '%s' is not visible", str->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-static AstClass* FindClassInModule(Resolver* resolver, AstFile* module, const char* name)
+static AST::Class* FindClassInFile(Resolver* resolver, AST::File* module, const char* name)
 {
 	for (int i = 0; i < module->classes.size; i++)
 	{
-		AstClass* str = module->classes[i];
+		AST::Class* str = module->classes[i];
 		if (strcmp(str->name, name) == 0)
 		{
 			return str;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstClass* FindClass(Resolver* resolver, const char* name)
+AST::Class* FindClass(Resolver* resolver, const char* name)
 {
-	if (AstClass* clss = FindClassInModule(resolver, resolver->file, name))
+	if (AST::Class* clss = FindClassInFile(resolver, resolver->currentFile, name))
 	{
 		return clss;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	for (int i = 0; i < ns->files.size; i++)
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstClass* clss = FindClassInModule(resolver, module, name))
+		if (AST::Class* clss = FindClassInFile(resolver, file, name))
 		{
-			if (clss->visibility >= VISIBILITY_PUBLIC)
+			if (clss->visibility >= AST::Visibility::Public)
 				return clss;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Class '%s' is not visible", clss->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Class '%s' is not visible", clss->name);
+				return nullptr;
 			}
 		}
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		for (int j = 0; j < dependency->files.size; j++)
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::File* file = module->file)
 		{
-			AstFile* module = dependency->files[j];
-			if (AstClass* clss = FindClassInModule(resolver, module, name))
+			if (AST::Class* clss = FindClassInFile(resolver, file, name))
 			{
-				if (clss->visibility >= VISIBILITY_PUBLIC)
+				if (clss->visibility >= AST::Visibility::Public)
 					return clss;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Class '%s' is not visible", clss->name);
-					return NULL;
+					SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Class '%s' is not visible", clss->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-static AstTypedef* FindTypedefInModule(Resolver* resolver, AstFile* module, const char* name)
+static AST::Typedef* FindTypedefInFile(Resolver* resolver, AST::File* module, const char* name)
 {
 	for (int i = 0; i < module->typedefs.size; i++)
 	{
-		AstTypedef* td = module->typedefs[i];
+		AST::Typedef* td = module->typedefs[i];
 		if (strcmp(td->name, name) == 0)
 		{
 			return td;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstTypedef* FindTypedef(Resolver* resolver, const char* name)
+AST::Typedef* FindTypedef(Resolver* resolver, const char* name)
 {
-	if (AstTypedef* td = FindTypedefInModule(resolver, resolver->file, name))
+	if (AST::Typedef* td = FindTypedefInFile(resolver, resolver->currentFile, name))
 	{
 		return td;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	for (int i = 0; i < ns->files.size; i++)
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstTypedef* td = FindTypedefInModule(resolver, module, name))
+		if (AST::Typedef* td = FindTypedefInFile(resolver, file, name))
 		{
-			if (td->visibility >= VISIBILITY_PUBLIC)
+			if (td->visibility >= AST::Visibility::Public)
 				return td;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Typedef '%s' is not visible", td->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Typedef '%s' is not visible", td->name);
+				return nullptr;
 			}
 		}
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		for (int j = 0; j < dependency->files.size; j++)
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::File* file = dependency->file)
 		{
-			AstFile* module = dependency->files[j];
-			if (AstTypedef* td = FindTypedefInModule(resolver, module, name))
+			if (AST::Typedef* td = FindTypedefInFile(resolver, file, name))
 			{
-				if (td->visibility >= VISIBILITY_PUBLIC)
+				if (td->visibility >= AST::Visibility::Public)
 					return td;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Typedef '%s' is not visible", td->name);
-					return NULL;
+					SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Typedef '%s' is not visible", td->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-static AstEnum* FindEnumInModule(Resolver* resolver, AstFile* module, const char* name)
+static AST::Enum* FindEnumInFile(Resolver* resolver, AST::File* module, const char* name)
 {
 	for (int i = 0; i < module->enums.size; i++)
 	{
-		AstEnum* en = module->enums[i];
+		AST::Enum* en = module->enums[i];
 		if (strcmp(en->name, name) == 0)
 		{
 			return en;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstEnum* FindEnum(Resolver* resolver, const char* name)
+AST::Enum* FindEnum(Resolver* resolver, const char* name)
 {
-	if (AstEnum* en = FindEnumInModule(resolver, resolver->file, name))
+	if (AST::Enum* en = FindEnumInFile(resolver, resolver->currentFile, name))
 	{
 		return en;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	for (int i = 0; i < ns->files.size; i++)
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstEnum* en = FindEnumInModule(resolver, module, name))
+		if (AST::Enum* en = FindEnumInFile(resolver, file, name))
 		{
-			if (en->visibility >= VISIBILITY_PUBLIC)
+			if (en->visibility >= AST::Visibility::Public)
 				return en;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Enum '%s' is not visible", en->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Enum '%s' is not visible", en->name);
+				return nullptr;
 			}
 		}
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		for (int j = 0; j < dependency->files.size; j++)
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::File* file = dependency->file)
 		{
-			AstFile* module = dependency->files[j];
-			if (AstEnum* en = FindEnumInModule(resolver, module, name))
+			if (AST::Enum* en = FindEnumInFile(resolver, file, name))
 			{
-				if (en->visibility >= VISIBILITY_PUBLIC)
+				if (en->visibility >= AST::Visibility::Public)
 					return en;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Enum '%s' is not visible", en->name);
-					return NULL;
+					SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Enum '%s' is not visible", en->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-static AstExprdef* FindExprdefInModule(Resolver* resolver, AstFile* module, const char* name)
+static AST::Exprdef* FindExprdefInFile(Resolver* resolver, AST::File* module, const char* name)
 {
 	for (int i = 0; i < module->exprdefs.size; i++)
 	{
-		AstExprdef* ed = module->exprdefs[i];
+		AST::Exprdef* ed = module->exprdefs[i];
 		if (strcmp(ed->name, name) == 0)
 		{
 			return ed;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-AstExprdef* FindExprdef(Resolver* resolver, const char* name)
+AST::Exprdef* FindExprdef(Resolver* resolver, const char* name)
 {
-	if (AstExprdef* ed = FindExprdefInModule(resolver, resolver->file, name))
+	if (AST::Exprdef* ed = FindExprdefInFile(resolver, resolver->currentFile, name))
 	{
 		return ed;
 	}
 
-	AstModule* ns = resolver->file->moduleDecl ? resolver->file->moduleDecl->ns : resolver->globalNamespace;
-	for (int i = 0; i < ns->files.size; i++)
+	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
+	if (AST::File* file = module->file)
 	{
-		AstFile* module = ns->files[i];
-		if (AstExprdef* ed = FindExprdefInModule(resolver, module, name))
+		if (AST::Exprdef* ed = FindExprdefInFile(resolver, file, name))
 		{
-			if (ed->visibility >= VISIBILITY_PUBLIC)
+			if (ed->visibility >= AST::Visibility::Public)
 				return ed;
 			else
 			{
-				SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Exprdef '%s' is not visible", ed->name);
-				return NULL;
+				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Exprdef '%s' is not visible", ed->name);
+				return nullptr;
 			}
 		}
 	}
-	for (int i = 0; i < resolver->file->dependencies.size; i++)
+	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
-		AstModule* dependency = resolver->file->dependencies[i];
-		for (int j = 0; j < dependency->files.size; j++)
+		AST::Module* dependency = resolver->currentFile->dependencies[i];
+		if (AST::File* file = dependency->file)
 		{
-			AstFile* module = dependency->files[j];
-			if (AstExprdef* ed = FindExprdefInModule(resolver, module, name))
+			if (AST::Exprdef* ed = FindExprdefInFile(resolver, file, name))
 			{
-				if (ed->visibility >= VISIBILITY_PUBLIC)
+				if (ed->visibility >= AST::Visibility::Public)
 					return ed;
 				else
 				{
-					SnekError(resolver->context, resolver->currentElement->inputState, ERROR_CODE_NON_VISIBLE_DECLARATION, "Exprdef '%s' is not visible", ed->name);
-					return NULL;
+					SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Exprdef '%s' is not visible", ed->name);
+					return nullptr;
 				}
 			}
 		}
 	}
-	return NULL;
+	return nullptr;
 }

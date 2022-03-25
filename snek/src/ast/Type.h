@@ -4,6 +4,8 @@
 
 #include "List.h"
 
+#include <stdint.h>
+
 
 typedef struct TypeData* TypeID;
 
@@ -54,7 +56,7 @@ namespace AST
 		bool isSigned;
 
 
-		IntegerType(File* file, const SourceLocation& location);
+		IntegerType(File* file, const SourceLocation& location, int bitWidth, bool isSigned);
 
 		virtual Element* copy() override;
 	};
@@ -64,7 +66,7 @@ namespace AST
 		int bitWidth;
 
 
-		FloatingPointType(File* file, const SourceLocation& location);
+		FloatingPointType(File* file, const SourceLocation& location, int bitWidth);
 
 		virtual Element* copy() override;
 	};

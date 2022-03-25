@@ -16,6 +16,8 @@ StringBuffer CreateStringBuffer(int capacity) {
 	buffer.length = 0;
 	buffer.capacity = capacity;
 
+	buffer.buffer[0] = 0;
+
 	return buffer;
 }
 
@@ -47,7 +49,7 @@ void StringBufferAppend(StringBuffer& buffer, const char* str) {
 
 void StringBufferAppend(StringBuffer& buffer, char c) {
 	if (buffer.length + 1 > buffer.capacity) {
-		StringBufferResize(buffer, buffer.capacity + 1 + max(buffer.capacity / 2, 1));
+		StringBufferResize(buffer, buffer.capacity + max(buffer.capacity / 2, 1));
 	}
 	buffer.buffer[buffer.length++] = c;
 	buffer.buffer[buffer.length] = 0;

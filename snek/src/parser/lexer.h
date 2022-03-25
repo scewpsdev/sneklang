@@ -130,5 +130,6 @@ void DestroyLexer(Lexer* lexer);
 Token LexerNext(Lexer* lexer);
 Token LexerPeek(Lexer* lexer, int offset = 0);
 bool LexerHasNext(Lexer* lexer);
+bool LexerNextIsWhitespace(Lexer* lexer);
 
 char* GetTokenString(Token token);

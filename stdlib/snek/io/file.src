@@ -1,10 +1,10 @@
-module std.io;
+module snek.io;
 namespace File;
 
 import stdc.stdio;
 
 
-public string ReadText(string path)
+public string readText(string path)
 {
 	FILE* file = fopen(path, "r");
 	if (file == null)
@@ -33,7 +33,7 @@ public string ReadText(string path)
 	}
 }
 
-public byte* ReadBinary(string path, int* out_length)
+public byte* readBinary(string path, int* out_length)
 {
 	FILE* file = fopen(path, "rb");
 	if (file == null)

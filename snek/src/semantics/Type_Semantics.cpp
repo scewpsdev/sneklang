@@ -1,8 +1,11 @@
 #include "Type.h"
 
 #include "log.h"
-#include "ast.h"
 #include "resolver.h"
+
+#include "ast/File.h"
+#include "ast/Declaration.h"
+#include "ast/Statement.h"
 
 #include <map>
 #include "..\ast\Type.h"
@@ -53,23 +56,23 @@ TypeDataStorage types;
 static TypeData CreateVoidTypeData()
 {
 	TypeData data = {};
-	data.typeKind = TYPE_KIND_VOID;
+	data.typeKind = AST::TypeKind::Void;
 	return data;
 }
 
 static TypeData CreateIntegerTypeData(int bitWidth, bool isSigned)
 {
 	TypeData data = {};
-	data.typeKind = TYPE_KIND_INTEGER;
+	data.typeKind = AST::TypeKind::Integer;
 	data.integerType.bitWidth = bitWidth;
 	data.integerType.isSigned = isSigned;
 	return data;
 }
 
-static TypeData CreateFPTypeData(FPTypePrecision precision)
+static TypeData CreateFPTypeData(FloatingPointPrecision precision)
 {
 	TypeData data = {};
-	data.typeKind = TYPE_KIND_FP;
+	data.typeKind = AST::TypeKind::FloatingPoint;
 	data.fpType.precision = precision;
 	return data;
 }
@@ -77,14 +80,14 @@ static TypeData CreateFPTypeData(FPTypePrecision precision)
 static TypeData CreateBoolTypeData()
 {
 	TypeData data = {};
-	data.typeKind = TYPE_KIND_BOOL;
+	data.typeKind = AST::TypeKind::Boolean;
 	return data;
 }
 
 static TypeData CreateStringTypeData()
 {
 	TypeData data = {};
-	data.typeKind = TYPE_KIND_STRING;
+	data.typeKind = AST::TypeKind::String;
 	return data;
 }
 
@@ -103,10 +106,10 @@ static void InitPrimitiveTypes()
 	types.primitiveTypes[TYPE_DATA_INDEX_UINT32] = CreateIntegerTypeData(32, false);
 	types.primitiveTypes[TYPE_DATA_INDEX_UINT64] = CreateIntegerTypeData(64, false);
 
-	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT16] = CreateFPTypeData(FP_PRECISION_HALF);
-	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT32] = CreateFPTypeData(FP_PRECISION_SINGLE);
-	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT64] = CreateFPTypeData(FP_PRECISION_DOUBLE);
-	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT128] = CreateFPTypeData(FP_PRECISION_FP128);
+	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT16] = CreateFPTypeData(FloatingPointPrecision::Half);
+	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT32] = CreateFPTypeData(FloatingPointPrecision::Single);
+	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT64] = CreateFPTypeData(FloatingPointPrecision::Double);
+	types.primitiveTypes[TYPE_DATA_INDEX_FLOAT128] = CreateFPTypeData(FloatingPointPrecision::Quad);
 
 	types.primitiveTypes[TYPE_DATA_INDEX_BOOL] = CreateBoolTypeData();
 
@@ -124,10 +127,10 @@ static void InitPrimitiveTypes()
 	types.typeStrings.emplace(GetIntegerType(32, false), TypeToString(GetIntegerType(32, false)));
 	types.typeStrings.emplace(GetIntegerType(64, false), TypeToString(GetIntegerType(64, false)));
 
-	types.typeStrings.emplace(GetFPType(FP_PRECISION_HALF), TypeToString(GetFPType(FP_PRECISION_HALF)));
-	types.typeStrings.emplace(GetFPType(FP_PRECISION_SINGLE), TypeToString(GetFPType(FP_PRECISION_SINGLE)));
-	types.typeStrings.emplace(GetFPType(FP_PRECISION_DOUBLE), TypeToString(GetFPType(FP_PRECISION_DOUBLE)));
-	types.typeStrings.emplace(GetFPType(FP_PRECISION_FP128), TypeToString(GetFPType(FP_PRECISION_FP128)));
+	types.typeStrings.emplace(GetFloatingPointType(FloatingPointPrecision::Half), TypeToString(GetFloatingPointType(FloatingPointPrecision::Half)));
+	types.typeStrings.emplace(GetFloatingPointType(FloatingPointPrecision::Single), TypeToString(GetFloatingPointType(FloatingPointPrecision::Single)));
+	types.typeStrings.emplace(GetFloatingPointType(FloatingPointPrecision::Double), TypeToString(GetFloatingPointType(FloatingPointPrecision::Double)));
+	types.typeStrings.emplace(GetFloatingPointType(FloatingPointPrecision::Quad), TypeToString(GetFloatingPointType(FloatingPointPrecision::Quad)));
 
 	types.typeStrings.emplace(GetBoolType(), TypeToString(GetBoolType()));
 
@@ -177,14 +180,14 @@ TypeID GetIntegerType(int bitWidth, bool isSigned)
 	return NULL;
 }
 
-TypeID GetFPType(FPTypePrecision precision)
+TypeID GetFloatingPointType(FloatingPointPrecision precision)
 {
 	switch (precision)
 	{
-	case FP_PRECISION_HALF: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT16];
-	case FP_PRECISION_SINGLE: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT32];
-	case FP_PRECISION_DOUBLE: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT64];
-	case FP_PRECISION_FP128: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT128];
+	case FloatingPointPrecision::Half: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT16];
+	case FloatingPointPrecision::Single: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT32];
+	case FloatingPointPrecision::Double: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT64];
+	case FloatingPointPrecision::Quad: return &types.primitiveTypes[TYPE_DATA_INDEX_FLOAT128];
 	default:
 		SnekAssert(false);
 		return NULL;
@@ -201,10 +204,10 @@ TypeID GetStringType()
 	return &types.primitiveTypes[TYPE_DATA_INDEX_STRING];
 }
 
-TypeID GetStructType(const char* structName, struct AstStruct* declaration)
+TypeID GetStructType(const char* structName, AST::Struct* declaration)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_STRUCT;
+	data->typeKind = AST::TypeKind::Struct;
 
 	data->structType.name = structName;
 	data->structType.declaration = declaration;
@@ -217,7 +220,7 @@ TypeID GetStructType(const char* structName, struct AstStruct* declaration)
 TypeID GetStructType(int numValues, TypeID* valueTypes)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_STRUCT;
+	data->typeKind = AST::TypeKind::Struct;
 
 	data->structType.name = NULL;
 	data->structType.numFields = numValues;
@@ -230,10 +233,10 @@ TypeID GetStructType(int numValues, TypeID* valueTypes)
 	return data;
 }
 
-TypeID GetClassType(const char* className, struct AstClass* declaration)
+TypeID GetClassType(const char* className, AST::Class* declaration)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_CLASS;
+	data->typeKind = AST::TypeKind::Class;
 
 	data->classType.name = className;
 	data->classType.declaration = declaration;
@@ -243,10 +246,10 @@ TypeID GetClassType(const char* className, struct AstClass* declaration)
 	return data;
 }
 
-TypeID GetAliasType(const char* name, AstDeclaration* declaration)
+TypeID GetAliasType(const char* name, AST::Declaration* declaration)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_ALIAS;
+	data->typeKind = AST::TypeKind::Alias;
 
 	data->aliasType.name = name;
 	data->aliasType.declaration = declaration;
@@ -259,7 +262,7 @@ TypeID GetAliasType(const char* name, AstDeclaration* declaration)
 TypeID GetPointerType(TypeID elementType)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_POINTER;
+	data->typeKind = AST::TypeKind::Pointer;
 	data->pointerType.elementType = elementType;
 
 	types.pointerTypes.add(data);
@@ -267,10 +270,10 @@ TypeID GetPointerType(TypeID elementType)
 	return data;
 }
 
-TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, struct AstFunction* declaration)
+TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, AST::Function* declaration)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_FUNCTION;
+	data->typeKind = AST::TypeKind::Function;
 	data->functionType.returnType = returnType;
 	data->functionType.numParams = numParams;
 	data->functionType.paramTypes = paramTypes;
@@ -286,7 +289,7 @@ TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, boo
 TypeID GetArrayType(TypeID elementType, int length)
 {
 	TypeData* data = new TypeData;
-	data->typeKind = TYPE_KIND_ARRAY;
+	data->typeKind = AST::TypeKind::Array;
 	data->arrayType.elementType = elementType;
 	data->arrayType.length = length;
 
@@ -297,7 +300,7 @@ TypeID GetArrayType(TypeID elementType, int length)
 
 TypeID UnwrapType(TypeID type)
 {
-	while (type->typeKind == TYPE_KIND_ALIAS)
+	while (type->typeKind == AST::TypeKind::Alias)
 		type = type->aliasType.alias;
 	return type;
 }
@@ -312,15 +315,15 @@ bool CompareTypes(TypeID t1, TypeID t2)
 
 	switch (t1->typeKind)
 	{
-	case TYPE_KIND_VOID:
+	case AST::TypeKind::Void:
 		return true;
-	case TYPE_KIND_INTEGER:
+	case AST::TypeKind::Integer:
 		return t1->integerType.bitWidth == t2->integerType.bitWidth && t1->integerType.isSigned == t2->integerType.isSigned;
-	case TYPE_KIND_FP:
+	case AST::TypeKind::FloatingPoint:
 		return t1->fpType.precision == t2->fpType.precision;
-	case TYPE_KIND_BOOL:
+	case AST::TypeKind::Boolean:
 		return true;
-	case TYPE_KIND_STRUCT:
+	case AST::TypeKind::Struct:
 		if (strcmp(t1->structType.name, t2->structType.name) == 0 && t1->structType.numFields == t2->structType.numFields)
 		{
 			if (t1->structType.declaration != t2->structType.declaration)
@@ -335,7 +338,7 @@ bool CompareTypes(TypeID t1, TypeID t2)
 			return true;
 		}
 		return false;
-	case TYPE_KIND_CLASS:
+	case AST::TypeKind::Class:
 		if (strcmp(t1->classType.name, t2->classType.name) == 0 && t1->classType.numFields == t2->classType.numFields)
 		{
 			for (int i = 0; i < t1->classType.numFields; i++)
@@ -346,16 +349,16 @@ bool CompareTypes(TypeID t1, TypeID t2)
 			return true;
 		}
 		return false;
-	case TYPE_KIND_ALIAS:
+	case AST::TypeKind::Alias:
 		if (strcmp(t1->aliasType.name, t2->aliasType.name) == 0)
 		{
 			if (CompareTypes(t1->aliasType.alias, t2->aliasType.alias))
 				return true;
 		}
 		return false;
-	case TYPE_KIND_POINTER:
+	case AST::TypeKind::Pointer:
 		return CompareTypes(t1->pointerType.elementType, t2->pointerType.elementType);
-	case TYPE_KIND_FUNCTION:
+	case AST::TypeKind::Function:
 		if (CompareTypes(t1->functionType.returnType, t2->functionType.returnType) && t1->functionType.numParams == t2->functionType.numParams)
 		{
 			for (int i = 0; i < t1->functionType.numParams; i++)
@@ -366,9 +369,9 @@ bool CompareTypes(TypeID t1, TypeID t2)
 			return true;
 		}
 		return false;
-	case TYPE_KIND_ARRAY:
+	case AST::TypeKind::Array:
 		return CompareTypes(t1->arrayType.elementType, t2->arrayType.elementType) && t1->arrayType.length == t2->arrayType.length;
-	case TYPE_KIND_STRING:
+	case AST::TypeKind::String:
 		return true;
 
 	default:
@@ -381,9 +384,9 @@ static char* TypeToString(TypeID type)
 {
 	switch (type->typeKind)
 	{
-	case TYPE_KIND_VOID:
+	case AST::TypeKind::Void:
 		return _strdup("void");
-	case TYPE_KIND_INTEGER:
+	case AST::TypeKind::Integer:
 		if (type->integerType.isSigned)
 		{
 			switch (type->integerType.bitWidth)
@@ -410,23 +413,23 @@ static char* TypeToString(TypeID type)
 				return NULL;
 			}
 		}
-	case TYPE_KIND_FP:
+	case AST::TypeKind::FloatingPoint:
 		switch (type->fpType.precision)
 		{
-		case FP_PRECISION_HALF: return _strdup("float16");
-		case FP_PRECISION_SINGLE: return _strdup("float32");
-		case FP_PRECISION_DOUBLE: return _strdup("float64");
-		case FP_PRECISION_FP128: return _strdup("float128");
+		case FloatingPointPrecision::Half: return _strdup("float16");
+		case FloatingPointPrecision::Single: return _strdup("float32");
+		case FloatingPointPrecision::Double: return _strdup("float64");
+		case FloatingPointPrecision::Quad: return _strdup("float128");
 		}
-	case TYPE_KIND_BOOL:
+	case AST::TypeKind::Boolean:
 		return _strdup("bool");
-	case TYPE_KIND_STRUCT:
+	case AST::TypeKind::Struct:
 		return _strdup(type->structType.name);
-	case TYPE_KIND_CLASS:
+	case AST::TypeKind::Class:
 		return _strdup(type->classType.name);
-	case TYPE_KIND_ALIAS:
+	case AST::TypeKind::Alias:
 		return _strdup(type->aliasType.name);
-	case TYPE_KIND_POINTER:
+	case AST::TypeKind::Pointer:
 	{
 		const char* elementTypeStr = GetTypeString(type->pointerType.elementType);
 		int len = (int)strlen(elementTypeStr) + 1;
@@ -437,7 +440,7 @@ static char* TypeToString(TypeID type)
 
 		return str;
 	}
-	case TYPE_KIND_FUNCTION:
+	case AST::TypeKind::Function:
 	{
 		const char* returnTypeStr = GetTypeString(type->functionType.returnType);
 		int len = (int)strlen(returnTypeStr) + 2; // '()'
@@ -471,7 +474,7 @@ static char* TypeToString(TypeID type)
 
 		return str;
 	}
-	case TYPE_KIND_ARRAY:
+	case AST::TypeKind::Array:
 	{
 		const char* elementTypeStr = GetTypeString(type->arrayType.elementType);
 		int len = (int)strlen(elementTypeStr) + 2; // []
@@ -490,7 +493,7 @@ static char* TypeToString(TypeID type)
 
 		return str;
 	}
-	case TYPE_KIND_STRING:
+	case AST::TypeKind::String:
 		return _strdup("string");
 
 	default:

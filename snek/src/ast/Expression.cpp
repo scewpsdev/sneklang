@@ -2,6 +2,8 @@
 
 #include "log.h"
 
+#include "semantics/Variable.h"
+
 #include <stdint.h>
 
 
@@ -244,14 +246,14 @@ namespace AST
 	}
 
 	FunctionCall::FunctionCall(File* file, const SourceLocation& location, Expression* callee, const List<Expression*>& arguments, bool isGenericCall, const List<Type*>& genericArgs)
-		: Expression(file, location, ExpressionType::FunctionCall), calleeExpr(callee), arguments(arguments), isGenericCall(isGenericCall), genericArgs(genericArgs)
+		: Expression(file, location, ExpressionType::FunctionCall), callee(callee), arguments(arguments), isGenericCall(isGenericCall), genericArgs(genericArgs)
 	{
 	}
 
 	FunctionCall::~FunctionCall()
 	{
-		if (calleeExpr)
-			delete calleeExpr;
+		if (callee)
+			delete callee;
 		for (int i = 0; i < arguments.size; i++)
 		{
 			if (arguments[i])
@@ -266,6 +268,7 @@ namespace AST
 					delete genericArgs[i];
 			}
 			DestroyList(genericArgs);
+			delete function;
 		}
 	}
 
@@ -283,7 +286,7 @@ namespace AST
 				genericArgsCopy.add((Type*)genericArgs[i]->copy());
 		}
 
-		return new FunctionCall(file, location, (Expression*)calleeExpr->copy(), argumentsCopy, isGenericCall, genericArgsCopy);
+		return new FunctionCall(file, location, (Expression*)callee->copy(), argumentsCopy, isGenericCall, genericArgsCopy);
 	}
 
 	SubscriptOperator::SubscriptOperator(File* file, const SourceLocation& location, Expression* operand, const List<Expression*>& arguments)
@@ -364,8 +367,8 @@ namespace AST
 		return new Sizeof(file, location, (Type*)dstType->copy());
 	}
 
-	Malloc::Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count)
-		: Expression(file, location, ExpressionType::Malloc), dstType(dstType), count(count)
+	Malloc::Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count, bool hasArguments, const List<Expression*>& arguments)
+		: Expression(file, location, ExpressionType::Malloc), dstType(dstType), count(count), hasArguments(hasArguments), arguments(arguments)
 	{
 	}
 
@@ -379,7 +382,15 @@ namespace AST
 
 	Element* Malloc::copy()
 	{
-		return new Malloc(file, location, (Type*)dstType->copy(), count ? (Expression*)count->copy() : nullptr);
+		List<Expression*> argumentsCopy;
+		if (hasArguments)
+		{
+			argumentsCopy = CreateList<Expression*>(arguments.size);
+			for (int i = 0; i < arguments.size; i++)
+				argumentsCopy.add((Expression*)arguments[i]->copy());
+		}
+
+		return new Malloc(file, location, (Type*)dstType->copy(), count ? (Expression*)count->copy() : nullptr, hasArguments, argumentsCopy);
 	}
 
 	UnaryOperator::UnaryOperator(File* file, const SourceLocation& location, Expression* operand, UnaryOperatorType operatorType, bool position)

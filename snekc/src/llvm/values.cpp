@@ -1,9 +1,10 @@
 #include "values.h"
 
-#include "ast.h"
 #include "llvm_backend.h"
 #include "debug.h"
 #include "log.h"
+
+#include "ast/File.h"
 
 
 LLVMValueRef CastInt(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type, TypeID valueType)
@@ -31,17 +32,17 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 	LLVMTypeKind vtk = LLVMGetTypeKind(vt);
 	LLVMTypeKind tk = LLVMGetTypeKind(llvmType);
 
-	while (valueType->typeKind == TYPE_KIND_ALIAS)
+	while (valueType->typeKind == AST::TypeKind::Alias)
 		valueType = valueType->aliasType.alias;
-	while (dstType->typeKind == TYPE_KIND_ALIAS)
+	while (dstType->typeKind == AST::TypeKind::Alias)
 		dstType = dstType->aliasType.alias;
 
 	if (CompareTypes(valueType, dstType))
 		return llvmValue;
 
-	if (valueType->typeKind == TYPE_KIND_INTEGER)
+	if (valueType->typeKind == AST::TypeKind::Integer)
 	{
-		if (dstType->typeKind == TYPE_KIND_INTEGER)
+		if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (valueType->integerType.bitWidth > dstType->integerType.bitWidth)
 			{
@@ -59,25 +60,25 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 				return llvmValue;
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_FP)
+		else if (dstType->typeKind == AST::TypeKind::FloatingPoint)
 		{
 			if (valueType->integerType.isSigned)
 				return LLVM_CALL(LLVMBuildSIToFP, module->builder, llvmValue, llvmType, "");
 			else
 				return LLVM_CALL(LLVMBuildUIToFP, module->builder, llvmValue, llvmType, "");
 		}
-		else if (dstType->typeKind == TYPE_KIND_BOOL)
+		else if (dstType->typeKind == AST::TypeKind::Boolean)
 		{
 			return LLVM_CALL(LLVMBuildTrunc, module->builder, llvmValue, llvmType, "");
 		}
-		else if (dstType->typeKind == TYPE_KIND_POINTER)
+		else if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMBuildIntToPtr, module->builder, llvmValue, llvmType, "");
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_FP)
+	else if (valueType->typeKind == AST::TypeKind::FloatingPoint)
 	{
-		if (dstType->typeKind == TYPE_KIND_FP)
+		if (dstType->typeKind == AST::TypeKind::FloatingPoint)
 		{
 			if (valueType->fpType.precision > dstType->fpType.precision)
 			{
@@ -88,7 +89,7 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 				return LLVM_CALL(LLVMBuildFPExt, module->builder, llvmValue, llvmType, "");
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_INTEGER)
+		else if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (dstType->integerType.isSigned)
 				return LLVM_CALL(LLVMBuildFPToSI, module->builder, llvmValue, llvmType, "");
@@ -96,9 +97,9 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 				return LLVM_CALL(LLVMBuildFPToUI, module->builder, llvmValue, llvmType, "");
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_BOOL)
+	else if (valueType->typeKind == AST::TypeKind::Boolean)
 	{
-		if (dstType->typeKind == TYPE_KIND_INTEGER)
+		if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (dstType->integerType.isSigned)
 				return LLVM_CALL(LLVMBuildSExt, module->builder, llvmValue, llvmType, "");
@@ -106,49 +107,49 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 				return LLVM_CALL(LLVMBuildZExt, module->builder, llvmValue, llvmType, "");
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_POINTER)
+	else if (valueType->typeKind == AST::TypeKind::Pointer)
 	{
-		if (dstType->typeKind == TYPE_KIND_POINTER)
+		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
-		else if (dstType->typeKind == TYPE_KIND_CLASS)
+		else if (dstType->typeKind == AST::TypeKind::Class)
 		{
-			if (valueType->pointerType.elementType->typeKind == TYPE_KIND_VOID)
+			if (valueType->pointerType.elementType->typeKind == AST::TypeKind::Void)
 			{
 				return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_FUNCTION)
+		else if (dstType->typeKind == AST::TypeKind::Function)
 		{
-			if (valueType->pointerType.elementType->typeKind == TYPE_KIND_VOID)
+			if (valueType->pointerType.elementType->typeKind == AST::TypeKind::Void)
 			{
 				return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_INTEGER)
+		else if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			return LLVM_CALL(LLVMBuildPtrToInt, module->builder, llvmValue, llvmType, "");
 		}
-		else if (dstType->typeKind == TYPE_KIND_STRING)
+		else if (dstType->typeKind == AST::TypeKind::String)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_FUNCTION)
+	else if (valueType->typeKind == AST::TypeKind::Function)
 	{
-		if (dstType->typeKind == TYPE_KIND_FUNCTION)
+		if (dstType->typeKind == AST::TypeKind::Function)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
-		else if (dstType->typeKind == TYPE_KIND_POINTER)
+		else if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_STRING)
+	else if (valueType->typeKind == AST::TypeKind::String)
 	{
-		if (dstType->typeKind == TYPE_KIND_POINTER)
+		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
@@ -166,17 +167,17 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 	LLVMTypeKind vtk = LLVMGetTypeKind(vt);
 	LLVMTypeKind tk = LLVMGetTypeKind(llvmType);
 
-	while (valueType->typeKind == TYPE_KIND_ALIAS)
+	while (valueType->typeKind == AST::TypeKind::Alias)
 		valueType = valueType->aliasType.alias;
-	while (dstType->typeKind == TYPE_KIND_ALIAS)
+	while (dstType->typeKind == AST::TypeKind::Alias)
 		dstType = dstType->aliasType.alias;
 
 	if (CompareTypes(valueType, dstType))
 		return llvmValue;
 
-	if (valueType->typeKind == TYPE_KIND_INTEGER)
+	if (valueType->typeKind == AST::TypeKind::Integer)
 	{
-		if (dstType->typeKind == TYPE_KIND_INTEGER)
+		if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (valueType->integerType.bitWidth > dstType->integerType.bitWidth)
 			{
@@ -194,25 +195,25 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 				return llvmValue;
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_FP)
+		else if (dstType->typeKind == AST::TypeKind::FloatingPoint)
 		{
 			if (valueType->integerType.isSigned)
 				return LLVM_CALL(LLVMConstSIToFP, llvmValue, llvmType);
 			else
 				return LLVM_CALL(LLVMConstUIToFP, llvmValue, llvmType);
 		}
-		else if (dstType->typeKind == TYPE_KIND_BOOL)
+		else if (dstType->typeKind == AST::TypeKind::Boolean)
 		{
 			return LLVM_CALL(LLVMConstTrunc, llvmValue, llvmType);
 		}
-		else if (dstType->typeKind == TYPE_KIND_POINTER)
+		else if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMConstIntToPtr, llvmValue, llvmType);
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_FP)
+	else if (valueType->typeKind == AST::TypeKind::FloatingPoint)
 	{
-		if (dstType->typeKind == TYPE_KIND_FP)
+		if (dstType->typeKind == AST::TypeKind::FloatingPoint)
 		{
 			if (valueType->fpType.precision > dstType->fpType.precision)
 			{
@@ -223,7 +224,7 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 				return LLVM_CALL(LLVMConstFPExt, llvmValue, llvmType);
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_INTEGER)
+		else if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (dstType->integerType.isSigned)
 				return LLVM_CALL(LLVMConstFPToSI, llvmValue, llvmType);
@@ -231,9 +232,9 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 				return LLVM_CALL(LLVMConstFPToUI, llvmValue, llvmType);
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_BOOL)
+	else if (valueType->typeKind == AST::TypeKind::Boolean)
 	{
-		if (dstType->typeKind == TYPE_KIND_INTEGER)
+		if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (dstType->integerType.isSigned)
 				return LLVM_CALL(LLVMConstSExt, llvmValue, llvmType);
@@ -241,49 +242,49 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 				return LLVM_CALL(LLVMConstZExt, llvmValue, llvmType);
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_POINTER)
+	else if (valueType->typeKind == AST::TypeKind::Pointer)
 	{
-		if (dstType->typeKind == TYPE_KIND_POINTER)
+		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 		}
-		else if (dstType->typeKind == TYPE_KIND_CLASS)
+		else if (dstType->typeKind == AST::TypeKind::Class)
 		{
-			if (valueType->pointerType.elementType->typeKind == TYPE_KIND_VOID)
+			if (valueType->pointerType.elementType->typeKind == AST::TypeKind::Void)
 			{
 				return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_FUNCTION)
+		else if (dstType->typeKind == AST::TypeKind::Function)
 		{
-			if (valueType->pointerType.elementType->typeKind == TYPE_KIND_VOID)
+			if (valueType->pointerType.elementType->typeKind == AST::TypeKind::Void)
 			{
 				return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 			}
 		}
-		else if (dstType->typeKind == TYPE_KIND_INTEGER)
+		else if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			return LLVM_CALL(LLVMConstPtrToInt, llvmValue, llvmType);
 		}
-		else if (dstType->typeKind == TYPE_KIND_STRING)
+		else if (dstType->typeKind == AST::TypeKind::String)
 		{
 			return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_FUNCTION)
+	else if (valueType->typeKind == AST::TypeKind::Function)
 	{
-		if (dstType->typeKind == TYPE_KIND_FUNCTION)
+		if (dstType->typeKind == AST::TypeKind::Function)
 		{
 			return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 		}
-		else if (dstType->typeKind == TYPE_KIND_POINTER)
+		else if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 		}
 	}
-	else if (valueType->typeKind == TYPE_KIND_STRING)
+	else if (valueType->typeKind == AST::TypeKind::String)
 	{
-		if (dstType->typeKind == TYPE_KIND_POINTER)
+		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 		}

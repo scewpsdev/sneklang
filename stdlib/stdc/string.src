@@ -1,4 +1,4 @@
-module stdc.string;
+module stdc;
 
 import stdc.stdlib;
 

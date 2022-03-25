@@ -1,11 +1,19 @@
 #include "generics.h"
 
-#include "ast.h"
+#include "semantics/Resolver.h"
 #include "function.h"
 
+#include "ast/File.h"
 
-LLVMValueRef GenGenericFunctionInstance(LLVMBackend* llb, SkModule* module, AstFunction* function, List<LLVMTypeRef>& genericArgs, TypeID& functionType)
+
+LLVMValueRef GenGenericFunctionInstance(LLVMBackend* llb, SkModule* module, AST::Function* function, List<LLVMTypeRef>& genericArgs, TypeID& functionType)
 {
+	LLVMValueRef llvmValue = GenFunctionHeader(llb, module, function);
+	GenFunction(llb, module, function);
+
+	return llvmValue;
+
+	/*
 	LLVMLinkage linkage = LLVMPrivateLinkage;
 
 	LLVMTypeRef returnType = GenType(llb, module, function->returnType);
@@ -18,23 +26,24 @@ LLVMValueRef GenGenericFunctionInstance(LLVMBackend* llb, SkModule* module, AstF
 	}
 
 	LLVMValueRef llvmValue = CreateFunction(llb, module, function->mangledName, returnType, paramTypes, function->varArgs, false, linkage, module->llvmModule);
+	*/
 
 	// TODO add to map
 	//module->functionValues.emplace(decl, llvmValue);
 
+	/*
 	GenericData genericData = {};
 	for (int i = 0; i < function->genericParams.size; i++)
 	{
 		genericData.types.emplace(function->genericParams[i], genericArgs[i]);
 	}
+	*/
 
-	module->genericData.push(std::move(genericData));
+	//module->genericData.push(std::move(genericData));
 
-	// TODO resolve function
+	//GenerateFunctionBody(llb, module, function, llvmValue);
 
-	GenerateFunctionBody(llb, module, function, llvmValue);
+	//module->genericData.pop();
 
-	module->genericData.pop();
-
-	return llvmValue;
+	//return llvmValue;
 }
