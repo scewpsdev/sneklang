@@ -11,6 +11,7 @@ typedef struct TypeData* TypeID;
 
 namespace AST
 {
+	struct Declaration;
 	struct Expression;
 
 	enum class TypeKind : uint8_t
@@ -82,13 +83,14 @@ namespace AST
 	{
 		char* name;
 
-		struct Struct* structDecl = nullptr;
-		struct Class* classDecl = nullptr;
-		struct Typedef* typedefDecl = nullptr;
-		struct Enum* enumDecl = nullptr;
+		bool hasGenericArgs;
+		List<Type*> genericArgs;
+
+		Declaration* declaration = nullptr;
 
 
-		NamedType(File* file, const SourceLocation& location, char* name);
+		NamedType(File* file, const SourceLocation& location, char* name, bool hasGenericArgs, const List<Type*>& genericArgs);
+		~NamedType();
 
 		virtual Element* copy() override;
 	};

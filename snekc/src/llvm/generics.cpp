@@ -47,3 +47,11 @@ LLVMValueRef GenGenericFunctionInstance(LLVMBackend* llb, SkModule* module, AST:
 
 	//return llvmValue;
 }
+
+LLVMTypeRef GenGenericStructInstance(LLVMBackend* llb, SkModule* module, AST::Struct* str, List<LLVMTypeRef>& genericArgs)
+{
+	LLVMTypeRef llvmType = GenStructHeader(llb, module, str);
+	GenStruct(llb, module, str);
+
+	return llvmType;
+}

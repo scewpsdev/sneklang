@@ -75,7 +75,7 @@ namespace AST
 
 	Element* VariableDeclarator::copy()
 	{
-		return new VariableDeclarator(file, location, _strdup(name), (Expression*)value->copy());
+		return new VariableDeclarator(file, location, _strdup(name), value ? (Expression*)value->copy() : nullptr);
 	}
 
 	VariableDeclaration::VariableDeclaration(File* file, const SourceLocation& location, Type* type, bool isConstant, List<VariableDeclarator*>& declarators)

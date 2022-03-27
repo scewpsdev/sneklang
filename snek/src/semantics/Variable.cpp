@@ -32,6 +32,18 @@ void Resolver::registerGlobalVariable(Variable* variable, AST::GlobalVariable* g
 	variable->declaration = global;
 }
 
+TypeID Resolver::getGenericTypeArgument(const char* name)
+{
+	if (TypeID type = currentFunction->getGenericTypeArgument(name))
+		return type;
+	if (currentStruct)
+	{
+		if (TypeID type = currentStruct->getGenericTypeArgument(name))
+			return type;
+	}
+	return nullptr;
+}
+
 Variable* Resolver::findLocalVariableInScope(const char* name, Scope* scope, bool recursive)
 {
 	if (!scope)

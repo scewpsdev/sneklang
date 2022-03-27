@@ -37,8 +37,9 @@ struct Resolver
 	AST::Module* globalNamespace = nullptr;
 
 	AST::File* currentFile = nullptr;
-	AST::Function* currentFunction = nullptr;
 	AST::Element* currentElement = nullptr;
+	AST::Function* currentFunction = nullptr;
+	AST::Struct* currentStruct = nullptr;
 	//AstStatement* currentStatement;
 	//AstExpression* currentExpression;
 
@@ -56,6 +57,8 @@ struct Resolver
 
 	void registerLocalVariable(Variable* variable, AST::Element* declaration);
 	void registerGlobalVariable(Variable* variable, AST::GlobalVariable* global);
+
+	TypeID getGenericTypeArgument(const char* name);
 
 	Variable* findLocalVariableInScope(const char* name, Scope* scope, bool recursive);
 	Variable* findGlobalVariableInFile(const char* name, AST::File* file);

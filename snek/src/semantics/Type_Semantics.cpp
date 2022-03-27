@@ -2,6 +2,7 @@
 
 #include "log.h"
 #include "resolver.h"
+#include "stringbuffer.h"
 
 #include "ast/File.h"
 #include "ast/Declaration.h"
@@ -326,6 +327,25 @@ bool CompareTypes(TypeID t1, TypeID t2)
 	case AST::TypeKind::Struct:
 		if (strcmp(t1->structType.name, t2->structType.name) == 0 && t1->structType.numFields == t2->structType.numFields)
 		{
+			if (t1->structType.declaration->isGenericInstance != t2->structType.declaration->isGenericInstance)
+				return false;
+
+			if (t1->structType.declaration->isGenericInstance && t2->structType.declaration->isGenericInstance)
+			{
+				if (t1->structType.declaration->genericParams.size == t1->structType.declaration->genericParams.size)
+				{
+					for (int i = 0; i < t1->structType.declaration->genericTypeArguments.size; i++)
+					{
+						if (!CompareTypes(t1->structType.declaration->genericTypeArguments[i], t2->structType.declaration->genericTypeArguments[i]))
+							return false;
+					}
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
 			if (t1->structType.declaration != t2->structType.declaration)
 				return false;
 			/*
@@ -424,7 +444,25 @@ static char* TypeToString(TypeID type)
 	case AST::TypeKind::Boolean:
 		return _strdup("bool");
 	case AST::TypeKind::Struct:
-		return _strdup(type->structType.name);
+	{
+		StringBuffer result = CreateStringBuffer(8);
+		StringBufferAppend(result, type->structType.name);
+
+		if (type->structType.declaration && type->structType.declaration->isGenericInstance)
+		{
+			StringBufferAppend(result, '<');
+			for (int i = 0; i < type->structType.declaration->genericTypeArguments.size; i++)
+			{
+				const char* argString = GetTypeString(type->structType.declaration->genericTypeArguments[i]);
+				StringBufferAppend(result, argString);
+				if (i < type->structType.declaration->genericTypeArguments.size - 1)
+					StringBufferAppend(result, ',');
+			}
+			StringBufferAppend(result, '>');
+		}
+
+		return result.buffer;
+	}
 	case AST::TypeKind::Class:
 		return _strdup(type->classType.name);
 	case AST::TypeKind::Alias:

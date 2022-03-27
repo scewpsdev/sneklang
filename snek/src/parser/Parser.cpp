@@ -117,6 +117,7 @@ static void SkipPastStatement(Parser* parser)
 	NextToken(parser); // ;
 }
 
+static AST::Type* ParseType(Parser* parser);
 static AST::Expression* ParseExpression(Parser* parser, int prec = INT32_MAX);
 
 static AST::Type* ParseElementType(Parser* parser)
@@ -160,16 +161,44 @@ static AST::Type* ParseElementType(Parser* parser)
 		case KEYWORD_TYPE_STRING:
 			return new AST::StringType(parser->module, inputState);
 
-		case KEYWORD_TYPE_NULL:
-			return new AST::NamedType(parser->module, inputState, GetTokenString(tok));
+		case KEYWORD_TYPE_NULL: {
+			char* name = GetTokenString(tok);
+
+			bool hasGenericArgs = false;
+			List<AST::Type*> genericArgs;
+
+			if (NextTokenIsWithoutSpaces(parser, TOKEN_TYPE_OP_LESS_THAN))
+			{
+				NextToken(parser); // <
+
+				bool upcomingType = !NextTokenIs(parser, TOKEN_TYPE_OP_GREATER_THAN);
+				while (HasNext(parser) && upcomingType)
+				{
+					hasGenericArgs = true;
+					if (AST::Type* genericArg = ParseType(parser))
+					{
+						genericArgs.add(genericArg);
+
+						upcomingType = NextTokenIs(parser, ',');
+						if (upcomingType)
+							SkipToken(parser, ',');
+					}
+					else
+					{
+						SnekAssert(false);
+					}
+				}
+				NextToken(parser); // >
+			}
+
+			return new AST::NamedType(parser->module, inputState, name, hasGenericArgs, genericArgs);
+		}
 		}
 	}
 
 	SetInputState(parser, inputState);
 	return NULL;
 }
-
-static AST::Type* ParseType(Parser* parser);
 
 static AST::Type* ParseComplexType(Parser* parser, AST::Type* elementType)
 {
@@ -427,17 +456,17 @@ static AST::Expression* ParseArgumentOperator(Parser* parser, AST::Expression* e
 	{
 		List<AST::Expression*> arguments = CreateList<AST::Expression*>();
 
-		bool isGenericCall = false;
-		List<AST::Type*> genericArgs = CreateList<AST::Type*>();
+		bool hasGenericArgs = false;
+		List<AST::Type*> genericArgs;
 
-		if (NextTokenIs(parser, TOKEN_TYPE_OP_LESS_THAN))
+		if (NextTokenIsWithoutSpaces(parser, TOKEN_TYPE_OP_LESS_THAN))
 		{
 			NextToken(parser); // <
 
 			bool upcomingType = !NextTokenIs(parser, TOKEN_TYPE_OP_GREATER_THAN);
 			while (HasNext(parser) && upcomingType)
 			{
-				isGenericCall = true;
+				hasGenericArgs = true;
 				if (AST::Type* genericArg = ParseType(parser))
 				{
 					genericArgs.add(genericArg);
@@ -475,7 +504,7 @@ static AST::Expression* ParseArgumentOperator(Parser* parser, AST::Expression* e
 
 		SkipToken(parser, ')');
 
-		auto expr = new AST::FunctionCall(parser->module, inputState, expression, arguments, isGenericCall, genericArgs);
+		auto expr = new AST::FunctionCall(parser->module, inputState, expression, arguments, hasGenericArgs, genericArgs);
 
 		return ParseArgumentOperator(parser, expr);
 	}
@@ -1241,6 +1270,37 @@ static AST::Declaration* ParseDeclaration(Parser* parser)
 			bool hasBody = false;
 			List<AST::StructField*> fields;
 
+			bool isGeneric = false;
+			List<char*> genericParams;
+
+			if (NextTokenIs(parser, TOKEN_TYPE_OP_LESS_THAN)) // Generic types
+			{
+				NextToken(parser); // <
+
+				isGeneric = true;
+				genericParams = CreateList<char*>();
+
+				bool hasNext = !NextTokenIs(parser, TOKEN_TYPE_OP_GREATER_THAN);
+				while (hasNext)
+				{
+					if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
+					{
+						char* genericParamName = GetTokenString(NextToken(parser));
+						genericParams.add(genericParamName);
+
+						hasNext = NextTokenIs(parser, ',');
+						if (hasNext)
+							NextToken(parser); // ,
+					}
+					else
+					{
+						SnekAssert(false); // TODO ERROR
+					}
+				}
+
+				SkipToken(parser, TOKEN_TYPE_OP_GREATER_THAN);
+			}
+
 			if (NextTokenIs(parser, '{'))
 			{
 				NextToken(parser); // {
@@ -1299,7 +1359,7 @@ static AST::Declaration* ParseDeclaration(Parser* parser)
 				SkipToken(parser, ';');
 			}
 
-			return new AST::Struct(parser->module, inputState, flags, name, hasBody, fields);
+			return new AST::Struct(parser->module, inputState, flags, name, hasBody, fields, isGeneric, genericParams);
 		}
 	}
 	else if (NextTokenIsKeyword(parser, KEYWORD_TYPE_CLASS))
@@ -1490,7 +1550,7 @@ static AST::Declaration* ParseDeclaration(Parser* parser)
 
 								InputState endInputState = GetInputState(parser);
 
-								AST::Type* constructorReturnType = new AST::NamedType(parser->module, inputState, className);
+								AST::Type* constructorReturnType = new AST::NamedType(parser->module, inputState, className, false, {});
 
 								constructor = new AST::Constructor(parser->module, inputState, flags, endInputState, nullptr, constructorReturnType, paramTypes, paramNames, varArgs, body, false, {});
 							}
@@ -1697,6 +1757,7 @@ static AST::Declaration* ParseDeclaration(Parser* parser)
 		if (NextTokenIs(parser, TOKEN_TYPE_IDENTIFIER))
 		{
 			char* name = GetTokenString(NextToken(parser));
+
 			bool isGeneric = false;
 			List<char*> genericParams;
 

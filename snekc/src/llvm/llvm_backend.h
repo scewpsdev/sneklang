@@ -65,6 +65,7 @@ struct SkModule
 	std::map<AST::GlobalVariable*, LLVMValueRef> globalValues;
 
 	AST::Function* currentFunction = nullptr;
+	AST::Struct* currentStruct = nullptr;
 
 	std::stack<GenericData> genericData;
 };
@@ -81,6 +82,9 @@ void GenStatement(LLVMBackend* llb, SkModule* module, AST::Statement* statement)
 
 LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AST::Function* decl);
 LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AST::Function* decl);
+
+LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl);
+LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AST::Struct* decl);
 
 bool LLVMBackendCompile(LLVMBackend* llb, AST::File** asts, int numModules, const char* filename, const char* buildFolder, bool genDebugInfo, bool emitLLVM, int optLevel);
 bool LLVMLink(LLVMBackend* llb, const char* arg0, const char* filename, bool genDebugInfo, int optLevel, List<const char*>& additionalLibPaths);

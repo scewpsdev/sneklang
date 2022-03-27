@@ -56,7 +56,7 @@ static SkModule* CreateModule(AST::File* ast, bool hasDebugInfo)
 static LLVMTypeRef GenTypeID(LLVMBackend* llb, SkModule* module, TypeID type, AST::Type* ast = NULL);
 static LLVMValueRef GenExpression(LLVMBackend* llb, SkModule* module, AST::Expression* expression);
 
-static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl);
+//static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl);
 static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AST::Class* decl);
 
 static LLVMTypeRef GenVoidType(LLVMBackend* llb, SkModule* module)
@@ -107,9 +107,34 @@ static LLVMTypeRef GenStructType(LLVMBackend* llb, SkModule* module, TypeID type
 	return structType;
 	*/
 
-	LLVMTypeRef structType = (LLVMTypeRef)type->structType.declaration->typeHandle;
+	if (ast && ast->declaration && ast->declaration->type == AST::DeclarationType::Struct && ((AST::Struct*)ast->declaration)->isGenericInstance)
+	{
+		AST::Struct* declaration = (AST::Struct*)ast->declaration;
 
-	return structType;
+		LLVMTypeRef structType = nullptr;
+		if (declaration->typeHandle)
+		{
+			structType = (LLVMTypeRef)declaration->typeHandle;
+		}
+		else
+		{
+			List<LLVMTypeRef> genericTypes;
+			for (int i = 0; i < ast->genericArgs.size; i++)
+			{
+				genericTypes.add(GenType(llb, module, ast->genericArgs[i]));
+			}
+
+			structType = GenGenericStructInstance(llb, module, declaration, genericTypes);
+		}
+
+		return structType;
+	}
+	else
+	{
+		LLVMTypeRef structType = (LLVMTypeRef)type->structType.declaration->typeHandle;
+
+		return structType;
+	}
 }
 
 static LLVMTypeRef GenClassType(LLVMBackend* llb, SkModule* module, TypeID type, AST::NamedType* ast)
@@ -138,10 +163,10 @@ static LLVMTypeRef GenAliasType(LLVMBackend* llb, SkModule* module, TypeID type,
 {
 	if (ast)
 	{
-		if (ast->typedefDecl)
-			return GenTypeID(llb, module, type->aliasType.alias, ast->typedefDecl->alias);
-		else if (ast->enumDecl)
-			return GenTypeID(llb, module, type->aliasType.alias, ast->enumDecl->alias);
+		if (ast->declaration->type == AST::DeclarationType::Typedef)
+			return GenTypeID(llb, module, type->aliasType.alias, ((AST::Typedef*)ast->declaration)->alias);
+		else if (ast->declaration->type == AST::DeclarationType::Enumeration)
+			return GenTypeID(llb, module, type->aliasType.alias, ((AST::Enum*)ast->declaration)->alias);
 		else
 		{
 			SnekAssert(false);
@@ -1187,7 +1212,6 @@ static void GenReturn(LLVMBackend* llb, SkModule* module, AST::Return* statement
 
 		LLVMValueRef value = GenExpression(llb, module, statement->value);
 		value = GetRValue(llb, module, value, statement->value->lvalue);
-
 		value = CastValue(llb, module, value, returnType, statement->value->valueType, function->returnType->typeID);
 
 		LLVM_CALL(LLVMBuildStore, module->builder, value, module->returnAlloc);
@@ -1265,16 +1289,17 @@ void GenStatement(LLVMBackend* llb, SkModule* module, AST::Statement* statement)
 
 LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AST::Function* decl)
 {
-	AST::Function* lastFunction = module->currentFunction;
-	module->currentFunction = decl;
-
-	LLVMValueRef llvmValue = nullptr;
-
 	if (decl->isGeneric)
 	{
+		return nullptr;
 	}
 	else
 	{
+		AST::Function* lastFunction = module->currentFunction;
+		module->currentFunction = decl;
+
+		LLVMValueRef llvmValue = nullptr;
+
 		LLVMLinkage linkage = LLVMInternalLinkage;
 		if (decl->isGenericInstance)
 			linkage = LLVMPrivateLinkage;
@@ -1304,25 +1329,26 @@ LLVMValueRef GenFunctionHeader(LLVMBackend* llb, SkModule* module, AST::Function
 		decl->valueHandle = llvmValue;
 
 		module->functionValues.emplace(decl, llvmValue);
+
+		module->currentFunction = lastFunction;
+
+		return llvmValue;
 	}
-
-	module->currentFunction = lastFunction;
-
-	return llvmValue;
 }
 
 LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AST::Function* decl)
 {
-	AST::Function* lastFunction = module->currentFunction;
-	module->currentFunction = decl;
-
-	LLVMValueRef llvmValue = nullptr;
-
 	if (decl->isGeneric)
 	{
+		return nullptr;
 	}
 	else
 	{
+		AST::Function* lastFunction = module->currentFunction;
+		module->currentFunction = decl;
+
+		LLVMValueRef llvmValue = nullptr;
+
 		if (module->functionValues.find(decl) != module->functionValues.end())
 			llvmValue = module->functionValues[decl];
 		else
@@ -1335,11 +1361,11 @@ LLVMValueRef GenFunction(LLVMBackend* llb, SkModule* module, AST::Function* decl
 		{
 			GenerateFunctionBody(llb, module, decl, llvmValue);
 		}
+
+		module->currentFunction = lastFunction;
+
+		return llvmValue;
 	}
-
-	module->currentFunction = lastFunction;
-
-	return llvmValue;
 }
 
 static LLVMTypeRef GenEnumHeader(LLVMBackend* llb, SkModule* module, AST::Enum* decl)
@@ -1373,51 +1399,75 @@ static LLVMTypeRef GenEnum(LLVMBackend* llb, SkModule* module, AST::Enum* decl)
 	return LLVMInt32TypeInContext(llb->llvmContext);
 }
 
-static LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl)
+LLVMTypeRef GenStructHeader(LLVMBackend* llb, SkModule* module, AST::Struct* decl)
 {
-	LLVMTypeRef llvmType = LLVM_CALL(LLVMStructCreateNamed, llb->llvmContext, decl->mangledName);
-	decl->typeHandle = llvmType;
-
-	llb->structTypes.emplace(decl, llvmType);
-
-	return llvmType;
-}
-
-static LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AST::Struct* decl)
-{
-	LLVMTypeRef llvmType = NULL;
-	if (llb->structTypes.find(decl) != llb->structTypes.end())
-		llvmType = llb->structTypes[decl];
+	if (decl->isGeneric)
+	{
+		return nullptr;
+	}
 	else
 	{
-		//llvmType = GenStructHeader(llb, module, decl);
-		SnekAssert(false);
+		AST::Struct* lastStruct = module->currentStruct;
+		module->currentStruct = decl;
+
+		LLVMTypeRef llvmType = LLVM_CALL(LLVMStructCreateNamed, llb->llvmContext, decl->mangledName);
+		decl->typeHandle = llvmType;
+
+		llb->structTypes.emplace(decl, llvmType);
+
+		module->currentStruct = lastStruct;
+
+		return llvmType;
 	}
+}
 
-	if (decl->hasBody)
+LLVMTypeRef GenStruct(LLVMBackend* llb, SkModule* module, AST::Struct* decl)
+{
+	if (decl->isGeneric)
 	{
-		if (decl->fields.size > 0)
-		{
-			constexpr int MAX_STRUCT_FIELDS = 64;
-			static LLVMTypeRef fieldTypes[MAX_STRUCT_FIELDS];
+		return nullptr;
+	}
+	else
+	{
+		AST::Struct* lastStruct = module->currentStruct;
+		module->currentStruct = decl;
 
-			int numFields = decl->fields.size;
-			for (int i = 0; i < numFields; i++)
-			{
-				fieldTypes[i] = GenType(llb, module, decl->fields[i]->type);
-			}
-
-			bool isPacked = HasFlag(decl->flags, AST::DeclarationFlags::Packed);
-
-			LLVM_CALL(LLVMStructSetBody, llvmType, fieldTypes, numFields, isPacked);
-		}
+		LLVMTypeRef llvmType = NULL;
+		if (llb->structTypes.find(decl) != llb->structTypes.end())
+			llvmType = llb->structTypes[decl];
 		else
 		{
-			LLVM_CALL(LLVMStructSetBody, llvmType, NULL, 0, false);
+			//llvmType = GenStructHeader(llb, module, decl);
+			SnekAssert(false);
 		}
-	}
 
-	return llvmType;
+		if (decl->hasBody)
+		{
+			if (decl->fields.size > 0)
+			{
+				constexpr int MAX_STRUCT_FIELDS = 64;
+				static LLVMTypeRef fieldTypes[MAX_STRUCT_FIELDS];
+
+				int numFields = decl->fields.size;
+				for (int i = 0; i < numFields; i++)
+				{
+					fieldTypes[i] = GenType(llb, module, decl->fields[i]->type);
+				}
+
+				bool isPacked = HasFlag(decl->flags, AST::DeclarationFlags::Packed);
+
+				LLVM_CALL(LLVMStructSetBody, llvmType, fieldTypes, numFields, isPacked);
+			}
+			else
+			{
+				LLVM_CALL(LLVMStructSetBody, llvmType, NULL, 0, false);
+			}
+		}
+
+		module->currentStruct = lastStruct;
+
+		return llvmType;
+	}
 }
 
 static LLVMTypeRef GenClassHeader(LLVMBackend* llb, SkModule* module, AST::Class* decl)

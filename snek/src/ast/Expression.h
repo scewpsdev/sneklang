@@ -231,7 +231,7 @@ namespace AST
 		Expression* callee;
 		List<Expression*> arguments;
 
-		bool isGenericCall;
+		bool hasGenericArgs;
 		List<Type*> genericArgs;
 
 		Function* function = nullptr;
@@ -239,7 +239,7 @@ namespace AST
 		Expression* methodInstance = nullptr;
 
 
-		FunctionCall(File* file, const SourceLocation& location, Expression* callee, const List<Expression*>& arguments, bool isGenericCall, const List<Type*>& genericArgs);
+		FunctionCall(File* file, const SourceLocation& location, Expression* callee, const List<Expression*>& arguments, bool hasGenericArgs, const List<Type*>& genericArgs);
 		virtual ~FunctionCall();
 
 		virtual Element* copy() override;

@@ -89,6 +89,25 @@ namespace AST
 		return nullptr;
 	}
 
+	Function* Function::getGenericInstance(const List<Type*>& genericArgs)
+	{
+		for (Function* instance : genericInstances)
+		{
+			bool matching = true;
+			for (int i = 0; i < genericArgs.size; i++)
+			{
+				if (!CompareTypes(genericArgs[i]->typeID, instance->genericTypeArguments[i]))
+				{
+					matching = false;
+					break;
+				}
+			}
+			if (matching)
+				return instance;
+		}
+		return nullptr;
+	}
+
 	Method::Method(File* file, const SourceLocation& location, DeclarationFlags flags, const SourceLocation& endLocation, char* name, Type* returnType, const List<Type*>& paramTypes, const List<char*>& paramNames, bool varArgs, Statement* body, bool isGeneric, const List<char*>& genericParams)
 		: Function(file, location, flags, endLocation, name, returnType, paramTypes, paramNames, varArgs, body, isGeneric, genericParams)
 	{
@@ -169,8 +188,8 @@ namespace AST
 		return new StructField(file, location, (Type*)type->copy(), _strdup(name), index);
 	}
 
-	Struct::Struct(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, bool hasBody, const List<StructField*>& fields)
-		: Declaration(file, location, DeclarationType::Struct, flags), name(name), hasBody(hasBody), fields(fields)
+	Struct::Struct(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, bool hasBody, const List<StructField*>& fields, bool isGeneric, const List<char*>& genericParams)
+		: Declaration(file, location, DeclarationType::Struct, flags), name(name), hasBody(hasBody), fields(fields), isGeneric(isGeneric), genericParams(genericParams)
 	{
 	}
 
@@ -184,6 +203,16 @@ namespace AST
 				delete fields[i];
 		}
 		DestroyList(fields);
+
+		if (isGeneric || isGenericInstance)
+		{
+			for (int i = 0; i < genericParams.size; i++)
+			{
+				if (genericParams[i])
+					delete genericParams[i];
+			}
+			DestroyList(genericParams);
+		}
 	}
 
 	Element* Struct::copy()
@@ -192,7 +221,47 @@ namespace AST
 		for (int i = 0; i < fields.size; i++)
 			fieldsCopy.add((StructField*)fields[i]->copy());
 
-		return new Struct(file, location, flags, _strdup(name), hasBody, fieldsCopy);
+		List<char*> genericParamsCopy = {};
+		if (isGeneric || isGenericInstance)
+		{
+			genericParamsCopy = CreateList<char*>(genericParams.size);
+			for (int i = 0; i < genericParams.size; i++)
+				genericParamsCopy.add(_strdup(genericParams[i]));
+		}
+
+		return new Struct(file, location, flags, _strdup(name), hasBody, fieldsCopy, isGeneric, genericParamsCopy);
+	}
+
+	TypeID Struct::getGenericTypeArgument(const char* name)
+	{
+		if (isGenericInstance)
+		{
+			for (int i = 0; i < genericParams.size; i++)
+			{
+				if (strcmp(genericParams[i], name) == 0)
+					return genericTypeArguments[i];
+			}
+		}
+		return nullptr;
+	}
+
+	Struct* Struct::getGenericInstance(const List<Type*>& genericArgs)
+	{
+		for (Struct* instance : genericInstances)
+		{
+			bool matching = true;
+			for (int i = 0; i < genericArgs.size; i++)
+			{
+				if (!CompareTypes(genericArgs[i]->typeID, instance->genericTypeArguments[i]))
+				{
+					matching = false;
+					break;
+				}
+			}
+			if (matching)
+				return instance;
+		}
+		return nullptr;
 	}
 
 	ClassField::ClassField(File* file, const SourceLocation& location, Type* type, char* name, int index)

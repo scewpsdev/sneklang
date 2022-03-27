@@ -245,8 +245,8 @@ namespace AST
 		return value->isConstant();
 	}
 
-	FunctionCall::FunctionCall(File* file, const SourceLocation& location, Expression* callee, const List<Expression*>& arguments, bool isGenericCall, const List<Type*>& genericArgs)
-		: Expression(file, location, ExpressionType::FunctionCall), callee(callee), arguments(arguments), isGenericCall(isGenericCall), genericArgs(genericArgs)
+	FunctionCall::FunctionCall(File* file, const SourceLocation& location, Expression* callee, const List<Expression*>& arguments, bool hasGenericArgs, const List<Type*>& genericArgs)
+		: Expression(file, location, ExpressionType::FunctionCall), callee(callee), arguments(arguments), hasGenericArgs(hasGenericArgs), genericArgs(genericArgs)
 	{
 	}
 
@@ -260,7 +260,8 @@ namespace AST
 				delete arguments[i];
 		}
 		DestroyList(arguments);
-		if (isGenericCall)
+
+		if (hasGenericArgs)
 		{
 			for (int i = 0; i < genericArgs.size; i++)
 			{
@@ -279,14 +280,14 @@ namespace AST
 			argumentsCopy.add((Expression*)arguments[i]->copy());
 
 		List<Type*> genericArgsCopy = {};
-		if (isGenericCall)
+		if (hasGenericArgs)
 		{
 			genericArgsCopy = CreateList<Type*>(genericArgs.size);
 			for (int i = 0; i < genericArgs.size; i++)
 				genericArgsCopy.add((Type*)genericArgs[i]->copy());
 		}
 
-		return new FunctionCall(file, location, (Expression*)callee->copy(), argumentsCopy, isGenericCall, genericArgsCopy);
+		return new FunctionCall(file, location, (Expression*)callee->copy(), argumentsCopy, hasGenericArgs, genericArgsCopy);
 	}
 
 	SubscriptOperator::SubscriptOperator(File* file, const SourceLocation& location, Expression* operand, const List<Expression*>& arguments)

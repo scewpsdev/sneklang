@@ -3,7 +3,7 @@
 #include "snek.h"
 #include "variable.h"
 #include "type.h"
-#include "mangle.h"
+#include "Mangling.h"
 #include "utils.h"
 
 #include <math.h>
@@ -59,6 +59,8 @@ static bool ResolveType(Resolver* resolver, AST::Type* type);
 static bool ResolveExpression(Resolver* resolver, AST::Expression* expr);
 static bool ResolveFunctionHeader(Resolver* resolver, AST::Function* decl);
 static bool ResolveFunction(Resolver* resolver, AST::Function* decl);
+static bool ResolveStructHeader(Resolver* resolver, AST::Struct* decl);
+static bool ResolveStruct(Resolver* resolver, AST::Struct* decl);
 
 static bool IsPrimitiveType(AST::TypeKind typeKind)
 {
@@ -190,35 +192,84 @@ static bool ResolveNamedType(Resolver* resolver, AST::NamedType* type)
 {
 	if (AST::Struct* structDecl = FindStruct(resolver, type->name))
 	{
-		type->typeKind = AST::TypeKind::Struct;
-		type->typeID = structDecl->type;
-		type->structDecl = structDecl;
-		return true;
+		if (structDecl->isGeneric)
+		{
+			if (!type->hasGenericArgs)
+			{
+				SnekError(resolver->context, type->location, ERROR_CODE_STRUCT_SYNTAX, "Using generic struct type '%s' without type arguments", structDecl->name);
+				return false;
+			}
+
+			bool result = true;
+
+			for (int i = 0; i < type->genericArgs.size; i++)
+			{
+				result = ResolveType(resolver, type->genericArgs[i]) && result;
+			}
+
+			AST::Struct* instance = structDecl->getGenericInstance(type->genericArgs);
+			if (!instance)
+			{
+				instance = (AST::Struct*)structDecl->copy();
+				instance->isGeneric = false;
+				instance->isGenericInstance = true;
+
+				instance->genericTypeArguments.resize(type->genericArgs.size);
+				for (int i = 0; i < type->genericArgs.size; i++)
+				{
+					instance->genericTypeArguments[i] = type->genericArgs[i]->typeID;
+				}
+
+				result = ResolveStructHeader(resolver, instance) && result;
+				result = ResolveStruct(resolver, instance) && result;
+
+				structDecl->genericInstances.add(instance);
+			}
+
+			type->typeKind = AST::TypeKind::Alias;
+			type->typeID = instance->type;
+			type->declaration = instance;
+
+			return result;
+		}
+		else
+		{
+			if (type->hasGenericArgs)
+			{
+				SnekError(resolver->context, type->location, ERROR_CODE_STRUCT_SYNTAX, "Can't use type arguments on non-generic struct type '%s'", structDecl->name);
+				return false;
+			}
+
+			type->typeKind = AST::TypeKind::Struct;
+			type->typeID = structDecl->type;
+			type->declaration = structDecl;
+			return true;
+		}
 	}
 	else if (AST::Class* classDecl = FindClass(resolver, type->name))
 	{
 		type->typeKind = AST::TypeKind::Class;
 		type->typeID = classDecl->type;
-		type->classDecl = classDecl;
+		type->declaration = classDecl;
 		return true;
 	}
 	else if (AST::Typedef* typedefDecl = FindTypedef(resolver, type->name))
 	{
 		type->typeKind = AST::TypeKind::Alias;
 		type->typeID = typedefDecl->type;
-		type->typedefDecl = typedefDecl;
+		type->declaration = typedefDecl;
 		return true;
 	}
 	else if (AST::Enum* enumDecl = FindEnum(resolver, type->name))
 	{
 		type->typeKind = AST::TypeKind::Alias;
 		type->typeID = enumDecl->type;
-		type->enumDecl = enumDecl;
+		type->declaration = enumDecl;
 		return true;
 	}
-	else if (TypeID genericTypeArgument = resolver->currentFunction->getGenericTypeArgument(type->name))
+	else if (TypeID genericTypeArgument = resolver->getGenericTypeArgument(type->name))
 	{
-		type->typeKind = AST::TypeKind::Alias;
+		type->typeKind = genericTypeArgument->typeKind;
 		type->typeID = genericTypeArgument;
 		return true;
 	}
@@ -646,38 +697,52 @@ static bool ResolveFunctionCall(Resolver* resolver, AST::FunctionCall* expr)
 
 	if (ResolveExpression(resolver, expr->callee))
 	{
-		if (expr->isGenericCall)
+		if (expr->hasGenericArgs)
 		{
 			SnekAssert(expr->callee->type == AST::ExpressionType::Identifier);
 
-			AST::Identifier* calleeIdentifier = (AST::Identifier*)expr->callee;
-			function = (AST::Function*)(calleeIdentifier->function->copy()); // Create a separate version of the function, TODO: reuse functions with the same type arguments
-			function->isGeneric = false;
-			function->isGenericInstance = true;
-
-			function->genericTypeArguments.resize(expr->genericArgs.size);
 			for (int i = 0; i < expr->genericArgs.size; i++)
 			{
 				result = ResolveType(resolver, expr->genericArgs[i]) && result;
-				function->genericTypeArguments[i] = expr->genericArgs[i]->typeID;
-				//resolver->registerGenericTypeArgument(function->genericParams[i], expr->genericArgs[i]->typeID);
 			}
 
-			result = ResolveFunctionHeader(resolver, function) && result;
-			result = ResolveFunction(resolver, function) && result;
+			AST::Identifier* calleeIdentifier = (AST::Identifier*)expr->callee;
 
-			// Create function type for generic arguments
-
-			TypeID returnType = function->returnType->typeID;
-			int numParams = function->paramTypes.size;
-			TypeID* paramTypes = new TypeID[numParams];
-
-			for (int i = 0; i < numParams; i++)
+			function = calleeIdentifier->function->getGenericInstance(expr->genericArgs);
+			if (!function)
 			{
-				paramTypes[i] = function->paramTypes[i]->typeID;
-			}
+				function = (AST::Function*)(calleeIdentifier->function->copy()); // Create a separate version of the function, TODO: reuse functions with the same type arguments
+				function->isGeneric = false;
+				function->isGenericInstance = true;
 
-			functionType = GetFunctionType(returnType, numParams, paramTypes, function->varArgs, false, function);
+				function->genericTypeArguments.resize(expr->genericArgs.size);
+				for (int i = 0; i < expr->genericArgs.size; i++)
+				{
+					function->genericTypeArguments[i] = expr->genericArgs[i]->typeID;
+				}
+
+				result = ResolveFunctionHeader(resolver, function) && result;
+				result = ResolveFunction(resolver, function) && result;
+
+				functionType = function->functionType;
+
+				calleeIdentifier->function->genericInstances.add(function);
+
+				/*
+				// Create function type for generic arguments
+
+				TypeID returnType = function->returnType->typeID;
+				int numParams = function->paramTypes.size;
+				TypeID* paramTypes = new TypeID[numParams];
+
+				for (int i = 0; i < numParams; i++)
+				{
+					paramTypes[i] = function->paramTypes[i]->typeID;
+				}
+
+				functionType = GetFunctionType(returnType, numParams, paramTypes, function->varArgs, false, function);
+				*/
+			}
 		}
 		else
 		{
@@ -1891,7 +1956,6 @@ static bool ResolveFunctionHeader(Resolver* resolver, AST::Function* decl)
 
 	bool result = true;
 
-	decl->mangledName = MangleFunctionName(resolver, decl);
 	decl->visibility = GetVisibilityFromFlags(decl->flags);
 
 	decl->isEntryPoint = strcmp(decl->name, ENTRY_POINT_NAME) == 0;
@@ -1905,6 +1969,8 @@ static bool ResolveFunctionHeader(Resolver* resolver, AST::Function* decl)
 	}
 	else
 	{
+		decl->mangledName = MangleFunctionName(decl);
+
 		result = ResolveType(resolver, decl->returnType) && result;
 		for (int i = 0; i < decl->paramTypes.size; i++)
 		{
@@ -1983,9 +2049,16 @@ static bool ResolveStructHeader(Resolver* resolver, AST::Struct* decl)
 	resolver->currentElement = decl;
 	defer _(nullptr, [=](...) { resolver->currentElement = lastElement; });
 
-	decl->mangledName = _strdup(decl->name);
 	decl->visibility = GetVisibilityFromFlags(decl->flags);
-	decl->type = GetStructType(decl->name, decl);
+
+	if (decl->isGeneric)
+	{
+	}
+	else
+	{
+		decl->mangledName = MangleStructName(decl);
+		decl->type = GetStructType(decl->name, decl);
+	}
 
 	return true;
 }
@@ -1998,35 +2071,46 @@ static bool ResolveStruct(Resolver* resolver, AST::Struct* decl)
 
 	bool result = true;
 
-	decl->type->structType.hasBody = decl->hasBody;
-
-	if (decl->hasBody)
+	if (decl->isGeneric)
 	{
-		int numFields = decl->fields.size;
-		TypeID* fieldTypes = new TypeID[numFields];
-		const char** fieldNames = new const char* [numFields];
-		for (int i = 0; i < numFields; i++)
-		{
-			AST::StructField* field = decl->fields[i];
-			if (ResolveType(resolver, field->type))
-			{
-				fieldTypes[i] = decl->fields[i]->type->typeID;
-			}
-			else
-			{
-				result = false;
-			}
-			fieldNames[i] = decl->fields[i]->name;
-		}
-		decl->type->structType.numFields = numFields;
-		decl->type->structType.fieldTypes = fieldTypes;
-		decl->type->structType.fieldNames = fieldNames;
 	}
 	else
 	{
-		decl->type->structType.numFields = 0;
-		decl->type->structType.fieldTypes = NULL;
-		decl->type->structType.fieldNames = NULL;
+		decl->type->structType.hasBody = decl->hasBody;
+
+		if (decl->hasBody)
+		{
+			AST::Struct* lastStruct = resolver->currentStruct;
+			resolver->currentStruct = decl;
+
+			int numFields = decl->fields.size;
+			TypeID* fieldTypes = new TypeID[numFields];
+			const char** fieldNames = new const char* [numFields];
+			for (int i = 0; i < numFields; i++)
+			{
+				AST::StructField* field = decl->fields[i];
+				if (ResolveType(resolver, field->type))
+				{
+					fieldTypes[i] = decl->fields[i]->type->typeID;
+				}
+				else
+				{
+					result = false;
+				}
+				fieldNames[i] = decl->fields[i]->name;
+			}
+			decl->type->structType.numFields = numFields;
+			decl->type->structType.fieldTypes = fieldTypes;
+			decl->type->structType.fieldNames = fieldNames;
+
+			resolver->currentStruct = lastStruct;
+		}
+		else
+		{
+			decl->type->structType.numFields = 0;
+			decl->type->structType.fieldTypes = NULL;
+			decl->type->structType.fieldNames = NULL;
+		}
 	}
 
 	return result;

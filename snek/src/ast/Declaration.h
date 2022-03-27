@@ -77,6 +77,8 @@ namespace AST
 		List<char*> genericParams;
 		List<TypeID> genericTypeArguments;
 
+		List<Function*> genericInstances;
+
 		SourceLocation endLocation;
 
 		bool isEntryPoint = false;
@@ -95,6 +97,7 @@ namespace AST
 		virtual Element* copy() override;
 
 		TypeID getGenericTypeArgument(const char* name);
+		Function* getGenericInstance(const List<Type*>& genericArgs);
 	};
 
 	struct Method : Function
@@ -135,16 +138,26 @@ namespace AST
 		bool hasBody;
 		List<StructField*> fields;
 
+		bool isGeneric = false;
+		bool isGenericInstance = false;
+		List<char*> genericParams;
+		List<TypeID> genericTypeArguments;
+
+		List<Struct*> genericInstances;
+
 		char* mangledName = nullptr;
 		TypeID type = nullptr;
 
 		TypeHandle typeHandle = nullptr;
 
 
-		Struct(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, bool hasBody, const List<StructField*>& fields);
+		Struct(File* file, const SourceLocation& location, DeclarationFlags flags, char* name, bool hasBody, const List<StructField*>& fields, bool isGeneric, const List<char*>& genericParams);
 		virtual ~Struct();
 
 		virtual Element* copy() override;
+
+		TypeID getGenericTypeArgument(const char* name);
+		Struct* getGenericInstance(const List<Type*>& genericArgs);
 	};
 
 	struct ClassField : Element

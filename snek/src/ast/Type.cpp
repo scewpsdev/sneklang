@@ -1,5 +1,6 @@
 #include "Type.h"
 
+#include "Declaration.h"
 #include "Expression.h"
 
 
@@ -50,14 +51,36 @@ namespace AST
 		return new BooleanType(file, location);
 	}
 
-	AST::NamedType::NamedType(File* file, const SourceLocation& location, char* name)
-		: Type(file, location, TypeKind::NamedType), name(name)
+	NamedType::NamedType(File* file, const SourceLocation& location, char* name, bool hasGenericArgs, const List<Type*>& genericArgs)
+		: Type(file, location, TypeKind::NamedType), name(name), hasGenericArgs(hasGenericArgs), genericArgs(genericArgs)
 	{
+	}
+
+	NamedType::~NamedType()
+	{
+		if (hasGenericArgs)
+		{
+			for (int i = 0; i < genericArgs.size; i++)
+			{
+				if (genericArgs[i])
+					delete genericArgs[i];
+			}
+			DestroyList(genericArgs);
+			delete declaration;
+		}
 	}
 
 	Element* NamedType::copy()
 	{
-		return new NamedType(file, location, _strdup(name));
+		List<Type*> genericArgsCopy = {};
+		if (hasGenericArgs)
+		{
+			genericArgsCopy = CreateList<Type*>(genericArgs.size);
+			for (int i = 0; i < genericArgs.size; i++)
+				genericArgsCopy.add((Type*)genericArgs[i]->copy());
+		}
+
+		return new NamedType(file, location, _strdup(name), hasGenericArgs, genericArgsCopy);
 	}
 
 	AST::PointerType::PointerType(File* file, const SourceLocation& location, Type* elementType)
