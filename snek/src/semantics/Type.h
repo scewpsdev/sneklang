@@ -83,6 +83,9 @@ struct TypeData
 			int length;
 			//AstExpression* length;
 		} arrayType;
+		struct {
+			int length;
+		} stringType;
 	};
 };
 
@@ -93,7 +96,7 @@ TypeID GetVoidType();
 TypeID GetIntegerType(int bitWidth, bool isSigned);
 TypeID GetFloatingPointType(FloatingPointPrecision precision);
 TypeID GetBoolType();
-TypeID GetStringType();
+TypeID GetStringType(int length);
 TypeID GetStructType(const char* structName, AST::Struct* declaration);
 TypeID GetStructType(int numValues, TypeID* valueTypes);
 TypeID GetClassType(const char* className, AST::Class* declaration);

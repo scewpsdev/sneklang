@@ -158,8 +158,17 @@ static AST::Type* ParseElementType(Parser* parser)
 		case KEYWORD_TYPE_BOOL:
 			return new AST::BooleanType(parser->module, inputState);
 
-		case KEYWORD_TYPE_STRING:
-			return new AST::StringType(parser->module, inputState);
+		case KEYWORD_TYPE_STRING: {
+			AST::Expression* length = nullptr;
+			if (NextTokenIsWithoutSpaces(parser, '('))
+			{
+				NextToken(parser); // (
+				length = ParseExpression(parser);
+				SkipToken(parser, ')');
+			}
+
+			return new AST::StringType(parser->module, inputState, length);
+		}
 
 		case KEYWORD_TYPE_NULL: {
 			char* name = GetTokenString(tok);

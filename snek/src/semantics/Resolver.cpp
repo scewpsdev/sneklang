@@ -355,8 +355,32 @@ static bool ResolveArrayType(Resolver* resolver, AST::ArrayType* type)
 
 static bool ResolveStringType(Resolver* resolver, AST::StringType* type)
 {
-	type->typeID = GetStringType();
-	return true;
+	if (type->length)
+	{
+		if (ResolveExpression(resolver, type->length))
+		{
+			if (type->length->valueType->typeKind == AST::TypeKind::Integer && type->length->isConstant())
+			{
+				bool success = true;
+				type->typeID = GetStringType((int)ConstantFoldInt(resolver, type->length, success));
+				return success;
+			}
+			else
+			{
+				SnekError(resolver->context, type->length->location, ERROR_CODE_ARRAY_LENGTH_WRONG_TYPE, "String length specifier must be a constant integer value");
+				return false;
+			}
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		type->typeID = GetStringType(-1);
+		return true;
+	}
 }
 
 static bool ResolveType(Resolver* resolver, AST::Type* type)
@@ -467,7 +491,7 @@ static bool ResolveNullLiteral(Resolver* resolver, AST::NullLiteral* expr)
 
 static bool ResolveStringLiteral(Resolver* resolver, AST::StringLiteral* expr)
 {
-	expr->valueType = GetStringType();
+	expr->valueType = GetPointerType(GetStringType(expr->length + 1));
 	expr->lvalue = false;
 	return true;
 }
@@ -519,7 +543,7 @@ static bool ResolveIdentifier(Resolver* resolver, AST::Identifier* expr)
 		expr->variable = variable;
 		return true;
 	}
-	if (AST::Function* function = FindFunction(resolver, expr->name))
+	if (AST::Function* function = resolver->findFunction(expr->name))
 	{
 		expr->valueType = function->functionType;
 		expr->lvalue = false;
@@ -605,8 +629,8 @@ static bool CanConvert(TypeID argType, TypeID paramType)
 			return true;
 		else if (paramType->typeKind == AST::TypeKind::Integer)
 			return true;
-		else if (paramType->typeKind == AST::TypeKind::String)
-			return true;
+		//else if (paramType->typeKind == AST::TypeKind::String)
+		//	return true;
 	}
 	else if (argType->typeKind == AST::TypeKind::Function)
 	{
@@ -617,8 +641,8 @@ static bool CanConvert(TypeID argType, TypeID paramType)
 	}
 	else if (argType->typeKind == AST::TypeKind::String)
 	{
-		if (paramType->typeKind == AST::TypeKind::Pointer)
-			return true;
+		//if (paramType->typeKind == AST::TypeKind::Pointer)
+		//	return true;
 	}
 
 	return false;
@@ -661,7 +685,7 @@ static bool CanConvertImplicit(TypeID argType, TypeID paramType, bool argIsConst
 	}
 	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::Pointer)
 	{
-		if (argIsConstant || argType->pointerType.elementType->typeKind == AST::TypeKind::Void || paramType->pointerType.elementType->typeKind == AST::TypeKind::Void)
+		if (/*argIsConstant || */argType->pointerType.elementType->typeKind == AST::TypeKind::Void || paramType->pointerType.elementType->typeKind == AST::TypeKind::Void)
 			return true;
 	}
 	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::Class)
@@ -677,12 +701,12 @@ static bool CanConvertImplicit(TypeID argType, TypeID paramType, bool argIsConst
 	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::String)
 	{
 		//if (argIsConstant)
-		return true;
+		//return true;
 	}
 	else if (argType->typeKind == AST::TypeKind::String && paramType->typeKind == AST::TypeKind::Pointer && paramType->pointerType.elementType->typeKind == AST::TypeKind::Integer && paramType->pointerType.elementType->integerType.bitWidth == 8)
 	{
 		//if (argIsConstant)
-		return true;
+		//return true;
 	}
 
 	return false;
@@ -1060,7 +1084,7 @@ static bool ResolveDotOperator(Resolver* resolver, AST::DotOperator* expr)
 		{
 			if (AST::File* file = module->file)
 			{
-				if (AST::Function* function = FindFunctionInFile(resolver, file, expr->name))
+				if (AST::Function* function = resolver->findFunctionInFile(expr->name, file))
 				{
 					if (function->visibility >= AST::Visibility::Public || file->module == resolver->currentFile->module)
 					{
@@ -1129,7 +1153,7 @@ static bool ResolveDotOperator(Resolver* resolver, AST::DotOperator* expr)
 			{
 				if (AST::File* file = module->file)
 				{
-					if (AST::Function* function = FindFunctionInFile(resolver, file, expr->name))
+					if (AST::Function* function = resolver->findFunctionInFile(expr->name, file))
 					{
 						expr->namespacedFunction = function;
 						expr->valueType = function->functionType;
@@ -1175,7 +1199,7 @@ static bool ResolveDotOperator(Resolver* resolver, AST::DotOperator* expr)
 				}
 			}
 
-			if (AST::Function* method = FindFunction(resolver, expr->name))
+			if (AST::Function* method = resolver->findFunction(expr->name))
 			{
 				expr->valueType = method->functionType;
 				expr->lvalue = false;

@@ -22,6 +22,7 @@ struct TypeDataStorage
 	List<TypeData*> pointerTypes;
 	List<TypeData*> functionTypes;
 	List<TypeData*> arrayTypes;
+	std::map<int, TypeData*> stringTypes;
 
 	std::map<TypeID, char*> typeStrings;
 };
@@ -47,7 +48,7 @@ enum TypeDataIndex
 
 	TYPE_DATA_INDEX_BOOL,
 
-	TYPE_DATA_INDEX_STRING,
+	//TYPE_DATA_INDEX_STRING,
 };
 
 
@@ -85,12 +86,14 @@ static TypeData CreateBoolTypeData()
 	return data;
 }
 
+/*
 static TypeData CreateStringTypeData()
 {
 	TypeData data = {};
 	data.typeKind = AST::TypeKind::String;
 	return data;
 }
+*/
 
 static char* TypeToString(TypeID type);
 
@@ -114,7 +117,7 @@ static void InitPrimitiveTypes()
 
 	types.primitiveTypes[TYPE_DATA_INDEX_BOOL] = CreateBoolTypeData();
 
-	types.primitiveTypes[TYPE_DATA_INDEX_STRING] = CreateStringTypeData();
+	//types.primitiveTypes[TYPE_DATA_INDEX_STRING] = CreateStringTypeData();
 
 
 	types.typeStrings.emplace(GetVoidType(), TypeToString(GetVoidType()));
@@ -135,7 +138,7 @@ static void InitPrimitiveTypes()
 
 	types.typeStrings.emplace(GetBoolType(), TypeToString(GetBoolType()));
 
-	types.typeStrings.emplace(GetStringType(), TypeToString(GetStringType()));
+	//types.typeStrings.emplace(GetStringType(), TypeToString(GetStringType()));
 }
 
 void InitTypeData()
@@ -200,9 +203,23 @@ TypeID GetBoolType()
 	return &types.primitiveTypes[TYPE_DATA_INDEX_BOOL];
 }
 
-TypeID GetStringType()
+TypeID GetStringType(int length)
 {
-	return &types.primitiveTypes[TYPE_DATA_INDEX_STRING];
+	auto it = types.stringTypes.find(length);
+	if (it != types.stringTypes.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		TypeData* data = new TypeData;
+		data->typeKind = AST::TypeKind::String;
+		data->stringType.length = length;
+
+		types.stringTypes.emplace(length, data);
+
+		return data;
+	}
 }
 
 TypeID GetStructType(const char* structName, AST::Struct* declaration)

@@ -131,10 +131,12 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 		{
 			return LLVM_CALL(LLVMBuildPtrToInt, module->builder, llvmValue, llvmType, "");
 		}
+		/*
 		else if (dstType->typeKind == AST::TypeKind::String)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
+		*/
 	}
 	else if (valueType->typeKind == AST::TypeKind::Function)
 	{
@@ -149,10 +151,12 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 	}
 	else if (valueType->typeKind == AST::TypeKind::String)
 	{
+		/*
 		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
 		}
+		*/
 	}
 
 	SnekAssert(false);

@@ -143,13 +143,13 @@ namespace AST
 		return new ArrayType(file, location, (Type*)elementType->copy(), length ? (Expression*)length->copy() : nullptr);
 	}
 
-	AST::StringType::StringType(File* file, const SourceLocation& location)
-		: Type(file, location, TypeKind::String)
+	AST::StringType::StringType(File* file, const SourceLocation& location, Expression* length)
+		: Type(file, location, TypeKind::String), length(length)
 	{
 	}
 
 	Element* StringType::copy()
 	{
-		return new StringType(file, location);
+		return new StringType(file, location, length ? (Expression*)length->copy() : nullptr);
 	}
 }

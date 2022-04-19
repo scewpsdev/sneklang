@@ -133,7 +133,10 @@ namespace AST
 
 	struct StringType : Type
 	{
-		StringType(File* file, const SourceLocation& location);
+		Expression* length;
+
+
+		StringType(File* file, const SourceLocation& location, Expression* length);
 
 		virtual Element* copy() override;
 	};

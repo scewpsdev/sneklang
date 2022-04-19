@@ -143,61 +143,6 @@ Variable* Resolver::findVariable(const char* name)
 	return nullptr;
 }
 
-AST::Function* FindFunctionInFile(Resolver* resolver, AST::File* file, const char* name)
-{
-	for (int i = 0; i < file->functions.size; i++)
-	{
-		AST::Function* function = file->functions[i];
-		if (strcmp(function->name, name) == 0)
-		{
-			return function;
-		}
-	}
-	return NULL;
-}
-
-AST::Function* FindFunctionInModule(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentModule)
-{
-	if (AST::File* file = module->file)
-	{
-		if (AST::Function* function = FindFunctionInFile(resolver, file, name))
-		{
-			if (function->visibility >= AST::Visibility::Public || currentModule == module)
-				return function;
-			else
-			{
-				SnekError(resolver->context, resolver->currentElement->location, ERROR_CODE_NON_VISIBLE_DECLARATION, "Function '%s' is not visible", function->name);
-				return nullptr;
-			}
-		}
-	}
-	return nullptr;
-}
-
-// TODO make member function of resolver
-AST::Function* FindFunction(Resolver* resolver, const char* name)
-{
-	if (AST::Function* function = FindFunctionInFile(resolver, resolver->currentFile, name))
-	{
-		return function;
-	}
-
-	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
-	if (AST::Function* function = FindFunctionInModule(resolver, module, name, module))
-	{
-		return function;
-	}
-	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
-	{
-		AST::Module* dependency = resolver->currentFile->dependencies[i];
-		if (AST::Function* function = FindFunctionInModule(resolver, dependency, name, module))
-		{
-			return function;
-		}
-	}
-	return nullptr;
-}
-
 AST::EnumValue* FindEnumValueInFile(Resolver* resolver, AST::File* file, const char* name)
 {
 	for (int i = 0; i < file->enums.size; i++)

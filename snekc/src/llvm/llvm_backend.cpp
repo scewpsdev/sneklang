@@ -228,7 +228,7 @@ static LLVMTypeRef GenFunctionType(LLVMBackend* llb, SkModule* module, TypeID ty
 
 static LLVMTypeRef GenStringType(LLVMBackend* llb, SkModule* module, TypeID type)
 {
-	return GetStringType(llb);
+	return GetStringType(llb, type->stringType.length);
 }
 
 static LLVMTypeRef GenArrayType(LLVMBackend* llb, SkModule* module, TypeID type, AST::ArrayType* ast)
@@ -594,9 +594,12 @@ static LLVMValueRef GenFunctionCall(LLVMBackend* llb, SkModule* module, AST::Fun
 				arg = CastValue(llb, module, arg, LLVMDoubleTypeInContext(llb->llvmContext), expression->arguments[i]->valueType, GetFloatingPointType(FloatingPointPrecision::Double));
 		}
 
+		puts(LLVMPrintValueToString(arg));
+
 		arguments.add(arg);
 	}
 
+	puts(LLVMPrintValueToString(callee));
 	LLVMValueRef callValue = LLVM_CALL(LLVMBuildCall, module->builder, callee, arguments.buffer, arguments.size, "");
 
 	LLVMValueRef result = NULL;
@@ -720,7 +723,7 @@ static LLVMValueRef GenDotOperator(LLVMBackend* llb, SkModule* module, AST::DotO
 	}
 	else if (operandType->typeKind == AST::TypeKind::String)
 	{
-		operand = GetRValue(llb, module, operand, expression->operand->lvalue);
+		//operand = GetRValue(llb, module, operand, expression->operand->lvalue);
 		if (expression->stringField == 0)
 			return GetStringLength(llb, module, operand);
 		else if (expression->stringField == 1)

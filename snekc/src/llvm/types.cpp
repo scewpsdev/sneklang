@@ -26,8 +26,25 @@ LLVMValueRef GetClassMember(LLVMBackend* llb, SkModule* module, LLVMValueRef val
 	return member;
 }
 
-LLVMTypeRef GetStringType(LLVMBackend* llb)
+LLVMTypeRef GetStringType(LLVMBackend* llb, int length)
 {
+	if (length != -1)
+	{
+		LLVMTypeRef memberTypes[2] = {
+			LLVMInt32TypeInContext(llb->llvmContext),
+			LLVMArrayType(LLVMInt8TypeInContext(llb->llvmContext), length)
+		};
+		return LLVM_CALL(LLVMStructTypeInContext, llb->llvmContext, memberTypes, 2, false);
+	}
+	else
+	{
+		LLVMTypeRef memberTypes[2] = {
+			LLVMInt32TypeInContext(llb->llvmContext),
+			LLVMArrayType(LLVMInt8TypeInContext(llb->llvmContext), 0)
+		};
+		return LLVM_CALL(LLVMStructTypeInContext, llb->llvmContext, memberTypes, 2, false);
+	}
+
 	return LLVMPointerType(LLVMInt8TypeInContext(llb->llvmContext), 0);
 
 	/*
@@ -46,13 +63,18 @@ LLVMTypeRef GetStringType(LLVMBackend* llb)
 LLVMValueRef CreateStringLiteral(LLVMBackend* llb, SkModule* module, const char* str)
 {
 	int len = (int)strlen(str);
-	LLVMValueRef array = LLVMConstStringInContext(llb->llvmContext, str, len, false);
-	LLVMValueRef alloc = LLVMAddGlobal(module->llvmModule, LLVMTypeOf(array), "");
-	LLVMSetInitializer(alloc, array);
+	//LLVMValueRef array = LLVMConstStringInContext(llb->llvmContext, str, len, false);
+	LLVMValueRef values[2] = {
+		LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), len, false),
+		LLVMConstStringInContext(llb->llvmContext, str, len, false)
+	};
+	LLVMValueRef string = LLVMConstStructInContext(llb->llvmContext, values, 2, false);
+	LLVMValueRef alloc = LLVMAddGlobal(module->llvmModule, LLVMTypeOf(string), "");
+	LLVMSetInitializer(alloc, string);
 	LLVMSetGlobalConstant(alloc, true);
 	LLVMSetLinkage(alloc, LLVMPrivateLinkage);
 
-	return LLVMConstBitCast(alloc, LLVMPointerType(LLVMInt8TypeInContext(llb->llvmContext), 0));
+	return alloc; // LLVMConstBitCast(alloc, LLVMPointerType(LLVMInt8TypeInContext(llb->llvmContext), 0));
 
 	/*
 	if (module->currentFunction)
@@ -113,15 +135,15 @@ LLVMValueRef GetStringBuffer(LLVMBackend* llb, SkModule* module, LLVMValueRef va
 		//LLVM_CALL(LLVMConstInt, LLVMInt32TypeInContext(llb->llvmContext), 0, false),
 	};
 	LLVMValueRef buffer = LLVM_CALL(LLVMBuildGEP, module->builder, value, (LLVMValueRef*)indices, 2, "");
+	LLVMValueRef ptr = LLVMBuildBitCast(module->builder, buffer, LLVMPointerType(LLVMInt8TypeInContext(llb->llvmContext), 0), "");
 
-	return buffer;
+	return ptr;
 }
 
 LLVMValueRef GetStringElement(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMValueRef index)
 {
 	SnekAssert(LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMPointerTypeKind);
 
-	/*
 	LLVMValueRef indices[] = {
 		LLVM_CALL(LLVMConstInt, LLVMInt32TypeInContext(llb->llvmContext), 0, false),
 		LLVM_CALL(LLVMConstInt, LLVMInt32TypeInContext(llb->llvmContext), 1, false),
@@ -130,27 +152,32 @@ LLVMValueRef GetStringElement(LLVMBackend* llb, SkModule* module, LLVMValueRef v
 	LLVMValueRef element = LLVM_CALL(LLVMBuildGEP, module->builder, value, (LLVMValueRef*)indices, 3, "");
 
 	return element;
-	*/
 
-	return LLVM_CALL(LLVMBuildGEP, module->builder, value, (LLVMValueRef*)&index, 1, "");
+	//return LLVM_CALL(LLVMBuildGEP, module->builder, value, (LLVMValueRef*)&index, 1, "");
 }
 
 LLVMTypeRef GetArrayType(LLVMBackend* llb, LLVMTypeRef elementType, int length)
 {
 	if (length != -1)
 	{
-		return LLVM_CALL(LLVMArrayType, elementType, length);
+		LLVMTypeRef memberTypes[2] = {
+			LLVMInt32TypeInContext(llb->llvmContext),
+			LLVMArrayType(elementType, length)
+		};
+		return LLVM_CALL(LLVMStructTypeInContext, llb->llvmContext, memberTypes, 2, false);
 	}
 	else
 	{
-		return elementType;
+		LLVMTypeRef memberTypes[2] = {
+			LLVMInt32TypeInContext(llb->llvmContext),
+			LLVMArrayType(elementType, 0)
+		};
+		return LLVM_CALL(LLVMStructTypeInContext, llb->llvmContext, memberTypes, 2, false);
 	}
 }
 
 LLVMValueRef GetArrayLength(LLVMBackend* llb, SkModule* module, LLVMValueRef value)
 {
-	SnekAssert(false); // deprecated
-
 	SnekAssert(LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMPointerTypeKind);
 
 	LLVMValueRef lengthPtr = LLVM_CALL(LLVMBuildStructGEP, module->builder, value, 0, "");
@@ -161,14 +188,12 @@ LLVMValueRef GetArrayLength(LLVMBackend* llb, SkModule* module, LLVMValueRef val
 
 LLVMValueRef GetArrayBuffer(LLVMBackend* llb, SkModule* module, LLVMValueRef value)
 {
-	SnekAssert(false); // deprecated
-
 	SnekAssert(LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMPointerTypeKind);
 
-	LLVMValueRef indices[] = {
-		LLVM_CALL(LLVMConstInt, LLVMInt32TypeInContext(llb->llvmContext), 0, false),
-		LLVM_CALL(LLVMConstInt, LLVMInt32TypeInContext(llb->llvmContext), 1, false),
-		LLVM_CALL(LLVMConstInt, LLVMInt32TypeInContext(llb->llvmContext), 0, false),
+	LLVMValueRef indices[3] = {
+		LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 0, false),
+		LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 1, false),
+		LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 0, false),
 	};
 	LLVMValueRef buffer = LLVM_CALL(LLVMBuildGEP, module->builder, value, (LLVMValueRef*)indices, 3, "");
 
@@ -177,8 +202,9 @@ LLVMValueRef GetArrayBuffer(LLVMBackend* llb, SkModule* module, LLVMValueRef val
 
 LLVMValueRef GetArrayElement(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMValueRef index)
 {
-	LLVMValueRef indices[2] = {
+	LLVMValueRef indices[3] = {
 			LLVMConstInt(LLVMTypeOf(index), 0, false),
+			LLVMConstInt(LLVMTypeOf(index), 1, false),
 			index
 	};
 	return LLVM_CALL(LLVMBuildGEP, module->builder, value, (LLVMValueRef*)indices, 2, "");

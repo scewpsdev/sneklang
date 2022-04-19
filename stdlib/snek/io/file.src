@@ -6,10 +6,10 @@ import stdc.stdio;
 
 public string readText(string path)
 {
-	FILE* file = fopen(path, "r");
+	FILE* file = fopen(path.buffer, "r".buffer);
 	if (file == null)
 	{
-		fprintf(stderr, "Failed to read text file '%s'\n", path);
+		fprintf(stderr, "Failed to read text file '%s'\n".buffer, path.buffer);
 		return null;
 	}
 
@@ -17,6 +17,7 @@ public string readText(string path)
 	int length = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
+	string* result = new string(length + 1);
 	char* buffer = new char:(length + 1);
 	if (fread(buffer, 1, (size_t)length, file) == length)
 	{
@@ -35,10 +36,10 @@ public string readText(string path)
 
 public byte* readBinary(string path, int* out_length)
 {
-	FILE* file = fopen(path, "rb");
+	FILE* file = fopen(path.buffer, "rb".buffer);
 	if (file == null)
 	{
-		fprintf(stderr, "Failed to read binary file '%s'\n", path);
+		fprintf(stderr, "Failed to read binary file '%s'\n".buffer, path.buffer);
 		return null;
 	}
 

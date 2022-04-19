@@ -10,7 +10,7 @@ struct SkModule;
 LLVMValueRef GetStructMember(LLVMBackend* llb, SkModule* module, LLVMValueRef value, int index, const char* name);
 LLVMValueRef GetClassMember(LLVMBackend* llb, SkModule* module, LLVMValueRef value, int index, const char* name);
 
-LLVMTypeRef GetStringType(LLVMBackend* llb);
+LLVMTypeRef GetStringType(LLVMBackend* llb, int length);
 LLVMValueRef CreateStringLiteral(LLVMBackend* llb, SkModule* module, const char* str);
 LLVMValueRef GetStringLength(LLVMBackend* llb, SkModule* module, LLVMValueRef value);
 LLVMValueRef GetStringBuffer(LLVMBackend* llb, SkModule* module, LLVMValueRef value);

@@ -29,10 +29,6 @@ struct Variable
 };
 
 
-AST::Function* FindFunctionInFile(Resolver* resolver, AST::File* file, const char* name);
-AST::Function* FindFunctionInModule(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentModule);
-AST::Function* FindFunction(Resolver* resolver, const char* name);
-
 AST::EnumValue* FindEnumValue(Resolver* resolver, const char* name);
 
 AST::Struct* FindStruct(Resolver* resolver, const char* name);
