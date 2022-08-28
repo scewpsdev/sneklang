@@ -3,4 +3,4 @@ A simple C style systems programming language.
 Originated out of frustration about C++'s design.
 Compiles to LLVM with LLD for linking.
 
-![syntax example](https://imgur.com/a/JNeObTA?raw=true)
+![syntax example](https://github.com/scewpsdev/sneklang/readme/syntax_example.png?raw=true)
