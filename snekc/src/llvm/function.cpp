@@ -154,6 +154,9 @@ void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AST::Function* fun
 		function->paramVariables[i]->allocHandle = argAlloc;
 	}
 
+	if (strcmp(function->name, "main") == 0)
+		__debugbreak();
+
 	GenStatement(llb, module, function->body);
 
 	LLVM_CALL(LLVMAppendExistingBasicBlock, llvmValue, returnBlock);

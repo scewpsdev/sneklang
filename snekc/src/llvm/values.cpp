@@ -258,9 +258,6 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 	while (dstType->typeKind == AST::TypeKind::Alias)
 		dstType = dstType->aliasType.alias;
 
-	if (CompareTypes(valueType, dstType))
-		return llvmValue;
-
 	if (valueType->typeKind == AST::TypeKind::Integer)
 	{
 		if (dstType->typeKind == AST::TypeKind::Integer)
@@ -375,6 +372,9 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 			return LLVM_CALL(LLVMConstBitCast, llvmValue, llvmType);
 		}
 	}
+
+	if (CompareTypes(valueType, dstType))
+		return llvmValue;
 
 	SnekAssert(false);
 	return NULL;

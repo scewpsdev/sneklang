@@ -74,11 +74,16 @@ LLVMValueRef CreateStringLiteral(LLVMBackend* llb, SkModule* module, const char*
 {
 	int len = (int)strlen(str);
 
-	LLVMValueRef value = LLVMBuildGlobalStringPtr(module->builder, str, "");
+	//LLVMValueRef value = LLVMBuildGlobalStringPtr(module->builder, str, "");
+	LLVMValueRef value = LLVMConstStringInContext(llb->llvmContext, str, len, false);
+	LLVMValueRef ptr = LLVMAddGlobal(module->llvmModule, LLVMTypeOf(value), "");
+	LLVMSetInitializer(ptr, value);
+	LLVMSetGlobalConstant(ptr, true);
+	LLVMSetLinkage(ptr, LLVMPrivateLinkage);
 
 	LLVMValueRef values[2] = {
 		LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), len, false),
-		value
+		LLVMConstBitCast(ptr, LLVMPointerType(LLVMInt8TypeInContext(llb->llvmContext), 0))
 	};
 	LLVMValueRef string = LLVMConstStructInContext(llb->llvmContext, values, 2, false);
 	LLVMValueRef alloc = LLVMAddGlobal(module->llvmModule, LLVMTypeOf(string), "");
