@@ -1,7 +1,7 @@
 #pragma once
 
 #include "input.h"
-#include "log.h"
+#include "utils/Log.h"
 
 
 enum TokenType : int
@@ -69,6 +69,7 @@ enum KeywordType {
 	KEYWORD_TYPE_SIZEOF,
 	KEYWORD_TYPE_ALLOCA,
 	KEYWORD_TYPE_MALLOC,
+	KEYWORD_TYPE_STACKNEW,
 	KEYWORD_TYPE_FREE,
 
 	KEYWORD_TYPE_TRUE,

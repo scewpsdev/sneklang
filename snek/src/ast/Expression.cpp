@@ -1,6 +1,6 @@
 #include "Expression.h"
 
-#include "log.h"
+#include "utils/Log.h"
 
 #include "semantics/Variable.h"
 
@@ -152,15 +152,15 @@ namespace AST
 		return true;
 	}
 
-	StructLiteral::StructLiteral(File* file, const SourceLocation& location, Type* structType, const List<Expression*>& values)
-		: Expression(file, location, ExpressionType::StructLiteral), structType(structType), values(values)
+	InitializerList::InitializerList(File* file, const SourceLocation& location, Type* initializerTypeAST, const List<Expression*>& values)
+		: Expression(file, location, ExpressionType::InitializerList), initializerTypeAST(initializerTypeAST), values(values)
 	{
 	}
 
-	StructLiteral::~StructLiteral()
+	InitializerList::~InitializerList()
 	{
-		if (structType)
-			delete structType;
+		if (initializerTypeAST)
+			delete initializerTypeAST;
 		for (int i = 0; i < values.size; i++)
 		{
 			if (values[i])
@@ -169,16 +169,16 @@ namespace AST
 		DestroyList(values);
 	}
 
-	Element* StructLiteral::copy()
+	Element* InitializerList::copy()
 	{
 		List<Expression*> valuesCopy = CreateList<Expression*>(values.size);
 		for (int i = 0; i < values.size; i++)
 			valuesCopy.add((Expression*)values[i]->copy());
 
-		return new StructLiteral(file, location, (Type*)structType->copy(), valuesCopy);
+		return new InitializerList(file, location, (Type*)initializerTypeAST->copy(), valuesCopy);
 	}
 
-	bool StructLiteral::isConstant()
+	bool InitializerList::isConstant()
 	{
 		for (int i = 0; i < values.size; i++)
 		{
@@ -188,7 +188,7 @@ namespace AST
 		return true;
 	}
 
-	bool StructLiteral::isLiteral()
+	bool InitializerList::isLiteral()
 	{
 		return true;
 	}
@@ -213,7 +213,7 @@ namespace AST
 	{
 		if (variable)
 			return variable->isConstant;
-		if (function)
+		if (functions.size > 0)
 			return true;
 		if (exprdefValue)
 			return false; // Whether the value is constant depends on where it gets used
@@ -368,8 +368,8 @@ namespace AST
 		return new Sizeof(file, location, (Type*)dstType->copy());
 	}
 
-	Malloc::Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count, bool hasArguments, const List<Expression*>& arguments)
-		: Expression(file, location, ExpressionType::Malloc), dstType(dstType), count(count), hasArguments(hasArguments), arguments(arguments)
+	Malloc::Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count, bool malloc, bool hasArguments, const List<Expression*>& arguments)
+		: Expression(file, location, ExpressionType::Malloc), dstType(dstType), count(count), malloc(malloc), hasArguments(hasArguments), arguments(arguments)
 	{
 	}
 
@@ -391,7 +391,7 @@ namespace AST
 				argumentsCopy.add((Expression*)arguments[i]->copy());
 		}
 
-		return new Malloc(file, location, (Type*)dstType->copy(), count ? (Expression*)count->copy() : nullptr, hasArguments, argumentsCopy);
+		return new Malloc(file, location, (Type*)dstType->copy(), count ? (Expression*)count->copy() : nullptr, malloc, hasArguments, argumentsCopy);
 	}
 
 	UnaryOperator::UnaryOperator(File* file, const SourceLocation& location, Expression* operand, UnaryOperatorType operatorType, bool position)

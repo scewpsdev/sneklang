@@ -1,9 +1,9 @@
 #pragma warning( disable : 4244 )
 
-#include "linker.h"
+#include "Linker.h"
 
-#include "snek.h"
-#include "llvm_backend.h"
+#include "Snek.h"
+#include "LLVMBackend.h"
 
 #include <vector>
 #include <string>
@@ -74,11 +74,13 @@ bool LLVMLink(LLVMBackend* llb, const char* arg0, const char* filename, bool gen
 	{
 		args.push_back("-debug");
 	}
+	/* TODO uncomment
 	if (optLevel > 0)
 	{
 		std::string optArg = std::string("-opt:") + std::to_string(optLevel);
 		args.push_back(_strdup(optArg.c_str()));
 	}
+	*/
 
 	//args.push_back("-subsystem:console");
 	//args.push_back("-nologo");

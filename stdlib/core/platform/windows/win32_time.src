@@ -1,0 +1,22 @@
+module core.platform.windows;
+//namespace Win32;
+
+import win32;
+
+extern int QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+extern int QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
+
+
+public int64 now()
+{
+	LARGE_INTEGER ticks;
+	LARGE_INTEGER freq;
+
+	int result1 = QueryPerformanceCounter(&ticks);
+	int result2 = QueryPerformanceFrequency(&freq);
+
+	ticks.quadPart *= 1000000000;
+	ticks.quadPart /= freq.quadPart;
+
+	return ticks.quadPart;
+}

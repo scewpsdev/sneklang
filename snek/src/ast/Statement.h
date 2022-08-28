@@ -1,8 +1,9 @@
 #pragma once
 
-#include "List.h"
 #include "Element.h"
 #include "Type.h"
+#include "Expression.h"
+#include "utils/List.h"
 
 #include <stdint.h>
 
@@ -11,9 +12,6 @@ struct Variable;
 
 namespace AST
 {
-	struct Expression;
-
-
 	enum class StatementType : uint8_t
 	{
 		Null = 0,
@@ -127,8 +125,9 @@ namespace AST
 
 	struct ForLoop : Statement
 	{
-		char* iteratorName;
+		Identifier* iteratorName;
 		Expression* startValue, * endValue, * deltaValue;
+		bool includeEndValue;
 		Statement* body;
 
 		Variable* iterator = nullptr;
@@ -138,7 +137,7 @@ namespace AST
 		ControlFlowHandle continueHandle = nullptr;
 
 
-		ForLoop(File* file, const SourceLocation& location, char* iteratorName, Expression* startValue, Expression* endValue, Expression* deltaValue, Statement* body);
+		ForLoop(File* file, const SourceLocation& location, Identifier* iteratorName, Expression* startValue, Expression* endValue, Expression* deltaValue, bool includeEndValue, Statement* body);
 		virtual ~ForLoop();
 
 		virtual Element* copy() override;

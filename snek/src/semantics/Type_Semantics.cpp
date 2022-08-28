@@ -1,15 +1,14 @@
 #include "Type.h"
 
-#include "log.h"
-#include "resolver.h"
-#include "stringbuffer.h"
+#include "Resolver.h"
+#include "utils/Log.h"
+#include "utils/Stringbuffer.h"
 
 #include "ast/File.h"
 #include "ast/Declaration.h"
 #include "ast/Statement.h"
 
 #include <map>
-#include "..\ast\Type.h"
 
 
 struct TypeDataStorage
@@ -22,7 +21,7 @@ struct TypeDataStorage
 	List<TypeData*> pointerTypes;
 	List<TypeData*> functionTypes;
 	List<TypeData*> arrayTypes;
-	std::map<int, TypeData*> stringTypes;
+	//std::map<int, TypeData*> stringTypes;
 
 	std::map<TypeID, char*> typeStrings;
 };
@@ -48,7 +47,7 @@ enum TypeDataIndex
 
 	TYPE_DATA_INDEX_BOOL,
 
-	//TYPE_DATA_INDEX_STRING,
+	TYPE_DATA_INDEX_STRING,
 };
 
 
@@ -86,14 +85,12 @@ static TypeData CreateBoolTypeData()
 	return data;
 }
 
-/*
 static TypeData CreateStringTypeData()
 {
 	TypeData data = {};
 	data.typeKind = AST::TypeKind::String;
 	return data;
 }
-*/
 
 static char* TypeToString(TypeID type);
 
@@ -117,7 +114,7 @@ static void InitPrimitiveTypes()
 
 	types.primitiveTypes[TYPE_DATA_INDEX_BOOL] = CreateBoolTypeData();
 
-	//types.primitiveTypes[TYPE_DATA_INDEX_STRING] = CreateStringTypeData();
+	types.primitiveTypes[TYPE_DATA_INDEX_STRING] = CreateStringTypeData();
 
 
 	types.typeStrings.emplace(GetVoidType(), TypeToString(GetVoidType()));
@@ -203,8 +200,11 @@ TypeID GetBoolType()
 	return &types.primitiveTypes[TYPE_DATA_INDEX_BOOL];
 }
 
-TypeID GetStringType(int length)
+TypeID GetStringType()
 {
+	return &types.primitiveTypes[TYPE_DATA_INDEX_STRING];
+
+	/*
 	auto it = types.stringTypes.find(length);
 	if (it != types.stringTypes.end())
 	{
@@ -220,6 +220,7 @@ TypeID GetStringType(int length)
 
 		return data;
 	}
+	*/
 }
 
 TypeID GetStructType(const char* structName, AST::Struct* declaration)
@@ -288,7 +289,7 @@ TypeID GetPointerType(TypeID elementType)
 	return data;
 }
 
-TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, AST::Function* declaration)
+TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, TypeID instanceType, AST::Function* declaration)
 {
 	TypeData* data = new TypeData;
 	data->typeKind = AST::TypeKind::Function;
@@ -297,6 +298,7 @@ TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, boo
 	data->functionType.paramTypes = paramTypes;
 	data->functionType.varArgs = varArgs;
 	data->functionType.isMethod = isMethod;
+	data->functionType.instanceType = instanceType;
 	data->functionType.declaration = declaration;
 
 	types.functionTypes.add(data);
@@ -498,7 +500,7 @@ static char* TypeToString(TypeID type)
 	case AST::TypeKind::Function:
 	{
 		const char* returnTypeStr = GetTypeString(type->functionType.returnType);
-		int len = (int)strlen(returnTypeStr) + 2; // '()'
+		int len = type->functionType.returnType->typeKind != AST::TypeKind::Void ? (2 + 4 + (int)strlen(returnTypeStr)) : 2; // ' -> ', '()'
 
 		for (int i = 0; i < type->functionType.numParams; i++)
 		{
@@ -511,21 +513,26 @@ static char* TypeToString(TypeID type)
 			len += 3; // '...'
 
 		char* str = new char[len + 1];
-		strcpy(str, returnTypeStr);
-		strcpy(str + strlen(str), "(");
+		str[0] = 0;
+		strcat(str, "(");
 
 		for (int i = 0; i < type->functionType.numParams; i++)
 		{
 			const char* paramTypeStr = GetTypeString(type->functionType.paramTypes[i]);
-			strcpy(str + strlen(str), paramTypeStr);
+			strcat(str, paramTypeStr);
 			if (i < type->functionType.numParams - 1 || type->functionType.varArgs)
-				strcpy(str + strlen(str), ", ");
+				strcat(str, ", ");
 		}
 		if (type->functionType.varArgs)
-			strcpy(str + strlen(str), "...");
+			strcat(str, "...");
 
-		strcpy(str + strlen(str), ")");
-		str[len] = 0;
+		strcat(str, ")");
+
+		if (type->functionType.returnType->typeKind != AST::TypeKind::Void)
+		{
+			strcat(str, " -> ");
+			strcat(str, returnTypeStr);
+		}
 
 		return str;
 	}
@@ -540,11 +547,12 @@ static char* TypeToString(TypeID type)
 		}
 
 		char* str = new char[len + 1];
-		strcpy(str, elementTypeStr);
-		strcpy(str + strlen(str), "[");
-		sprintf(str + strlen(str), "%d", type->arrayType.length);
-		strcpy(str + strlen(str), "]");
-		str[len] = 0;
+		str[0] = 0;
+		strcat(str, elementTypeStr);
+		strcat(str, "[");
+		if (type->arrayType.length != -1)
+			sprintf(str + strlen(str), "%d", type->arrayType.length);
+		strcat(str, "]");
 
 		return str;
 	}
@@ -570,4 +578,147 @@ const char* GetTypeString(TypeID type)
 		types.typeStrings.emplace(type, str);
 		return str;
 	}
+}
+
+bool CanConvert(TypeID argType, TypeID paramType)
+{
+	if (CompareTypes(argType, paramType))
+		return true;
+
+	while (argType->typeKind == AST::TypeKind::Alias)
+		argType = argType->aliasType.alias;
+	while (paramType->typeKind == AST::TypeKind::Alias)
+		paramType = paramType->aliasType.alias;
+
+	if (argType->typeKind == AST::TypeKind::Integer)
+	{
+		if (paramType->typeKind == AST::TypeKind::Integer)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Boolean)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::FloatingPoint)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Pointer)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::FloatingPoint)
+	{
+		if (paramType->typeKind == AST::TypeKind::FloatingPoint)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Integer)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Boolean)
+	{
+		if (paramType->typeKind == AST::TypeKind::Integer)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Pointer)
+	{
+		if (paramType->typeKind == AST::TypeKind::Pointer)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Class)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Function)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Integer)
+			return true;
+		//else if (paramType->typeKind == AST::TypeKind::String)
+		//	return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Function)
+	{
+		if (paramType->typeKind == AST::TypeKind::Function)
+			return true;
+		else if (paramType->typeKind == AST::TypeKind::Pointer)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::String)
+	{
+		//if (paramType->typeKind == AST::TypeKind::Pointer)
+		//	return true;
+	}
+
+	return false;
+}
+
+bool CanConvertImplicit(TypeID argType, TypeID paramType, bool argIsConstant)
+{
+	argType = UnwrapType(argType);
+	paramType = UnwrapType(paramType);
+
+	if (CompareTypes(argType, paramType))
+		return true;
+
+	while (argType->typeKind == AST::TypeKind::Alias)
+		argType = argType->aliasType.alias;
+	while (paramType->typeKind == AST::TypeKind::Alias)
+		paramType = paramType->aliasType.alias;
+
+	if (argType->typeKind == AST::TypeKind::Integer && paramType->typeKind == AST::TypeKind::Integer)
+	{
+		if (argType->integerType.bitWidth == paramType->integerType.bitWidth)
+			return true;
+		else if (argType->integerType.bitWidth <= paramType->integerType.bitWidth)
+			//return argIsConstant;
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Integer && paramType->typeKind == AST::TypeKind::Boolean)
+	{
+		return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Boolean && paramType->typeKind == AST::TypeKind::Integer)
+	{
+		if (argIsConstant)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::FloatingPoint && paramType->typeKind == AST::TypeKind::FloatingPoint)
+	{
+		if (argIsConstant)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::Pointer)
+	{
+		if (/*argIsConstant || */argType->pointerType.elementType->typeKind == AST::TypeKind::Void || paramType->pointerType.elementType->typeKind == AST::TypeKind::Void)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Array && paramType->typeKind == AST::TypeKind::Array)
+	{
+		if (CompareTypes(argType->arrayType.elementType, paramType->arrayType.elementType))
+		{
+			if (paramType->arrayType.length == -1 || argType->arrayType.length == paramType->arrayType.length)
+				return true;
+		}
+		else if (CanConvertImplicit(argType->arrayType.elementType, paramType->arrayType.elementType, true) && argIsConstant)
+		{
+			if (argType->arrayType.length != -1)
+			{
+				if (paramType->arrayType.length != -1 && argType->arrayType.length == paramType->arrayType.length ||
+					paramType->arrayType.length == -1)
+					return true;
+			}
+		}
+	}
+	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::Class)
+	{
+		if (argIsConstant)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::Function)
+	{
+		if (argIsConstant)
+			return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::Pointer && paramType->typeKind == AST::TypeKind::String)
+	{
+		//if (argIsConstant)
+		//return true;
+	}
+	else if (argType->typeKind == AST::TypeKind::String && paramType->typeKind == AST::TypeKind::Pointer && paramType->pointerType.elementType->typeKind == AST::TypeKind::Integer && paramType->pointerType.elementType->integerType.bitWidth == 8)
+	{
+		//if (argIsConstant)
+		//return true;
+	}
+
+	return false;
 }

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "List.h"
 #include "Type.h"
 #include "ast/Declaration.h"
+#include "utils/List.h"
 
 #include <map>
 
@@ -68,6 +68,12 @@ struct Resolver
 	AST::Function* findFunctionInFile(const char* name, AST::File* file);
 	AST::Function* findFunctionInModule(const char* name, AST::Module* module);
 	AST::Function* findFunction(const char* name);
+	bool findFunctionsInFile(const char* name, AST::File* file, List<AST::Function*>& functions);
+	bool findFunctionsInModule(const char* name, AST::Module* module, List<AST::Function*>& functions);
+	bool findFunctions(const char* name, List<AST::Function*>& functions);
+
+	int getFunctionOverloadScore(const AST::Function* function, const List<AST::Expression*>& arguments);
+	void chooseFunctionOverload(List<AST::Function*>& functions, const List<AST::Expression*>& arguments);
 
 	AST::Enum* findEnumInFile(const char* name, AST::File* file);
 	AST::Enum* findEnumInModule(const char* name, AST::Module* module);
@@ -88,4 +94,6 @@ struct Resolver
 	AST::Exprdef* findExprdefInFile(const char* name, AST::File* file);
 	AST::Exprdef* findExprdefInModule(const char* name, AST::Module* module);
 	AST::Exprdef* findExprdef(const char* name);
+
+	bool isFunctionVisible(const AST::Function* function, AST::Module* currentModule);
 };

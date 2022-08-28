@@ -1,6 +1,6 @@
 #pragma once
 
-#include "List.h"
+#include "utils/List.h"
 
 #include <stdint.h>
 
@@ -25,10 +25,10 @@ typedef struct TypeData* TypeID;
 
 enum class FloatingPointPrecision
 {
-	Half,
-	Single,
-	Double,
-	Quad,
+	Half = 16,
+	Single = 32,
+	Double = 64,
+	Quad = 128,
 };
 
 struct TypeData
@@ -75,6 +75,7 @@ struct TypeData
 			TypeID* paramTypes;
 			bool varArgs;
 			bool isMethod;
+			TypeID instanceType;
 
 			AST::Function* declaration;
 		} functionType;
@@ -96,14 +97,14 @@ TypeID GetVoidType();
 TypeID GetIntegerType(int bitWidth, bool isSigned);
 TypeID GetFloatingPointType(FloatingPointPrecision precision);
 TypeID GetBoolType();
-TypeID GetStringType(int length);
+TypeID GetStringType();
 TypeID GetStructType(const char* structName, AST::Struct* declaration);
 TypeID GetStructType(int numValues, TypeID* valueTypes);
 TypeID GetClassType(const char* className, AST::Class* declaration);
 TypeID GetAliasType(const char* name, AST::Declaration* declaration);
 
 TypeID GetPointerType(TypeID elementType);
-TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, AST::Function* declaration);
+TypeID GetFunctionType(TypeID returnType, int numParams, TypeID* paramTypes, bool varArgs, bool isMethod, TypeID instanceType, AST::Function* declaration);
 TypeID GetArrayType(TypeID elementType, int length);
 
 TypeID UnwrapType(TypeID type);
@@ -111,3 +112,6 @@ TypeID UnwrapType(TypeID type);
 bool CompareTypes(TypeID t1, TypeID t2);
 
 const char* GetTypeString(TypeID type);
+
+bool CanConvert(TypeID argType, TypeID paramType);
+bool CanConvertImplicit(TypeID argType, TypeID paramType, bool argIsConstant);

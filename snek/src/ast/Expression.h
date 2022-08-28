@@ -28,7 +28,7 @@ namespace AST
 		CharacterLiteral,
 		NullLiteral,
 		StringLiteral,
-		StructLiteral,
+		InitializerList,
 		Identifier,
 		Compound,
 
@@ -183,14 +183,16 @@ namespace AST
 		virtual bool isLiteral() override;
 	};
 
-	struct StructLiteral : Expression
+	struct InitializerList : Expression
 	{
-		Type* structType;
+		Type* initializerTypeAST;
 		List<Expression*> values;
 
+		TypeID initializerType = nullptr;
 
-		StructLiteral(File* file, const SourceLocation& location, Type* structType, const List<Expression*>& values);
-		virtual ~StructLiteral();
+
+		InitializerList(File* file, const SourceLocation& location, Type* initializerTypeAST, const List<Expression*>& values);
+		virtual ~InitializerList();
 
 		virtual Element* copy() override;
 		virtual bool isConstant() override;
@@ -202,9 +204,10 @@ namespace AST
 		char* name;
 
 		Variable* variable = nullptr;
-		Function* function = nullptr;
 		Expression* exprdefValue = nullptr;
 		EnumValue* enumValue = nullptr;
+
+		List<Function*> functions;
 
 
 		Identifier(File* file, const SourceLocation& location, char* name);
@@ -263,8 +266,9 @@ namespace AST
 		char* name;
 
 		Module* module = nullptr;
-		Function* namespacedFunction = nullptr;
 		Variable* namespacedVariable = nullptr;
+
+		List<Function*> namespacedFunctions;
 
 		// structs
 		StructField* structField = nullptr;
@@ -314,12 +318,13 @@ namespace AST
 	{
 		Type* dstType;
 		Expression* count;
+		bool malloc;
 
 		bool hasArguments;
 		List<Expression*> arguments;
 
 
-		Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count, bool hasArguments, const List<Expression*>& arguments);
+		Malloc(File* file, const SourceLocation& location, Type* dstType, Expression* count, bool malloc, bool hasArguments, const List<Expression*>& arguments);
 		virtual ~Malloc();
 
 		virtual Element* copy() override;

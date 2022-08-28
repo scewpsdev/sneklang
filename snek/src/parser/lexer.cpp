@@ -1,7 +1,7 @@
-#include "lexer.h"
+#include "Lexer.h"
 
-#include "log.h"
-#include "keywords.h"
+#include "Keywords.h"
+#include "utils/Log.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -47,6 +47,7 @@ static const std::map<std::string, KeywordType> keywords =
 	{ KEYWORD_SIZEOF, KEYWORD_TYPE_SIZEOF },
 	{ KEYWORD_ALLOCA, KEYWORD_TYPE_ALLOCA },
 	{ KEYWORD_MALLOC, KEYWORD_TYPE_MALLOC },
+	{ KEYWORD_STACKNEW, KEYWORD_TYPE_STACKNEW },
 	{ KEYWORD_FREE, KEYWORD_TYPE_FREE },
 
 	{ KEYWORD_TRUE, KEYWORD_TYPE_TRUE },
@@ -285,19 +286,24 @@ static Token readNumberLiteral(Lexer* lexer)
 		token.len++;
 	}
 
-	char c = 0;
-	for (c = InputPeek(&lexer->input, 0);
+	char c = InputPeek(&lexer->input, 0);
+	char c2 = InputPeek(&lexer->input, 1);
+	for (;
 		isdigit(c) ||
-		c == '.' ||
+		(!fp && c == '.' && (isalpha(c2) || isdigit(c2))) ||
 		c == 'x' ||
 		(c >= 'a' && c <= 'f') ||
-		(c >= 'A' && c <= 'F');
-		c = InputPeek(&lexer->input, 0))
+		(c >= 'A' && c <= 'F') ||
+		c == '_';
+		)
 	{
 		InputNext(&lexer->input);
 		if (c == '.')
 			fp = true;
 		token.len++;
+
+		c = InputPeek(&lexer->input, 0);
+		c2 = InputPeek(&lexer->input, 1);
 	}
 
 	token.type = fp ? TOKEN_TYPE_FLOAT_LITERAL : TOKEN_TYPE_INT_LITERAL;

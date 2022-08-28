@@ -9,11 +9,11 @@
 
 #include "snek.h"
 
-#include "file.h"
-#include "utils.h"
+#include "File.h"
+#include "utils/Utils.h"
 
-#include "llvm/llvm_backend.h"
-#include "llvm/linker.h"
+#include "llvm/LLVMBackend.h"
+#include "llvm/Linker.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -187,20 +187,36 @@ static void OnCompilerMessage(MessageType msgType, const char* filename, int lin
 		"fatal error",
 	};
 
-	static char message[1024] = {};
-	message[0] = 0;
+	MessageType minMsgType =
+#if _DEBUG
+		MESSAGE_TYPE_INFO
+#else
+		MESSAGE_TYPE_WARNING
+#endif
+		;
 
-	if (filename)
-		sprintf(message + strlen(message), "%s:%d:%d: ", filename, line, col);
+	if (msgType >= minMsgType)
+	{
+		static char message[4192] = {};
+		message[0] = 0;
 
-	sprintf(message + strlen(message), "%s: ", MSG_TYPE_NAMES[msgType]);
+		if (filename)
+			sprintf(message + strlen(message), "%s:%d:%d: ", filename, line, col);
 
-	va_list args;
-	va_start(args, msg);
-	vsprintf(message + strlen(message), msg, args);
-	va_end(args);
+		if (msgType != MESSAGE_TYPE_INFO)
+			sprintf(message + strlen(message), "%s: ", MSG_TYPE_NAMES[msgType]);
 
-	compilerMessages << message << std::endl;
+		va_list args;
+		va_start(args, msg);
+		vsprintf(message + strlen(message), msg, args);
+		va_end(args);
+
+#if _DEBUG
+		fprintf(stderr, "%s\n", message);
+#else
+		compilerMessages << message << std::endl;
+#endif
+	}
 }
 
 int main(int argc, char* argv[])
@@ -232,8 +248,11 @@ int main(int argc, char* argv[])
 					buildFolder = arg;
 					if (!std::filesystem::exists(buildFolder))
 					{
-						SnekFatal(context, ERROR_CODE_CMD_ARG_SYNTAX, "Build directory '%s' does not exist", buildFolder);
-						result = false;
+						if (!std::filesystem::create_directories(buildFolder))
+						{
+							SnekFatal(context, ERROR_CODE_CMD_ARG_SYNTAX, "Failed to create build directory '%s'", buildFolder);
+							result = false;
+						}
 					}
 				}
 				else
@@ -248,10 +267,16 @@ int main(int argc, char* argv[])
 				{
 					arg = argv[++i];
 					filename = arg;
-					if (!std::filesystem::exists(std::filesystem::path(filename).parent_path()))
+
+					auto outputDirectory = std::filesystem::path(filename).parent_path();
+
+					if (!std::filesystem::exists(outputDirectory))
 					{
-						SnekFatal(context, ERROR_CODE_CMD_ARG_SYNTAX, "Output directory for '%s' does not exist", filename);
-						result = false;
+						if (!std::filesystem::create_directories(outputDirectory))
+						{
+							SnekFatal(context, ERROR_CODE_CMD_ARG_SYNTAX, "Failed to create output directory '%s'", filename);
+							result = false;
+						}
 					}
 				}
 				else

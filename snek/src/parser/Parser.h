@@ -1,8 +1,8 @@
 #pragma once
 
-#include "List.h"
-#include "lexer.h"
-#include "log.h"
+#include "Lexer.h"
+#include "utils/List.h"
+#include "utils/Log.h"
 
 
 struct SkContext;

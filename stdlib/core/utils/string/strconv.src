@@ -1,0 +1,33 @@
+module utils.string;
+
+
+public func parseInt(string str) -> int {
+	return 5;
+}
+
+public func fromInt(int n) -> string {
+	bool negative = n < 0;
+	uint n1 = negative ? -n : n;
+
+	char[50] buffer;
+	int i = 0;
+
+	while (n1 != 0) {
+		buffer[i++] = (char)('0' + n1 % 10);
+		n1 = n1 / 10;
+	}
+
+	if (negative)
+		buffer[i++] = '-';
+
+	if (n == 0)
+		buffer[i++] = '0';
+
+	string result = new string(i);
+
+	for (t, 0, i) {
+		result[t] = buffer[i - t - 1];
+	}
+
+	return result;
+}

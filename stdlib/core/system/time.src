@@ -1,0 +1,11 @@
+module core.system;
+//namespace Time;
+
+import core.platform.windows.win32_time;
+
+
+public int64 now()
+{
+	//return Win32.Timestamp();
+	return 0;
+}

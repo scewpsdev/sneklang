@@ -1,7 +1,7 @@
 #pragma once
 
-#include "log.h"
-#include "List.h"
+#include "utils/Log.h"
+#include "utils/List.h"
 
 
 namespace AST

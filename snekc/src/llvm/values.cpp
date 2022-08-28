@@ -1,10 +1,13 @@
 #include "values.h"
 
-#include "llvm_backend.h"
+#include "LLVMBackend.h"
 #include "debug.h"
-#include "log.h"
+#include "Types.h"
+#include "utils/Log.h"
 
 #include "ast/File.h"
+
+#include "semantics/Variable.h"
 
 
 LLVMValueRef CastInt(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type, TypeID valueType)
@@ -26,7 +29,7 @@ LLVMValueRef CastInt(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLV
 		return value;
 }
 
-LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValue, LLVMTypeRef llvmType, TypeID valueType, TypeID dstType)
+LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValue, LLVMTypeRef llvmType, TypeID valueType, TypeID dstType, bool isLValue)
 {
 	LLVMTypeRef vt = LLVMTypeOf(llvmValue);
 	LLVMTypeKind vtk = LLVMGetTypeKind(vt);
@@ -37,11 +40,10 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 	while (dstType->typeKind == AST::TypeKind::Alias)
 		dstType = dstType->aliasType.alias;
 
-	if (CompareTypes(valueType, dstType))
-		return llvmValue;
-
 	if (valueType->typeKind == AST::TypeKind::Integer)
 	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+
 		if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (valueType->integerType.bitWidth > dstType->integerType.bitWidth)
@@ -78,6 +80,8 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 	}
 	else if (valueType->typeKind == AST::TypeKind::FloatingPoint)
 	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+
 		if (dstType->typeKind == AST::TypeKind::FloatingPoint)
 		{
 			if (valueType->fpType.precision > dstType->fpType.precision)
@@ -99,6 +103,8 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 	}
 	else if (valueType->typeKind == AST::TypeKind::Boolean)
 	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+
 		if (dstType->typeKind == AST::TypeKind::Integer)
 		{
 			if (dstType->integerType.isSigned)
@@ -107,8 +113,14 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 				return LLVM_CALL(LLVMBuildZExt, module->builder, llvmValue, llvmType, "");
 		}
 	}
+	else if (valueType->typeKind == AST::TypeKind::Struct)
+	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+	}
 	else if (valueType->typeKind == AST::TypeKind::Pointer)
 	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+
 		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
@@ -138,8 +150,73 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 		}
 		*/
 	}
+	else if (valueType->typeKind == AST::TypeKind::Array)
+	{
+		if (dstType->typeKind == AST::TypeKind::Array)
+		{
+			if (valueType->arrayType.length != -1 && dstType->arrayType.length == -1)
+			{
+				LLVMTypeRef arrayType = LLVMGetElementType(LLVMTypeOf(llvmValue));
+				LLVMTypeRef elementType = LLVMGetElementType(arrayType);
+
+				if (!CompareTypes(valueType->arrayType.elementType, dstType->arrayType.elementType))
+				{
+					SnekAssert(valueType->arrayType.length != -1);
+					if (dstType->arrayType.length != -1)
+						SnekAssert(valueType->arrayType.length == dstType->arrayType.length);
+
+					LLVMTypeRef newElementType = GenTypeID(llb, module, dstType->arrayType.elementType);
+					LLVMValueRef castedArray = CreateArrayOfSize(llb, module, newElementType, LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), valueType->arrayType.length, false), false);
+
+					for (int i = 0; i < valueType->arrayType.length; i++)
+					{
+						LLVMValueRef index = LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), i, false);
+						LLVMValueRef elementAlloc = GetArrayElementAlloc(llb, module, castedArray, index);
+						LLVMValueRef previousElement = GetArrayElement(llb, module, llvmValue, index);
+						LLVMValueRef newElement = CastValue(llb, module, previousElement, newElementType, valueType->arrayType.elementType, dstType->arrayType.elementType, false);
+						LLVMBuildStore(module->builder, newElement, elementAlloc);
+					}
+
+					llvmValue = castedArray;
+					arrayType = GetArrayType(llb, newElementType, valueType->arrayType.length);
+					elementType = newElementType;
+				}
+
+				SnekAssert(LLVMGetTypeKind(LLVMTypeOf(llvmValue)) == LLVMPointerTypeKind);
+
+				unsigned int arrayLength = LLVMGetArrayLength(arrayType);
+
+				LLVMValueRef sliceValue = LLVMBuildAlloca(module->builder, GetSliceType(llb, elementType), "");
+				LLVMValueRef sizeAlloc = LLVMBuildStructGEP(module->builder, sliceValue, 0, "");
+				LLVMValueRef ptrAlloc = LLVMBuildStructGEP(module->builder, sliceValue, 1, "");
+
+				LLVMValueRef indices[] = {
+					LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 0, false),
+					LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 0, false),
+				};
+				LLVMValueRef ptr = LLVMBuildGEP(module->builder, llvmValue, indices, 2, "");
+
+				LLVMBuildStore(module->builder, LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), arrayLength, false), sizeAlloc);
+				LLVMBuildStore(module->builder, ptr, ptrAlloc);
+
+				return sliceValue;
+			}
+			else
+			{
+				llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+			}
+
+			return llvmValue;
+		}
+		else
+		{
+			SnekAssert(false);
+		}
+	}
 	else if (valueType->typeKind == AST::TypeKind::Function)
 	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+
 		if (dstType->typeKind == AST::TypeKind::Function)
 		{
 			return LLVM_CALL(LLVMBuildBitCast, module->builder, llvmValue, llvmType, "");
@@ -151,6 +228,8 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 	}
 	else if (valueType->typeKind == AST::TypeKind::String)
 	{
+		llvmValue = GetRValue(llb, module, llvmValue, isLValue);
+
 		/*
 		if (dstType->typeKind == AST::TypeKind::Pointer)
 		{
@@ -159,8 +238,11 @@ LLVMValueRef CastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValu
 		*/
 	}
 
+	if (CompareTypes(valueType, dstType))
+		return llvmValue;
+
 	SnekAssert(false);
-	return NULL;
+	return nullptr;
 }
 
 LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llvmValue, LLVMTypeRef llvmType, TypeID valueType, TypeID dstType)
@@ -298,12 +380,11 @@ LLVMValueRef ConstCastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef llv
 	return NULL;
 }
 
-LLVMValueRef ConvertArgumentValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type, TypeID valueType, TypeID dstType, bool isLValue, bool isConstant)
+LLVMValueRef ConvertValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type, TypeID valueType, TypeID dstType, bool isLValue, bool isConstant)
 {
-	value = GetRValue(llb, module, value, isLValue);
 	//if (isConstant)
 	//{
-	return CastValue(llb, module, value, type, valueType, dstType);
+	return CastValue(llb, module, value, type, valueType, dstType, isLValue);
 	//}
 	/*
 	if (CompareTypes(valueType, dstType))
@@ -314,17 +395,6 @@ LLVMValueRef ConvertArgumentValue(LLVMBackend* llb, SkModule* module, LLVMValueR
 		return NULL;
 	}
 	*/
-}
-
-LLVMValueRef ConvertAssignValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type, TypeID valueType, TypeID dstType, bool isLValue, bool isConstant)
-{
-	value = GetRValue(llb, module, value, isLValue);
-	//if (isConstant)
-	//{
-	return CastValue(llb, module, value, type, valueType, dstType);
-	//}
-
-	//return value;
 }
 
 LLVMValueRef BitcastValue(LLVMBackend* llb, SkModule* module, LLVMValueRef value, LLVMTypeRef type)

@@ -32,16 +32,17 @@
     <ClCompile Include="src\semantics\Struct.cpp" />
     <ClCompile Include="src\semantics\Typedef.cpp" />
     <ClCompile Include="src\semantics\Variable.cpp" />
-    <ClCompile Include="src\log.cpp" />
-    <ClCompile Include="src\Mangling.cpp" />
-    <ClCompile Include="src\parser\input.cpp" />
-    <ClCompile Include="src\parser\lexer.cpp" />
+    <ClCompile Include="src\utils\Hash.cpp" />
+    <ClCompile Include="src\utils\Log.cpp" />
+    <ClCompile Include="src\semantics\Mangling.cpp" />
+    <ClCompile Include="src\parser\Input.cpp" />
+    <ClCompile Include="src\parser\Lexer.cpp" />
     <ClCompile Include="src\parser\Parser.cpp" />
     <ClCompile Include="src\semantics\Resolver.cpp" />
     <ClCompile Include="src\semantics\Type_Semantics.cpp" />
-    <ClCompile Include="src\snek.cpp" />
-    <ClCompile Include="src\stringbuffer.cpp" />
-    <ClCompile Include="src\utils.cpp" />
+    <ClCompile Include="src\Snek.cpp" />
+    <ClCompile Include="src\utils\StringBuffer.cpp" />
+    <ClCompile Include="src\utils\Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ast\Declaration.h" />
@@ -58,18 +59,19 @@
     <ClInclude Include="src\semantics\Struct.h" />
     <ClInclude Include="src\semantics\Typedef.h" />
     <ClInclude Include="src\semantics\Variable.h" />
-    <ClInclude Include="src\keywords.h" />
-    <ClInclude Include="src\List.h" />
-    <ClInclude Include="src\log.h" />
-    <ClInclude Include="src\Mangling.h" />
-    <ClInclude Include="src\parser\input.h" />
-    <ClInclude Include="src\parser\lexer.h" />
+    <ClInclude Include="src\parser\Keywords.h" />
+    <ClInclude Include="src\utils\Hash.h" />
+    <ClInclude Include="src\utils\List.h" />
+    <ClInclude Include="src\utils\Log.h" />
+    <ClInclude Include="src\semantics\Mangling.h" />
+    <ClInclude Include="src\parser\Input.h" />
+    <ClInclude Include="src\parser\Lexer.h" />
     <ClInclude Include="src\parser\Parser.h" />
     <ClInclude Include="src\semantics\Resolver.h" />
     <ClInclude Include="src\semantics\Type.h" />
-    <ClInclude Include="src\snek.h" />
-    <ClInclude Include="src\stringbuffer.h" />
-    <ClInclude Include="src\utils.h" />
+    <ClInclude Include="src\Snek.h" />
+    <ClInclude Include="src\utils\StringBuffer.h" />
+    <ClInclude Include="src\utils\Utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

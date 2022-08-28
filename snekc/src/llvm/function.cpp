@@ -1,10 +1,11 @@
 #include "function.h"
 
-#include "llvm_backend.h"
-#include "debug.h"
-#include "List.h"
-#include "debug_info.h"
-#include "values.h"
+#include "LLVMBackend.h"
+#include "Debug.h"
+#include "DebugInfo.h"
+#include "Values.h"
+#include "utils/List.h"
+#include "utils/Log.h"
 
 #include "ast/File.h"
 #include "semantics/Variable.h"
@@ -13,13 +14,13 @@
 LLVMTypeRef CanPassByValue(LLVMBackend* llb, SkModule* module, LLVMTypeRef type)
 {
 	LLVMTypeKind typeKind = LLVMGetTypeKind(type);
-	if (typeKind == LLVMStructTypeKind)
+	if (typeKind == LLVMStructTypeKind || typeKind == LLVMArrayTypeKind)
 	{
 		unsigned long long size = LLVMSizeOfTypeInBits(llb->targetData, type);
 		if (size == 1 || size == 2 || size == 4 || size == 8 || size == 16 || size == 32 || size == 64)
 			return LLVMIntTypeInContext(llb->llvmContext, (unsigned int)size);
 		else
-			return NULL;
+			return nullptr;
 	}
 	else
 	{
@@ -73,8 +74,9 @@ LLVMValueRef CreateFunction(LLVMBackend* llb, SkModule* module, const char* mang
 
 void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AST::Function* function, LLVMValueRef llvmValue)
 {
-	LLVMTypeRef returnType = GenType(llb, module, function->returnType);
-	bool returnValueAsArg = !CanPassByValue(llb, module, returnType);
+	LLVMTypeRef returnType = GenTypeID(llb, module, function->functionType->functionType.returnType);
+	LLVMTypeRef functionReturnType = CanPassByValue(llb, module, returnType);
+	bool returnValueAsArg = !functionReturnType;
 
 	LLVMBasicBlockRef parentBlock = LLVM_CALL(LLVMGetInsertBlock, module->builder);
 	LLVMBasicBlockRef entryBlock = LLVM_CALL(LLVMAppendBasicBlockInContext, llb->llvmContext, llvmValue, "entry");
@@ -88,22 +90,35 @@ void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AST::Function* fun
 		DebugInfoEmitNullLocation(llb, module, module->entryBuilder);
 	}
 
+	LLVMBasicBlockRef parentReturnBlock = module->returnBlock;
+	LLVMValueRef parentReturnAlloc = module->returnAlloc;
+
 	module->returnBlock = returnBlock;
-	module->returnAlloc = NULL;
-	if (function->returnType->typeKind != AST::TypeKind::Void)
+	module->returnAlloc = nullptr;
+
+	if (function->functionType->functionType.returnType->typeKind == AST::TypeKind::Void)
 	{
-		if (!returnValueAsArg)
+		if (function->isEntryPoint)
+		{
+			module->returnAlloc = AllocateLocalVariable(llb, module, LLVMInt32TypeInContext(llb->llvmContext), "ret_val");
+			LLVMBuildStore(module->builder, LLVMConstNull(LLVMInt32TypeInContext(llb->llvmContext)), module->returnAlloc);
+		}
+	}
+	else
+	{
+		if (returnValueAsArg)
+		{
+			module->returnAlloc = LLVMGetParam(llvmValue, 0);
+		}
+		else
 		{
 			module->returnAlloc = AllocateLocalVariable(llb, module, returnType, "ret_val");
 			LLVMBuildStore(module->builder, LLVMConstNull(returnType), module->returnAlloc);
 		}
-		else
-		{
-			module->returnAlloc = LLVMGetParam(llvmValue, 0);
-		}
 	}
 
-	for (int i = 0; i < function->paramTypes.size; i++) {
+	for (int i = 0; i < function->paramTypes.size; i++)
+	{
 		LLVMValueRef arg = NULL;
 		if (!returnValueAsArg)
 			arg = LLVM_CALL(LLVMGetParam, llvmValue, i);
@@ -154,29 +169,131 @@ void GenerateFunctionBody(LLVMBackend* llb, SkModule* module, AST::Function* fun
 		DebugInfoEmitSourceLocation(llb, module, module->builder, function->endLocation);
 	}
 
-	if (function->returnType->typeKind != AST::TypeKind::Void)
-	{
-		if (!returnValueAsArg)
-			LLVM_CALL(LLVMBuildRet, module->builder, LLVM_CALL(LLVMBuildLoad, module->builder, module->returnAlloc, ""));
-		else
-			LLVM_CALL(LLVMBuildRetVoid, module->builder);
-	}
-	else
+	if (function->functionType->functionType.returnType->typeKind == AST::TypeKind::Void)
 	{
 		if (function->isEntryPoint)
 		{
-			LLVM_CALL(LLVMBuildRet, module->builder, LLVMConstInt(LLVMInt32TypeInContext(llb->llvmContext), 0, false));
+			LLVMValueRef exitCode = LLVM_CALL(LLVMBuildLoad, module->builder, module->returnAlloc, "");
+			LLVM_CALL(LLVMBuildRet, module->builder, exitCode);
 		}
 		else
 		{
 			LLVM_CALL(LLVMBuildRetVoid, module->builder);
+		}
+	}
+	else
+	{
+		if (returnValueAsArg)
+			LLVM_CALL(LLVMBuildRetVoid, module->builder);
+		else
+		{
+			LLVMValueRef bitcastedAlloc = LLVMBuildBitCast(module->builder, module->returnAlloc, LLVMPointerType(functionReturnType, 0), "");
+			LLVM_CALL(LLVMBuildRet, module->builder, LLVM_CALL(LLVMBuildLoad, module->builder, bitcastedAlloc, ""));
 		}
 	}
 
 	LLVM_CALL(LLVMPositionBuilderAtEnd, module->builder, parentBlock);
 
+	module->returnBlock = parentReturnBlock;
+	module->returnAlloc = parentReturnAlloc;
+
 	if (module->hasDebugInfo)
 	{
 		DebugInfoEndFunction(llb, module, function);
 	}
+}
+
+LLVMValueRef CallFunction(LLVMBackend* llb, SkModule* module, TypeID functionType, LLVMValueRef callee, LLVMValueRef* args, int numArgs)
+{
+	LLVMTypeRef returnType = GenTypeID(llb, module, functionType->functionType.returnType);
+	LLVMTypeRef _returnType = CanPassByValue(llb, module, returnType);
+	bool returnValueAsArg = !_returnType;
+	LLVMValueRef returnValueAlloc = NULL;
+
+	List<LLVMValueRef> arguments = CreateList<LLVMValueRef>(numArgs);
+
+	if (returnValueAsArg)
+	{
+		returnValueAlloc = LLVMBuildAlloca(module->builder, returnType, "");
+		arguments.add(returnValueAlloc);
+	}
+
+	for (int i = 0; i < numArgs; i++)
+	{
+		LLVMValueRef arg = args[i];
+		LLVMTypeRef paramType = LLVMTypeOf(arg);
+
+		if (LLVMTypeRef _paramType = CanPassByValue(llb, module, paramType))
+		{
+			if (paramType != _paramType)
+			{
+				arg = BitcastValue(llb, module, arg, _paramType);
+			}
+		}
+		else
+		{
+			// Allocate argument in the caller stackframe
+			LLVMValueRef argAlloc = LLVMBuildAlloca(module->builder, paramType, "");
+			LLVM_CALL(LLVMBuildStore, module->builder, arg, argAlloc);
+			arg = argAlloc;
+		}
+
+		arguments.add(arg);
+	}
+
+	LLVMValueRef callValue = LLVM_CALL(LLVMBuildCall, module->builder, callee, arguments.buffer, arguments.size, "");
+
+	LLVMValueRef result = NULL;
+	if (!returnValueAsArg)
+	{
+		if (returnType != _returnType)
+		{
+			callValue = BitcastValue(llb, module, callValue, _returnType);
+		}
+		result = callValue;
+	}
+	else
+	{
+		result = LLVM_CALL(LLVMBuildLoad, module->builder, returnValueAlloc, "");
+	}
+
+	DestroyList(arguments);
+
+	return result;
+}
+
+LLVMTypeRef FunctionType(LLVMBackend* llb, SkModule* module, LLVMTypeRef returnType, LLVMTypeRef* paramTypes, int numParams, bool varArgs)
+{
+	// x64 calling convention
+
+	LLVMTypeRef functionReturnType = NULL;
+	List<LLVMTypeRef> functionParamTypes = CreateList<LLVMTypeRef>(numParams);
+
+	if (LLVMTypeRef _functionReturnType = CanPassByValue(llb, module, returnType))
+	{
+		functionReturnType = _functionReturnType;
+	}
+	else
+	{
+		functionReturnType = LLVMVoidTypeInContext(llb->llvmContext);
+		functionParamTypes.add(LLVMPointerType(returnType, 0));
+	}
+
+	for (int i = 0; i < numParams; i++)
+	{
+		LLVMTypeRef paramType = paramTypes[i];
+		if (LLVMTypeRef _paramType = CanPassByValue(llb, module, paramType))
+		{
+			functionParamTypes.add(_paramType);
+		}
+		else
+		{
+			functionParamTypes.add(LLVMPointerType(paramType, 0));
+		}
+	}
+
+	LLVMTypeRef functionType = LLVMFunctionType(functionReturnType, functionParamTypes.buffer, functionParamTypes.size, varArgs);
+	DestroyList(functionParamTypes);
+
+	return functionType;
 }

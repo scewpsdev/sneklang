@@ -33,10 +33,10 @@
     <ClInclude Include="src\ast\Type.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\parser\input.h">
+    <ClInclude Include="src\parser\Input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\parser\lexer.h">
+    <ClInclude Include="src\parser\Lexer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\parser\Parser.h">
@@ -45,28 +45,28 @@
     <ClInclude Include="src\semantics\Type.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\keywords.h">
+    <ClInclude Include="src\parser\Keywords.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\List.h">
+    <ClInclude Include="src\utils\List.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\log.h">
+    <ClInclude Include="src\utils\Log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Mangling.h">
+    <ClInclude Include="src\semantics\Mangling.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\semantics\Resolver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\snek.h">
+    <ClInclude Include="src\Snek.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\stringbuffer.h">
+    <ClInclude Include="src\utils\StringBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\utils.h">
+    <ClInclude Include="src\utils\Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\ast\Declaration.h">
@@ -93,6 +93,9 @@
     <ClInclude Include="src\Common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils\Hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ast\Element.cpp">
@@ -110,10 +113,10 @@
     <ClCompile Include="src\semantics\Variable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\parser\input.cpp">
+    <ClCompile Include="src\parser\Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\parser\lexer.cpp">
+    <ClCompile Include="src\parser\Lexer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\parser\Parser.cpp">
@@ -122,22 +125,22 @@
     <ClCompile Include="src\semantics\Type_Semantics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\log.cpp">
+    <ClCompile Include="src\utils\Log.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Mangling.cpp">
+    <ClCompile Include="src\semantics\Mangling.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\semantics\Resolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\snek.cpp">
+    <ClCompile Include="src\Snek.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\stringbuffer.cpp">
+    <ClCompile Include="src\utils\StringBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\utils.cpp">
+    <ClCompile Include="src\utils\Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ast\Declaration.cpp">
@@ -162,6 +165,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ast\Module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\Hash.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

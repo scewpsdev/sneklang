@@ -2,7 +2,7 @@
 
 #include "Resolver.h"
 
-#include "log.h"
+#include "utils/Log.h"
 
 
 Variable::Variable(AST::File* file, char* name, TypeID type, AST::Expression* value, bool isConstant, AST::Visibility visibility)
@@ -82,7 +82,8 @@ Variable* Resolver::findGlobalVariableInFile(const char* name, AST::File* file)
 
 Variable* Resolver::findGlobalVariableInModule(const char* name, AST::Module* module, AST::Module* current)
 {
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (Variable* variable = findGlobalVariableInFile(name, file))
 		{
@@ -107,7 +108,8 @@ Variable* Resolver::findVariable(const char* name)
 		return variable;
 
 	AST::Module* module = currentFile->moduleDecl ? currentFile->moduleDecl->module : globalNamespace;
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (file != currentFile)
 		{
@@ -126,7 +128,8 @@ Variable* Resolver::findVariable(const char* name)
 	for (int i = 0; i < currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = currentFile->dependencies[i];
-		if (AST::File* file = dependency->file)
+		//if (AST::File* file = dependency->file)
+		for (AST::File* file : dependency->files)
 		{
 			if (Variable* variable = findGlobalVariableInFile(name, file))
 			{
@@ -161,7 +164,8 @@ AST::EnumValue* FindEnumValueInFile(Resolver* resolver, AST::File* file, const c
 
 AST::EnumValue* FindEnumValueInNamespace(Resolver* resolver, AST::Module* module, const char* name, AST::Module* currentNamespace)
 {
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (AST::EnumValue* enumValue = FindEnumValueInFile(resolver, file, name))
 		{
@@ -221,7 +225,8 @@ AST::Struct* FindStruct(Resolver* resolver, const char* name)
 	}
 
 	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (AST::Struct* str = FindStructInFile(resolver, file, name))
 		{
@@ -237,7 +242,8 @@ AST::Struct* FindStruct(Resolver* resolver, const char* name)
 	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = resolver->currentFile->dependencies[i];
-		if (AST::File* file = dependency->file)
+		//if (AST::File* file = dependency->file)
+		for (AST::File* file : dependency->files)
 		{
 			if (AST::Struct* str = FindStructInFile(resolver, file, name))
 			{
@@ -275,7 +281,8 @@ AST::Class* FindClass(Resolver* resolver, const char* name)
 	}
 
 	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (AST::Class* clss = FindClassInFile(resolver, file, name))
 		{
@@ -291,7 +298,8 @@ AST::Class* FindClass(Resolver* resolver, const char* name)
 	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = resolver->currentFile->dependencies[i];
-		if (AST::File* file = module->file)
+		//if (AST::File* file = module->file)
+		for (AST::File* file : module->files)
 		{
 			if (AST::Class* clss = FindClassInFile(resolver, file, name))
 			{
@@ -329,7 +337,8 @@ AST::Typedef* FindTypedef(Resolver* resolver, const char* name)
 	}
 
 	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (AST::Typedef* td = FindTypedefInFile(resolver, file, name))
 		{
@@ -345,7 +354,8 @@ AST::Typedef* FindTypedef(Resolver* resolver, const char* name)
 	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = resolver->currentFile->dependencies[i];
-		if (AST::File* file = dependency->file)
+		//if (AST::File* file = dependency->file)
+		for (AST::File* file : dependency->files)
 		{
 			if (AST::Typedef* td = FindTypedefInFile(resolver, file, name))
 			{
@@ -383,7 +393,8 @@ AST::Enum* FindEnum(Resolver* resolver, const char* name)
 	}
 
 	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (AST::Enum* en = FindEnumInFile(resolver, file, name))
 		{
@@ -399,7 +410,8 @@ AST::Enum* FindEnum(Resolver* resolver, const char* name)
 	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = resolver->currentFile->dependencies[i];
-		if (AST::File* file = dependency->file)
+		//if (AST::File* file = dependency->file)
+		for (AST::File* file : dependency->files)
 		{
 			if (AST::Enum* en = FindEnumInFile(resolver, file, name))
 			{
@@ -437,7 +449,8 @@ AST::Exprdef* FindExprdef(Resolver* resolver, const char* name)
 	}
 
 	AST::Module* module = resolver->currentFile->moduleDecl ? resolver->currentFile->moduleDecl->module : resolver->globalNamespace;
-	if (AST::File* file = module->file)
+	//if (AST::File* file = module->file)
+	for (AST::File* file : module->files)
 	{
 		if (AST::Exprdef* ed = FindExprdefInFile(resolver, file, name))
 		{
@@ -453,7 +466,8 @@ AST::Exprdef* FindExprdef(Resolver* resolver, const char* name)
 	for (int i = 0; i < resolver->currentFile->dependencies.size; i++)
 	{
 		AST::Module* dependency = resolver->currentFile->dependencies[i];
-		if (AST::File* file = dependency->file)
+		//if (AST::File* file = dependency->file)
+		for (AST::File* file : module->files)
 		{
 			if (AST::Exprdef* ed = FindExprdefInFile(resolver, file, name))
 			{

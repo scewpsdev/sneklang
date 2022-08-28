@@ -1,7 +1,7 @@
 #pragma once
 
 #include "File.h"
-#include "List.h"
+#include "utils/List.h"
 
 
 namespace AST
@@ -11,7 +11,7 @@ namespace AST
 		char* name;
 		Module* parent;
 		List<Module*> children;
-		File* file = nullptr;
+		List<File*> files;
 
 		Module(const char* name, Module* parent);
 		~Module();

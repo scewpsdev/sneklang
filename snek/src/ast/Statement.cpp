@@ -141,8 +141,8 @@ namespace AST
 		return new WhileLoop(file, location, (Expression*)condition->copy(), (Statement*)body->copy());
 	}
 
-	ForLoop::ForLoop(File* file, const SourceLocation& location, char* iteratorName, Expression* startValue, Expression* endValue, Expression* deltaValue, Statement* body)
-		: Statement(file, location, StatementType::For), iteratorName(iteratorName), startValue(startValue), endValue(endValue), deltaValue(deltaValue), body(body)
+	ForLoop::ForLoop(File* file, const SourceLocation& location, Identifier* iteratorName, Expression* startValue, Expression* endValue, Expression* deltaValue, bool includeEndValue, Statement* body)
+		: Statement(file, location, StatementType::For), iteratorName(iteratorName), startValue(startValue), endValue(endValue), deltaValue(deltaValue), includeEndValue(includeEndValue), body(body)
 	{
 	}
 
@@ -162,7 +162,7 @@ namespace AST
 
 	Element* ForLoop::copy()
 	{
-		return new ForLoop(file, location, _strdup(iteratorName), (Expression*)startValue->copy(), (Expression*)endValue->copy(), deltaValue ? (Expression*)deltaValue->copy() : nullptr, (Statement*)body->copy());
+		return new ForLoop(file, location, (Identifier*)iteratorName->copy(), (Expression*)startValue->copy(), (Expression*)endValue->copy(), deltaValue ? (Expression*)deltaValue->copy() : nullptr, includeEndValue, (Statement*)body->copy());
 	}
 
 	Break::Break(File* file, const SourceLocation& location)

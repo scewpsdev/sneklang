@@ -14,13 +14,13 @@
     <LocalDebuggerWorkingDirectory>D:/Projects/snek-test/</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>src/**.src -build target/debug/intermediate -out target/debug/SnekTest.exe --stdlib</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build target/debug/intermediate -out target/debug/snek_test.exe</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>D:/Dev/SnekTest/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>D:/Dev/snek_test</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>src/**.src -build target/debug/intermediate -out target/debug/SnekTest.exe --stdlib</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>src/**.src -build target/debug/intermediate -out target/debug/snek_test.exe</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>D:/Dev/SnekTest/</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>D:/Dev/snek_test</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

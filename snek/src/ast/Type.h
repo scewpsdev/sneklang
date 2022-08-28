@@ -2,7 +2,7 @@
 
 #include "Element.h"
 
-#include "List.h"
+#include "utils/List.h"
 
 #include <stdint.h>
 
@@ -34,9 +34,9 @@ namespace AST
 
 	struct Type : Element
 	{
-		TypeKind typeKind;
+		TypeKind typeKind = TypeKind::Null;
 
-		TypeID typeID;
+		TypeID typeID = nullptr;
 
 
 		Type(File* file, const SourceLocation& location, TypeKind typeKind);
