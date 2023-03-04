@@ -473,10 +473,6 @@ static LLVMValueRef GenInitializerList(LLVMBackend* llb, SkModule* module, AST::
 				//else
 				value = CastValue(llb, module, value, elementType, expression->values[i]->valueType, expression->initializerType->arrayType.elementType, expression->values[i]->lvalue);
 
-				puts(LLVMPrintValueToString(value));
-				puts(LLVMPrintValueToString(valueAlloc));
-				puts(LLVMPrintTypeToString(LLVMTypeOf(value)));
-				puts(LLVMPrintTypeToString(LLVMTypeOf(valueAlloc)));
 				LLVMBuildStore(module->builder, value, valueAlloc);
 			}
 			else
@@ -1952,9 +1948,6 @@ static void GenGlobal(LLVMBackend* llb, SkModule* module, AST::GlobalVariable* g
 			value = LLVM_CALL(LLVMConstBitCast, value, stringType);
 		}
 		*/
-
-		puts(LLVMPrintValueToString(alloc));
-		puts(LLVMPrintValueToString(value));
 
 		LLVM_CALL(LLVMSetInitializer, alloc, value);
 	}
